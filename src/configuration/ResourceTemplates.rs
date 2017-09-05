@@ -15,7 +15,7 @@ impl ResourceTemplates
 	{
 		Self
 		{
-			resourceTemplate: configuration.resource_template().clone(),
+			resourceTemplate: configuration.resource_template(),
 			overridesOfResourceTemplate: HashMap::with_capacity(1024),
 		}
 	}

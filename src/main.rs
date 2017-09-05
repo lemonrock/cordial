@@ -34,7 +34,6 @@ use self::configuration::domain::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
-use ::std::collections::BTreeSet;
 use ::std::ffi::OsStr;
 use ::std::ffi::OsString;
 use ::std::fs;
@@ -151,7 +150,7 @@ fn main()
 	let canonicalizedInputFolderPath = validateInputFiles(inputFolderPath);
 	
 	let outputFolderPath = matches.defaultPathForCommandLineOption("output", "./output");
-	let (cacheFolderPath, temporaryFolderPath, siteFolderPath, rootFolderPath, errorsFolderPath, pjaxFolderPath) = createOutputStructure(&outputFolderPath);
+	let (_cacheFolderPath, _temporaryFolderPath, siteOutputFolderPath, _rootFolderPath, _errorsFolderPath, _pjaxFolderPath) = createOutputStructure(&outputFolderPath);
 	
 	let configuration = match Configuration::loadBaselineConfiguration(&canonicalizedInputFolderPath, environment)
 	{
@@ -159,11 +158,37 @@ fn main()
 		Ok(configuration) => configuration,
 	};
 	
+	let primaryLanguage = match configuration.primaryLanguage()
+	{
+		Err(error) => fatal(format!("{}", error), 1),
+		Ok(language) => language,
+	};
+	
 	let resources = match DiscoverResources::discoverResources(&configuration, &canonicalizedInputFolderPath)
 	{
 		Err(error) => fatal(format!("Could not load resources '{}'", error), 1),
 		Ok(configuration) => configuration,
 	};
+	
+	// Actually, we should be a bit more cunning, and process   raw, svg, then image, then css / javascript / json, then html, then sitemaps (and perhaps rss)
+	// image source sets, too
+	// As this will allow use to have image dimensions ready, etc
+	
+	let visitor = |_languageCode: &str, language: &language, _isPrimaryLanguage: bool|
+	{
+		for variant in Variant::all()
+		{
+			for (_, resource) in resources.iter()
+			{
+				resource.createOutput(primaryLanguage, language, variant, &siteOutputFolderPath, &canonicalizedInputFolderPath)?
+			}
+		}
+		Ok(())
+	};
+	if let Err(error) = configuration.visitLanguagesWithPrimaryFirst(visitor)
+	{
+		fatal(format!("Could not create resource '{}'", error), 1);
+	}
 	
 	//compileSassFiles(&canonicalizedInputFolderPath, &rootFolderPath);
 	

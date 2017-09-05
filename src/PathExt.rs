@@ -176,7 +176,7 @@ impl PathExt for Path
 	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>
 	{
 		let imageFile = File::open(self).context(self)?;
-		let mut reader = BufReader::new(imageFile);
+		let reader = BufReader::new(imageFile);
 		
 		use InputImageFormat::*;
 		use ::image::ImageFormat;
@@ -280,7 +280,10 @@ impl PathExt for Path
 		};
 		
 		// NOTE: write options aren't used by this method but are required...
-		svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions);
+		if let Err(error) = svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions)
+		{
+			return Err(CordialError::CouldNotCleanSvg(self.to_path_buf(), error));
+		}
 		
 		let mut buffer = Vec::with_capacity(svgString.len());
 		::svgcleaner::cleaner::write_buffer(&document, &MinifyingWriteOptions, &mut buffer);

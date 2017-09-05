@@ -13,14 +13,15 @@ impl DiscoverResources
 {
 	pub fn discoverResources(configuration: &Configuration, canonicalizedInputFolderPath: &Path) -> Result<HashMap<Vec<String>, resource>, CordialError>
 	{
+		let prefix = canonicalizedInputFolderPath.join("root");
 		let mut this = Self
 		{
-			prefix: canonicalizedInputFolderPath.join("root"),
+			prefix: prefix.clone(),
 			resourceTemplates: ResourceTemplates::new(configuration),
 			resources: HashMap::with_capacity(8192),
 		};
 		this.processRootFile(canonicalizedInputFolderPath)?;
-		this.processFolder(&this.prefix)?;
+		this.processFolder(&prefix)?;
 		Ok(this.resources)
 	}
 	
@@ -36,12 +37,14 @@ impl DiscoverResources
 	
 	fn processFolder(&mut self, folderPath: &Path) -> Result<(), CordialError>
 	{
-		let relativeEntryPath = folderPath.strip_prefix(&self.prefix).unwrap();
-		let mut hierarchy = Self::hierarchy(relativeEntryPath.parent().unwrap())?;
-		let parentHjsonConfiguration = self.resourceTemplates.find(hierarchy.as_slice());
+		let mut hierarchy =
+		{
+			let relativeEntryPath = folderPath.strip_prefix(&self.prefix).unwrap();
+			Self::hierarchy(relativeEntryPath.parent().unwrap())?
+		};
 		
 		let overridesFolderPath = folderPath.join("overrides.hjson");
-		let hjsonConfiguration = loadHjsonIfExtantAndMerge(&overridesFolderPath, parentHjsonConfiguration.clone())?;
+		let hjsonConfiguration = loadHjsonIfExtantAndMerge(&overridesFolderPath, self.resourceTemplates.find(hierarchy.as_slice()).clone())?;
 		
 		hierarchy.push(folderPath.utf8FileName()?);
 		self.resourceTemplates.store(hierarchy, hjsonConfiguration);
@@ -80,7 +83,7 @@ impl DiscoverResources
 			}
 			
 			let relativeEntryPath = filePath.strip_prefix(&self.prefix).unwrap();
-			let mut parentHierarchy = Self::hierarchy(relativeEntryPath.parent().unwrap())?;
+			let parentHierarchy = Self::hierarchy(relativeEntryPath.parent().unwrap())?;
 			let parentHjsonConfiguration = self.resourceTemplates.find(parentHierarchy.as_slice());
 			
 			let hjsonConfiguration = loadHjsonIfExtantAndMerge(filePath, parentHjsonConfiguration.clone())?;

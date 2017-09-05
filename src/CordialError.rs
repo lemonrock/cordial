@@ -38,6 +38,12 @@ quick_error!
 			display("Could not parse SVG in {:?} because '{:?}'", path, parseError)
 		}
 		
+		CouldNotCleanSvg(path: PathBuf, cleanError: ::svgcleaner::Error)
+		{
+			description("Could not clean SVG")
+			display("Could not clean SVG in {:?} because '{:?}'", path, cleanError)
+		}
+		
 		HjsonDeserialization(path: PathBuf, cause: ::serde_hjson::error::Error)
 		{
 			cause(cause)
@@ -59,10 +65,16 @@ quick_error!
 			display("The file {:?} can not be used because: {}", path, reason)
 		}
 
-		CouldNotCompile(path: PathBuf, reason: String)
+		CouldNotCompileSass(path: PathBuf, reason: String)
 		{
 			description(&reason)
 			display("The file {:?} can not be compiled because: {}", path, reason)
+		}
+		
+		Configuration(reason: String)
+		{
+			description(&reason)
+			display("Configuration is invalid because: {}", reason)
 		}
 
 		BadImage(path: PathBuf, cause: ::image::ImageError)

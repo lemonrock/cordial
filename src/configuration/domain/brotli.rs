@@ -17,13 +17,13 @@ impl brotli
 	{
 		let outputFilePath = inputFilePath.appendExtension("gz");
 		
-		let compressionParameters = ::brotli2::CompressParams::new();
+		let mut compressionParameters = ::brotli2::CompressParams::new();
 		compressionParameters.mode(self.compressionMode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);
 		
 		{
 			let writer = File::create(&outputFilePath).context(&outputFilePath)?;
-			let compressor = ::brotli2::write::BrotliEncoder::from_params(writer, &compressionParameters);
-			compressor.write_all(&inData);
+			let mut compressor = ::brotli2::write::BrotliEncoder::from_params(writer, &compressionParameters);
+			compressor.write_all(&inData).context(inputFilePath)?;
 			compressor.finish().context(inputFilePath)?;
 		}
 		

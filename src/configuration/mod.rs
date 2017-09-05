@@ -10,6 +10,7 @@ use ::std::collections::HashMap;
 use ::std::path::Path;
 use ::std::path::PathBuf;
 use ::std::path::Component::Normal;
+use ::url::Url;
 
 pub(crate) mod domain;
 
@@ -17,3 +18,4 @@ pub(crate) mod domain;
 include!("Configuration.rs");
 include!("DiscoverResources.rs");
 include!("ResourceTemplates.rs");
+include!("Variant.rs");

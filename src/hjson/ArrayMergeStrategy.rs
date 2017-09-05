@@ -9,10 +9,10 @@ pub enum ArrayMergeStrategy
 	ByIndex,
 	
 	/// This strategy appends the children elements after the parent elements
-	UnionParentFirst,
+	#[allow(unused)] UnionParentFirst,
 	
 	/// This strategy appends the children elements before the parent elements
-	UnionParentLast,
+	#[allow(unused)] UnionParentLast,
 }
 
 impl ArrayMergeStrategy

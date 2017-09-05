@@ -72,7 +72,7 @@ impl ImageTransformation
 	}
 	
 	#[inline(always)]
-	pub fn transform(&self, image: ::image::DynamicImage) -> ::image::DynamicImage
+	pub fn transform(&self, mut image: ::image::DynamicImage) -> ::image::DynamicImage
 	{
 		use self::ImageTransformation::*;
 		match *self

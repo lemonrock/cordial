@@ -37,20 +37,20 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub fn environment(&self) -> &str
+	pub fn resource_template(&self) -> HjsonValue
 	{
-		&self.environment
+		self.resource_template.as_ref().unwrap().clone()
 	}
 	
 	#[inline(always)]
-	pub fn resource_template(&self) -> &HjsonValue
+	pub fn primaryLanguage(&self) -> Result<&language, CordialError>
 	{
-		&self.resource_template.unwrap()
+		self.localization.primaryLanguage()
 	}
 	
 	#[inline(always)]
-	pub fn localization(&self) -> &localization
+	pub fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
-		&self.localization
+		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}
 }

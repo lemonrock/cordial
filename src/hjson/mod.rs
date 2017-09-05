@@ -5,7 +5,6 @@
 use super::*;
 use ::serde::de::DeserializeOwned;
 use ::serde_hjson::from_reader as hjsonFromReader;
-use ::serde_hjson::Map as HjsonMap;
 use ::serde_hjson::Value as HjsonValue;
 use ::serde_json::from_value as jsonFromValue;
 use ::std::cmp::max;

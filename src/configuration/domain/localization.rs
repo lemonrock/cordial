@@ -7,7 +7,7 @@
 pub struct localization
 {
 	#[serde(with = "url_serde", default = "localization::language_tool_base_url_default")] language_tool_base_url: Url,
-	primary_iso_639_1_alpha_2_language_code: Option<String>,
+	#[serde(default = "localization::primary_iso_639_1_alpha_2_language_code_default")] primary_iso_639_1_alpha_2_language_code: String,
 	languages: HashMap<String, language>,
 }
 
@@ -20,34 +20,38 @@ impl localization
 	}
 	
 	#[inline(always)]
-	pub fn language_tool_base_url(&self) -> &Url
+	fn primary_iso_639_1_alpha_2_language_code_default() -> String
 	{
-		&self.language_tool_base_url
+		"en".to_owned()
 	}
 	
 	#[inline(always)]
-	pub fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
+	pub fn primaryLanguage(&self) -> Result<&language, CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = match self.primary_iso_639_1_alpha_2_language_code
-		{
-			Some(ref code) => code,
-			None => "en",
-		};
-		
-		if !self.languages.contains_key(iso_639_1_alpha_2_language_code)
-		{
-			panic!("primary_iso_639_1_alpha_2_language_code '{}' does not have a defined language", iso_639_1_alpha_2_language_code);
-		}
-		iso_639_1_alpha_2_language_code
+		self.language(&self.primary_iso_639_1_alpha_2_language_code)
 	}
 	
 	#[inline(always)]
-	pub fn language(&self, iso_639_1_alpha_2_language_code: &str) -> &language
+	pub fn language(&self, iso_639_1_alpha_2_language_code: &str) -> Result<&language, CordialError>
 	{
 		match self.languages.get(iso_639_1_alpha_2_language_code)
 		{
-			None => panic!("iso_639_1_alpha_2_language_code '{}' does not have a defined language", iso_639_1_alpha_2_language_code),
-			Some(language) => language,
+			None => Err(CordialError::Configuration(format!("iso_639_1_alpha_2_language_code '{}' does not have a defined language", iso_639_1_alpha_2_language_code))),
+			Some(language) => Ok(language),
 		}
+	}
+	
+	#[inline(always)]
+	pub fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
+	{
+		visitor(&self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?, true)?;
+		for (iso_639_1_alpha_2_language_code, language) in self.languages.iter()
+		{
+			if iso_639_1_alpha_2_language_code != &self.primary_iso_639_1_alpha_2_language_code
+			{
+				visitor(&iso_639_1_alpha_2_language_code, language, false)?;
+			}
+		}
+		Ok(())
 	}
 }

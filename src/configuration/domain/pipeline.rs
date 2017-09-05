@@ -17,22 +17,24 @@ pub enum pipeline
 	},
 	raster_image
 	{
+		#[serde(default)] language_aware: bool,
 		input_format: InputImageFormat,
-		
 		jpeg_quality: Option<u8>,
-		
 		#[serde(default)] transformations: Vec<ImageTransformation>,
 	},
 	sass
 	{
+		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
 	scss
 	{
+		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
 	svg
 	{
+		#[serde(default)] language_aware: bool,
 		skip: bool,
 	}
 //	sitemap, // xml
@@ -76,7 +78,7 @@ impl pipeline
 				{
 					let mut withExtension = String::with_capacity(resourceInputName.len() + 3);
 					withExtension.push_str(resourceInputName);
-					withExtension.push_str(".md");
+					withExtension.push_str(fileExtension);
 					result.push(withExtension);
 				}
 			}
@@ -172,7 +174,20 @@ impl pipeline
 		(relativeUrl, additionalContentFileNameIfAny)
 	}
 	
-	pub fn execute(&self, resource: &resource, primaryLanguage: &language, language: &language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash: Option<&str>, siteOutputFolderPath: &Path, canonicalizedInputFolderPath: &Path) -> Result<(), CordialError>
+	pub fn isForPrimaryLanguageAndCanonicalUrlOnly(&self) -> (bool, bool)
+	{
+		use self::pipeline::*;
+		match *self
+		{
+			md { .. } => (false, false),
+			raster_image { language_aware, .. } => (language_aware, false),
+			sass { language_aware, .. } => (language_aware, false),
+			scss { language_aware, .. } => (language_aware, false),
+			svg { language_aware, .. } => (language_aware, false),
+		}
+	}
+	
+	pub fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<PathBuf>, CordialError>
 	{
 		use self::pipeline::*;
 		match *self
@@ -182,97 +197,66 @@ impl pipeline
 				panic!("Implement me");
 			}
 			
-			raster_image { input_format, jpeg_quality, ref transformations } => if let Some(languageIndependentInputContentFilePath) = languageIndependentInputContentFilePath(resource, primaryLanguage, language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?
-			{
-				Self::raster_image(resource, primaryLanguage, languageIndependentInputContentFilePath, siteOutputFolderPath, input_format, jpeg_quality, transformations)
-			}
-			else
-			{
-				Ok(())
-			},
+			raster_image { input_format, jpeg_quality, ref transformations, .. } => Self::raster_image(inputContentFilePath, outputFilePath, input_format, jpeg_quality, transformations),
 			
-			sass { precision } => if let Some(languageIndependentInputContentFilePath) = languageIndependentInputContentFilePath(resource, primaryLanguage, language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?
-			{
-				Self::sass_or_scss(resource, primaryLanguage, languageIndependentInputContentFilePath, siteOutputFolderPath, precision, canonicalizedInputFolderPath, false)
-			}
-			else
-			{
-				Ok(())
-			},
+			sass { precision, .. } => Self::sass_or_scss(inputContentFilePath, outputFilePath, precision, canonicalizedInputFolderPath, true),
 			
-			scss { precision } => if let Some(languageIndependentInputContentFilePath) = languageIndependentInputContentFilePath(resource, primaryLanguage, language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?
-			{
-				Self::sass_or_scss(resource, primaryLanguage, languageIndependentInputContentFilePath, siteOutputFolderPath, precision, canonicalizedInputFolderPath, true)
-			}
-			else
-			{
-				Ok(())
-			},
+			scss { precision, .. } => Self::sass_or_scss(inputContentFilePath, outputFilePath, precision, canonicalizedInputFolderPath, false),
 			
-			svg { skip } => if let Some(languageIndependentInputContentFilePath) = languageIndependentInputContentFilePath(resource, primaryLanguage, language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?
+			svg { skip, .. } =>
 			{
-				resource.createFinalResourceContent(primaryLanguage, None, siteOutputFolderPath, |outputFilePath|
+				if skip
 				{
-					if skip
-					{
-						outputFilePath.createFileWithCopyOf(&languageIndependentInputContentFilePath).context(outputFilePath)?
-					}
-					else
-					{
-						outputFilePath.createFileWithCleanedSvgFrom(&languageIndependentInputContentFilePath)?
-					}
-					
-					Ok(vec![outputFilePath])
-				})
+					outputFilePath.createFileWithCopyOf(&inputContentFilePath).context(&outputFilePath)?
+				}
+				else
+				{
+					outputFilePath.createFileWithCleanedSvgFrom(&inputContentFilePath)?
+				}
+				
+				Ok(vec![outputFilePath])
 			}
-			else
-			{
-				Ok(())
-			},
 		}
 	}
 	
-	fn raster_image(resource: &resource, primaryLanguage: &language, inputContentFilePath: PathBuf, siteOutputFolderPath: &Path, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<(), CordialError>
+	fn raster_image(inputContentFilePath: &Path, outputFilePath: PathBuf, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<Vec<PathBuf>, CordialError>
 	{
-		let mut image = inputContentFilePath.fileContentsAsImage(input_format)?;
+		let image = inputContentFilePath.fileContentsAsImage(input_format)?;
 		
 		// transform
 		let image = ImageTransformation::applyTransformations(image, transformations);
 		
 		// save & optimize
-		resource.createFinalResourceContent(primaryLanguage, None, siteOutputFolderPath, |outputFilePath|
+		if jpeg_quality.is_some()
 		{
-			if jpeg_quality.is_some()
-			{
-				let temporaryFile = Temp::new_file().context(&outputFilePath)?;
-				let temporaryFilePath = temporaryFile.to_path_buf();
-				temporaryFilePath.createFileWithPngImage(image)?;
-				
-				let quality = match jpeg_quality.unwrap()
-				{
-					0 => 1,
-					quality @ 0 ... 100 => quality,
-					_ => 100
-				};
-				
-				CordialError::executeCommandCapturingOnlyStandardError(Command::new("guetzli").env_clear().args(&["--nomemlimit", "--quality", &format!("{}", quality)]).arg(&temporaryFilePath).arg(&outputFilePath), &outputFilePath)?;
-				
-				temporaryFilePath.deleteOverridingPermissions();
-				
-				temporaryFile.release();
-			}
-			else
-			{
-				outputFilePath.createFileWithPngImage(image)?;
-				
-				outputFilePath.modifyPngWithOxipng()?;
-			}
+			let mut temporaryFile = Temp::new_file().context(&outputFilePath)?;
+			let temporaryFilePath = temporaryFile.to_path_buf();
+			temporaryFilePath.createFileWithPngImage(image)?;
 			
-			Ok(vec![outputFilePath])
-		})
+			let quality = match jpeg_quality.unwrap()
+			{
+				0 => 1,
+				quality @ 0 ... 100 => quality,
+				_ => 100
+			};
+			
+			CordialError::executeCommandCapturingOnlyStandardError(Command::new("guetzli").env_clear().args(&["--nomemlimit", "--quality", &format!("{}", quality)]).arg(&temporaryFilePath).arg(&outputFilePath), &outputFilePath)?;
+			
+			temporaryFilePath.deleteOverridingPermissions().context(&temporaryFilePath)?;
+			
+			temporaryFile.release();
+		}
+		else
+		{
+			outputFilePath.createFileWithPngImage(image)?;
+			
+			outputFilePath.modifyPngWithOxipng()?;
+		}
+		
+		Ok(vec![outputFilePath])
 	}
 	
-	fn sass_or_scss(resource: &resource, primaryLanguage: &language, inputContentFilePath: PathBuf, siteOutputFolderPath: &Path, precision: u8, canonicalizedInputFolderPath: &Path, isSass: bool) -> Result<(), CordialError>
+	fn sass_or_scss(inputContentFilePath: &Path, outputFilePath: PathBuf, precision: u8, canonicalizedInputFolderPath: &Path, isSass: bool) -> Result<Vec<PathBuf>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
 		{
@@ -288,7 +272,7 @@ impl pipeline
 				{
 					match path.into_os_string().into_string()
 					{
-						Err(_) => return Err(CordialError::InvalidFile(path, "a component of the path is not valid UTF-8".to_owned())),
+						Err(_) => return Err(CordialError::InvalidFile(entry.path(), "a component of the path is not valid UTF-8".to_owned())),
 						Ok(importPath) => importPaths.push(importPath),
 					}
 				}
@@ -296,40 +280,20 @@ impl pipeline
 			Ok(importPaths)
 		}
 		
-		let importPaths = findImportPaths(&canonicalizedInputFolderPath)?;
-		
 		let options = ::sass_rs::Options
 		{
 			output_style: ::sass_rs::OutputStyle::Compressed,
 			precision: precision as usize,
 			indented_syntax: isSass,
-			include_paths: importPaths,
+			include_paths: findImportPaths(&canonicalizedInputFolderPath)?,
 		};
 		
-		resource.createFinalResourceContent(primaryLanguage, None, siteOutputFolderPath, |outputFilePath|
+		match ::sass_rs::compile_file(inputContentFilePath, options)
 		{
-			match ::sass_rs::compile_file(inputContentFilePath, options)
-			{
-				Err(error) => return Err(CordialError::CouldNotCompile(inputContentFilePath, error)),
-				Ok(css) => outputFilePath.createFileWithStringContents(&css).context(&outputFilePath)?,
-			}
-			Ok(vec![outputFilePath])
-		})
+			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
+			Ok(css) => outputFilePath.createFileWithStringContents(&css).context(&outputFilePath)?,
+		}
+		
+		Ok(vec![outputFilePath])
 	}
-}
-
-#[inline(always)]
-fn languageIndependentInputContentFilePath(resource: &resource, primaryLanguage: &language, language: &language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash: Option<&str>) -> Result<Option<PathBuf>, CordialError>
-{
-	if language != primaryLanguage
-	{
-		return Ok(None);
-	}
-	
-	if variantSubPathEgAcceleratedMobilePagesWithTrailingSlash.is_some()
-	{
-		return Ok(None);
-	}
-	
-	resource.inputContentFilePath(primaryLanguage, None).map(|path| Some(path))
 }

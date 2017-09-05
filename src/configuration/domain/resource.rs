@@ -36,10 +36,53 @@ impl resource
 		self.additionalContentFileNameIfAny = additionalContentFileNameIfAny;
 	}
 	
+	#[inline(always)]
+	pub fn createOutput(&self, primaryLanguage: &language, language: &language, variant: Variant, siteOutputFolderPath: &Path, canonicalizedInputFolderPath: &Path) -> Result<(), CordialError>
+	{
+		let (isForPrimaryLanguageOnly, isForCanonicalUrlOnly) = self.pipeline.isForPrimaryLanguageAndCanonicalUrlOnly();
+		
+		if language != primaryLanguage && isForPrimaryLanguageOnly
+		{
+			return Ok(());
+		}
+		
+		if variant != Variant::Canonical && isForCanonicalUrlOnly
+		{
+			return Ok(());
+		}
+		
+		let inputContentFilePath = if isForPrimaryLanguageOnly
+		{
+			self.languageNeutralInputContentFilePath(primaryLanguage, None)?
+		}
+		else
+		{
+			self.inputContentFilePath(primaryLanguage, Some(language))?
+		};
+		
+		info!("Creating output for URL {}", self.url(language, variant).unwrap());
+		
+		let relativeOutputContentFilePath = self.relativeOutputContentFilePath(language, variant)?;
+		let outputFilePath = siteOutputFolderPath.join(relativeOutputContentFilePath);
+		{
+			let outputParentFolderPath = outputFilePath.parent().unwrap();
+			outputParentFolderPath.createFolder().context(outputParentFolderPath)?;
+		}
+		
+		let resourcesToCompress = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, canonicalizedInputFolderPath)?;
+		
+		for resourceToCompress in resourcesToCompress
+		{
+			self.compression.compress(&resourceToCompress)?
+		}
+		
+		Ok(())
+	}
+	
 	/// if language is some, then searches for resource by language, primary language or language-neutral name in descending order
 	/// if language is none, the searches by language-neutral name
 	#[inline(always)]
-	pub fn inputContentFilePath(&self, primaryLanguage: &language, language: Option<&language>) -> Result<PathBuf, CordialError>
+	fn inputContentFilePath(&self, primaryLanguage: &language, language: Option<&language>) -> Result<PathBuf, CordialError>
 	{
 		if language.is_some()
 		{
@@ -67,6 +110,12 @@ impl resource
 			}
 		}
 		
+		return self.languageNeutralInputContentFilePath(primaryLanguage, language)
+	}
+	
+	#[inline(always)]
+	fn languageNeutralInputContentFilePath(&self, primaryLanguage: &language, language: Option<&language>) -> Result<PathBuf, CordialError>
+	{
 		for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 		{
 			let languageNeutralFilePath = self.canonicalParentFolderPath.join(resourceInputContentFileNameWithExtension);
@@ -80,63 +129,38 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub fn createFinalResourceContent<ContentCreator: FnMut(PathBuf) -> Result<Vec<PathBuf>, CordialError>>(&self, language: &language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash: Option<&str>, siteOutputFolderPath: &Path, mut contentCreator: ContentCreator) -> Result<(), CordialError>
-	{
-		let relativeOutputContentFilePath = self.relativeOutputContentFilePath(language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?;
-		let outputFilePath = siteOutputFolderPath.join(relativeOutputContentFilePath);
-		let outputParentFolderPath = outputFilePath.parent().unwrap();
-		outputParentFolderPath.createFolder().context(outputParentFolderPath)?;
-		let resourcesToCompress = contentCreator(outputFilePath)?;
-		
-		for resourceToCompress in resourcesToCompress
-		{
-			self.compression.compress(&resourceToCompress)?
-		}
-		
-		Ok(())
-	}
-	
-	#[inline(always)]
 	pub fn canonicalUrl(&self, primaryLanguage: &language) -> Result<Url, CordialError>
 	{
-		self.url(primaryLanguage, None)
+		self.url(primaryLanguage, Variant::Canonical)
 	}
 	
 	#[inline(always)]
 	pub fn ampUrl(&self, language: &language) -> Result<Url, CordialError>
 	{
-		self.url(language, Some("amp/"))
+		self.url(language, Variant::AMP)
 	}
 	
 	#[inline(always)]
 	pub fn pjaxUrl(&self, language: &language) -> Result<Url, CordialError>
 	{
-		self.url(language, Some("pjax/"))
+		self.url(language, Variant::PJAX)
 	}
 	
-	// variantSubPathEgAcceleratedMobilePagesWithTrailingSlash is also for PJAX
 	#[inline(always)]
-	pub fn url(&self, language: &language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash: Option<&str>) -> Result<Url, CordialError>
+	pub fn url(&self, language: &language, variant: Variant) -> Result<Url, CordialError>
 	{
 		let baseUrl = language.baseUrl()?;
 		
-		let urlWithAmpOrPjaxPath = if let Some(variantSubPathEgAcceleratedMobilePagesWithTrailingSlash) = variantSubPathEgAcceleratedMobilePagesWithTrailingSlash
-		{
-			baseUrl.join(variantSubPathEgAcceleratedMobilePagesWithTrailingSlash).context(format!("Invalid variant '{}'", variantSubPathEgAcceleratedMobilePagesWithTrailingSlash))?
-		}
-		else
-		{
-			baseUrl
-		};
+		let urlWithAmpOrPjaxPath = variant.appendToUrl(baseUrl);
 		
 		let resourceOutputRelativeUrl = &self.resourceOutputRelativeUrl;
 		Ok(urlWithAmpOrPjaxPath.join(resourceOutputRelativeUrl).context(format!("Invalid resourceOutputRelativeUrl '{}'", resourceOutputRelativeUrl))?)
 	}
 	
 	#[inline(always)]
-	pub fn relativeOutputContentFilePath(&self, language: &language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash: Option<&str>) -> Result<PathBuf, CordialError>
+	pub fn relativeOutputContentFilePath(&self, language: &language, variant: Variant) -> Result<PathBuf, CordialError>
 	{
-		let url = self.url(language, variantSubPathEgAcceleratedMobilePagesWithTrailingSlash)?;
+		let url = self.url(language, variant)?;
 		let fileLikeUrl = if let Some(additionalContentFileName) = self.additionalContentFileNameIfAny
 		{
 			url.join(additionalContentFileName).unwrap()
@@ -146,7 +170,7 @@ impl resource
 			url
 		};
 		
-		let resourceRelativePathString = String::with_capacity(1024);
+		let mut resourceRelativePathString = String::with_capacity(1024);
 		resourceRelativePathString.push_str(fileLikeUrl.host_str().unwrap());
 		resourceRelativePathString.push_str(fileLikeUrl.path());
 		Ok(PathBuf::from(resourceRelativePathString))

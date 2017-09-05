@@ -29,8 +29,8 @@ extern crate url;
 extern crate url_serde;
 extern crate zopfli;
 
-use self::configuration::*;
-use self::configuration::domain::*;
+
+use self::domain::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
@@ -57,7 +57,7 @@ use ::stderr_logging::StandardErrorAnsiLog;
 use ::quick_error::ResultExt;
 
 
-pub(crate) mod configuration;
+pub(crate) mod domain;
 pub(crate) mod hjson;
 
 

@@ -3,14 +3,23 @@
 
 
 use super::*;
+use super::hjson::*;
 use ::mktemp::Temp;
+use ::serde_hjson::Map as HjsonMap;
+use ::serde_hjson::Value as HjsonValue;
+use ::std::collections::HashMap;
 use ::std::io::Write;
+use ::std::path::Path;
+use ::std::path::PathBuf;
+use ::std::path::Component::Normal;
 use ::url::Url;
 
 
 include!("brotli.rs");
 include!("BrotliCompressionMode.rs");
 include!("compression.rs");
+include!("Configuration.rs");
+include!("DiscoverResources.rs");
 include!("gzip.rs");
 include!("ImageTransformation.rs");
 include!("InputImageFormat.rs");
@@ -18,3 +27,5 @@ include!("language.rs");
 include!("localization.rs");
 include!("pipeline.rs");
 include!("resource.rs");
+include!("ResourceTemplates.rs");
+include!("Variant.rs");

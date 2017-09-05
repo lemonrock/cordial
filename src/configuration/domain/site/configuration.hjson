@@ -1,0 +1,107 @@
+# This file is part of cordial. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT. No part of predicator, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
+# Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
+
+
+
+# NOTE
+#	host
+# 		If host is an IPv6 address, then it must be specified as [:::1], ie use square brackets
+# 		If host is a international (IDNA) domain, then it must be punycode-encoded
+#       Host can include a port, eg localhost:8080
+#   paths, etc
+#       These are specified as UTF-8, not % encoded
+{
+	resource:
+	{
+		pipeline: md
+
+		headers:
+		{
+			# 2 years; submit to https://hstspreload.org/ when ready
+			"Strict-Transport-Security": max-age=63072000;includeSubDomains;preload
+			"X-XSS-Protection": 1;mode=block
+			"X-Content-Type-Options": nosniff
+			"X-Frame-Options": DENY
+		}
+
+		sass:
+		{
+			precision: 5
+		}
+
+		compression:
+		{
+			gzip:
+			{
+				iterations: 15
+
+				# Set to 0 for infinite
+				maximum_block_splits: 15
+			}
+
+			brotli:
+			{
+				compressMode: utf8
+			}
+		}
+	}
+
+#	settings: {
+#		google: {
+#			analytics: GA-123-4567
+#		}
+#		pjax: {
+#			version: 0
+#		}
+#		favicon: {
+#			version: 0
+#		}
+	}
+
+	localization:
+	{
+		language_tool_base_url: //hello/world
+		primary_iso_639_1_alpha_2_language_code: en
+		languages:
+		[
+			{
+				iso_3166_1_alpha_2_country_code: US
+				language_tool_long_code: en-US
+				host: stormmq.com
+				relative_root_url: /
+			}
+			{
+				iso_3166_1_alpha_2_country_code: FR
+				language_tool_long_code: fr
+				host: fr.stormmq.com
+				relative_root_url: /
+			}
+			{
+				iso_3166_1_alpha_2_country_code: ES
+				language_tool_long_code: es
+				host: es.stormmq.com
+				relative_root_url: /
+			}
+			{
+				iso_3166_1_alpha_2_country_code: IT
+				language_tool_long_code: it
+				host: it.stormmq.com
+				relative_root_url: /
+			}
+		]
+	}
+
+# Use spelling & grammar checker: https://github.com/patronus-checker/languagetool-rs/blob/master/src/lib.rs  crate: languagetool
+# https://languagetool.org/http-api/swagger-ui/#!/default/post_check
+# Need to install locally
+
+# Can also go in Link: HTTP header and in sitemap.xml  https://support.google.com/webmasters/answer/189077?hl=en&ref_topic=2370587  and  https://support.google.com/webmasters/answer/2620865 (sitemap)
+#<link rel="alternate" href="http://example.com/en-ie" hreflang="en-ie" />
+#<link rel="alternate" href="http://example.com/en-ca" hreflang="en-ca" />
+#<link rel="alternate" href="http://example.com/en-au" hreflang="en-au" />
+#<link rel="alternate" href="http://example.com/en" hreflang="en" />
+#
+#
+#<link rel="alternate" href="http://example.com/" hreflang="x-default" />
+
+}

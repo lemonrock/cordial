@@ -30,14 +30,18 @@ codegen-units = 1
 [dependencies]
 brotli2 = "0.3.0"
 clap = "2.26.0"
-log = "0.3"
+futures = "0.1.15"
 handlebars = "0.29"
+hyper-rustls = "0.11.0"
 image = "0.15.0"
+log = "0.3"
 maplit = "0.1.4"
 mktemp = "0.3.1"
+net2 = "0.2.31"
 num_cpus = "1.6.2"
 oxipng = "0.16.3"
 quick-error = "1.1.0"
+rustls = "0.11.0"
 sass-rs = "0.2.0"
 serde_derive = "^1.0.8"
 serde-hjson = "^0.8.1"
@@ -46,9 +50,25 @@ serde = "^1.0.8"
 stderr-logging = "0.0.1"
 svgcleaner = "0.9.1"
 svgdom = "0.6.0"
+tokio-core = "0.1.7"
+tokio-io = "0.1.1"
+#tokio-proto = "0.1"
+tokio-rustls = { version = "0.4.0", features = [ "tokio-proto" ] }
+tokio-signal = "0.1"
+#tokio-service = "0.1.0"
 url = "1.5.1"
 url_serde = "0.2.0"
 zopfli = "0.3.6"
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.9.0"
+
+[dependencies.hyper]
+#version = "0.11.2"
+git = "https://github.com/lemonrock/hyper"
+branch = "cow"
+
+[dependencies.ordermap]
+version = "0.2.11"
+default-features = true
+features = ["serde-1"]

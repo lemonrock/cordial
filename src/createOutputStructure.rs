@@ -31,7 +31,7 @@ pub fn createOutputStructure(outputFolderPath: &Path) -> (PathBuf, PathBuf, Path
 		recreateFolder(&canonicalizedOutputFolderPath, "temporary"),
 		recreateFolder(&canonicalizedOutputFolderPath, "site"),
 		recreateFolder(&canonicalizedOutputFolderPath, "root"),
-		recreateFolder(&canonicalizedOutputFolderPath, "errors"),
+		recreateFolder(&canonicalizedOutputFolderPath, "production"),
 		recreateFolder(&canonicalizedOutputFolderPath, "pjax")
 	)
 }

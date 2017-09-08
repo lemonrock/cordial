@@ -5,26 +5,37 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![feature(unboxed_closures)]
 
 
 extern crate brotli2;
 extern crate clap;
+extern crate futures;
+extern crate handlebars;
+extern crate hyper;
 extern crate image;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate maplit;
 extern crate mktemp;
+extern crate net2;
 #[cfg(unix)] extern crate nix;
 extern crate num_cpus;
+extern crate ordermap;
 extern crate oxipng;
+extern crate rustls;
 extern crate sass_rs;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
-extern crate serde_json;
+#[macro_use] extern crate serde_json;
 extern crate serde_hjson;
 extern crate stderr_logging;
 extern crate svgcleaner;
 extern crate svgdom;
+extern crate tokio_core;
+extern crate tokio_io;
+extern crate tokio_rustls;
+extern crate tokio_signal;
 extern crate url;
 extern crate url_serde;
 extern crate zopfli;
@@ -34,6 +45,8 @@ use self::domain::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
+use ::rustls::Certificate;
+use ::rustls::PrivateKey;
 use ::std::ffi::OsStr;
 use ::std::ffi::OsString;
 use ::std::fs;
@@ -59,6 +72,7 @@ use ::quick_error::ResultExt;
 
 pub(crate) mod domain;
 pub(crate) mod hjson;
+pub(crate) mod webserver;
 
 
 include!("ArgMatchesExt.rs");
@@ -69,19 +83,9 @@ include!("PathExt.rs");
 include!("validateInputFiles.rs");
 
 
-#[cfg(unix)]
-fn setUMaskToUserOnly()
-{
-	let mode = ::nix::sys::stat::Mode::from_bits(0o7077).unwrap();
-	::nix::sys::stat::umask(mode);
-}
-
 fn main()
 {
-	#[cfg(unix)]
-	{
-		setUMaskToUserOnly();
-	}
+	setUMaskToUserOnly();
 	
 	let matches = App::new("cordial")
 		.version("0.0.0")
@@ -170,10 +174,6 @@ fn main()
 		Ok(configuration) => configuration,
 	};
 	
-	// Actually, we should be a bit more cunning, and process   raw, svg, then image, then css / javascript / json, then html, then sitemaps (and perhaps rss)
-	// image source sets, too
-	// As this will allow use to have image dimensions ready, etc
-	
 	let visitor = |_languageCode: &str, language: &language, _isPrimaryLanguage: bool|
 	{
 		for variant in Variant::all()
@@ -189,21 +189,13 @@ fn main()
 	{
 		fatal(format!("Could not create resource '{}'", error), 1);
 	}
-	
-	//compileSassFiles(&canonicalizedInputFolderPath, &rootFolderPath);
-	
-	//extern crate handlebars;
-	//#[macro_use] extern crate serde_json;
-	//use handlebars::Handlebars;
-	// let mut reg = Handlebars::new();
-    // // render without register
-    // println!(
-    //     "{}",
-    //     reg.template_render("Hello {{name}}", &json!({"name": "foo"}))
-    //         .unwrap()
-    // );
-    //
-    // // register template using given name
-    // reg.register_template_string("tpl_1", "Good afternoon, {{name}}").unwrap();
-    // println!("{}", reg.render("tpl_1", &json!({"name": "foo"})).unwrap());
+}
+
+fn setUMaskToUserOnly()
+{
+	#[cfg(unix)]
+	{
+		let mode = ::nix::sys::stat::Mode::from_bits(0o7077).unwrap();
+		::nix::sys::stat::umask(mode);
+	}
 }

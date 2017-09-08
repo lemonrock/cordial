@@ -9,7 +9,6 @@ pub struct resource
 	pipeline: pipeline, // html, sitemap/xml, robots/txt, rss/xml, json, ?js?, png, jpeg, gif, svg, sass, scss, temporary-redirect, permanent-redirect
 	headers: HashMap<String, String>,
 	compression: compression,
-	
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
@@ -111,6 +110,75 @@ impl resource
 		}
 		
 		return self.languageNeutralInputContentFilePath(primaryLanguage, language)
+	}
+	
+	#[inline(always)]
+	fn generateHeaders(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: Option<&language>, variant: Variant, localization: &localization) -> Result<HashMap<String, String>, CordialError>
+	{
+		let mut headers = HashMap::with_capacity(self.headers.len());
+		
+		let (ourLanguage, otherLanguages) = if let Some(language) = language
+		{
+			let mut ourLanguage = HashMap::with_capacity(2);
+			ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
+			ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
+			(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
+		}
+		else
+		{
+			(None, None)
+		};
+		
+		for (headerName, headerTemplate) in self.headers.iter()
+		{
+			let json = &json!
+			({
+				"environment": environment,
+				"variant": variant,
+				"variant_path_with_trailing_slash": variant.pathWithTrailingSlash(),
+				"our_language": ourLanguage,
+				"primary_iso_639_1_alpha_2_language_code": localization.primary_iso_639_1_alpha_2_language_code(),
+				"other_languages": otherLanguages,
+				
+				"header": headerName,
+			});
+			
+			// Provide a shortcode for Link: header
+			// Provide a shortcode for Content-Disposition: header
+			// Provide whatever is needed for 30x redirects: Location
+			
+			// Generate Content-Length
+			// Generate Content-Type
+			// (Generate Content-Encoding)
+			// Generate Content-Language
+			// ? Content-Location ?
+			// Generate Last-Modified
+			// ?Generate ETag
+			//X-DNS-Prefetch-Control
+			/*
+				Expires: Thu, 05 Oct 2017 18:12:17 GMT
+				Cache-Control: public, max-age=2592000
+			*/
+			
+			let reg = Handlebars::new();
+			let headerValue = reg.template_render(headerTemplate, &json)?;
+			headers.insert(headerName.to_owned(), headerValue);
+			
+			//
+			//
+			//
+			// println!(
+			//     "{}",
+			//     reg.template_render("Hello {{name}}", &json!({"name": "foo"}))
+			//         .unwrap()
+			// );
+			//
+			// // register template using given name
+			// reg.register_template_string("tpl_1", "Good afternoon, {{name}}").unwrap();
+			// println!("{}", reg.render("tpl_1", &json!({"name": "foo"})).unwrap());
+		}
+		
+		Ok(headers)
 	}
 	
 	#[inline(always)]

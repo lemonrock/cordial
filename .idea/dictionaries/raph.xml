@@ -89,6 +89,7 @@
       <w>recv</w>
       <w>refcnt</w>
       <w>rkey</w>
+      <w>rustls</w>
       <w>rwlock</w>
       <w>scss</w>
       <w>serialiser</w>
@@ -104,6 +105,7 @@
       <w>unextended</w>
       <w>unsharpen</w>
       <w>unsubscribes</w>
+      <w>webserver</w>
       <w>werror</w>
       <w>whitelist</w>
       <w>wrlock</w>

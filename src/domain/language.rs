@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct language
 {
 	iso_3166_1_alpha_2_country_code: String,

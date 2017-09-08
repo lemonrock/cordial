@@ -85,6 +85,14 @@ quick_error!
 			context(path: &'a Path, cause: ::image::ImageError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotRenderHandlebarsTemplate(cause: ::handlebars::TemplateRenderError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not render handlebars template because: {}", cause)
+			from()
+		}
+		
 		Other(cause: Box<::std::error::Error>)
 		{
 			cause(&**cause)

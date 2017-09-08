@@ -24,11 +24,19 @@ pub trait PathExt
 	
 	fn fileContentsAsBytes(&self) -> io::Result<Vec<u8>>;
 	
+	fn fileContentsAsBytesIfExtant(&self) -> io::Result<Option<Vec<u8>>>;
+	
 	fn fileContentsAsString(&self) -> io::Result<String>;
+	
+	fn fileContentsAsBufReader(&self, bufferSize: usize) -> io::Result<BufReader<File>>;
 	
 	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>;
 	
 	fn fileContentsAsSvgDocument(&self) -> Result<(::svgdom::Document, String), CordialError>;
+	
+	fn fileContentsAsPemX509Certificates(&self) -> Result<Vec<Certificate>, CordialError>;
+	
+	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>;
 	
 	fn createFileWithByteContents(&self, bytes: &[u8]) -> io::Result<()>;
 	
@@ -163,6 +171,19 @@ impl PathExt for Path
 		Ok(bytes)
 	}
 	
+	fn fileContentsAsBytesIfExtant(&self) -> io::Result<Option<Vec<u8>>>
+	{
+		let mut file = match File::open(self)
+		{
+			Err(_) => return Ok(None),
+			Ok(file) => file,
+		};
+		let metadata = self.metadata()?;
+		let mut bytes = Vec::with_capacity(metadata.len() as usize);
+		file.read_to_end(&mut bytes)?;
+		Ok(Some(bytes))
+	}
+	
 	fn fileContentsAsString(&self) -> io::Result<String>
 	{
 		let metadata = self.metadata()?;
@@ -173,10 +194,15 @@ impl PathExt for Path
 		Ok(buffer)
 	}
 	
+	fn fileContentsAsBufReader(&self, bufferSize: usize) -> io::Result<BufReader<File>>
+	{
+		let file = File::open(self)?;
+		Ok(BufReader::with_capacity(bufferSize, file))
+	}
+	
 	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>
 	{
-		let imageFile = File::open(self).context(self)?;
-		let reader = BufReader::new(imageFile);
+		let reader = self.fileContentsAsBufReader(4096).context(self)?;
 		
 		use InputImageFormat::*;
 		use ::image::ImageFormat;
@@ -217,6 +243,30 @@ impl PathExt for Path
 			Err(error) => Err(CordialError::CouldNotParseSvg(self.to_path_buf(), error)),
 			Ok(document) => Ok((document, svgString)),
 		}
+	}
+	
+	fn fileContentsAsPemX509Certificates(&self) -> Result<Vec<Certificate>, CordialError>
+	{
+		let mut reader = self.fileContentsAsBufReader(4096).context(self)?;
+		
+		// certs() provides an error of '()'...
+		::rustls::internal::pemfile::certs(&mut reader).map_err(|_| CordialError::InvalidFile(self.to_path_buf(), "Does not contain any PEM-encoded X.509 certificates".to_owned()))
+	}
+	
+	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>
+	{
+		let mut reader = self.fileContentsAsBufReader(4096).context(self)?;
+		
+		// rsa_private_keys() provides an error of '()'...
+		let mut rsaPrivateKeys = ::rustls::internal::pemfile::rsa_private_keys(&mut reader).map_err(|_| CordialError::InvalidFile(self.to_path_buf(), "Does not contain any PEM-encoded RSA private keys".to_owned()))?;
+		
+		if rsaPrivateKeys.len() != 1
+		{
+			return Err(CordialError::InvalidFile(self.to_path_buf(), "Does not contain exactly one (1) PEM-encoded RSA private key".to_owned()));
+		}
+		
+		let x = rsaPrivateKeys.drain(..).next().unwrap();
+		Ok(x)
 	}
 	
 	fn createParentFolderForFilePath(&self) -> io::Result<()>

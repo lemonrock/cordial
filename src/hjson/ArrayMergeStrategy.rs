@@ -30,7 +30,6 @@ impl ArrayMergeStrategy
 				
 				let mut mergedVectorOfValues = Vec::with_capacity(mergedLength);
 				
-				
 				let commonLength = min(parentLength, childLength);
 				for index in 0 .. commonLength
 				{

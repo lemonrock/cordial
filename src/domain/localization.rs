@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct localization
 {
 	#[serde(with = "url_serde", default = "localization::language_tool_base_url_default")] language_tool_base_url: Url,
@@ -26,6 +26,12 @@ impl localization
 	}
 	
 	#[inline(always)]
+	pub fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
+	{
+		&self.primary_iso_639_1_alpha_2_language_code
+	}
+	
+	#[inline(always)]
 	pub fn primaryLanguage(&self) -> Result<&language, CordialError>
 	{
 		self.language(&self.primary_iso_639_1_alpha_2_language_code)
@@ -42,6 +48,12 @@ impl localization
 	}
 	
 	#[inline(always)]
+	pub fn otherLanguages(&self, iso_639_1_alpha_2_language_code: &str) -> HashMap<String, language>
+	{
+		self.languages.iter().filter(|&(code, _)| code != iso_639_1_alpha_2_language_code).map(|(code, language)| (code.to_owned(), language.clone())).collect()
+	}
+	
+	#[inline(always)]
 	pub fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
 	{
 		visitor(&self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?, true)?;
@@ -53,5 +65,36 @@ impl localization
 			}
 		}
 		Ok(())
+	}
+	
+	pub fn serverHostNames(&self) -> Result<HashSet<String>, CordialError>
+	{
+		let mut serverHostNames = HashSet::with_capacity(self.languages.len());
+		
+		for language in self.languages.values()
+		{
+			serverHostNames.insert(language.host().to_owned());
+		}
+		
+		Ok(serverHostNames)
+	}
+	
+	pub fn serverHostNamesWithPrimaryFirst(&self) -> Result<OrderMap<String, ()>, CordialError>
+	{
+		let mut serverHostNames = OrderMap::with_capacity(self.languages.len());
+		
+		let primaryLanguage = self.primaryLanguage()?;
+		serverHostNames.insert(primaryLanguage.host().to_owned(), ());
+		
+		for language in self.languages.values()
+		{
+			let host = language.host();
+			if serverHostNames.get(host).is_none()
+			{
+				serverHostNames.insert(host.to_owned(), ());
+			}
+		}
+		
+		Ok(serverHostNames)
 	}
 }

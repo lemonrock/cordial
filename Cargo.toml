@@ -31,6 +31,7 @@ codegen-units = 1
 base64 = "0.6.0"
 brotli2 = "0.3.0"
 clap = "2.26.0"
+daemonize = "0.2.3"
 futures = "0.1.15"
 handlebars = "0.29"
 hyper-rustls = "0.11.0"

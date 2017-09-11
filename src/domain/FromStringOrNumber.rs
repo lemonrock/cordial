@@ -2,38 +2,11 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum Variant
-{
-	Canonical,
-	AMP,
-	PJAX,
-}
-
-impl Variant
+trait FromStringOrNumber
 {
 	#[inline(always)]
-	fn pathWithTrailingSlash(self) -> Option<&'static str>
-	{
-		use self::Variant::*;
-		match self
-		{
-			Canonical => None,
-			AMP => Some("amp/"),
-			PJAX => None,
-		}
-	}
+	fn from_str<'a>(value: &'a str) -> Self;
 	
 	#[inline(always)]
-	fn appendToUrl(self, baseUrl: Url) -> Url
-	{
-		if let Some(pathWithTrailingSlash) = self.pathWithTrailingSlash()
-		{
-			baseUrl.join(pathWithTrailingSlash).unwrap()
-		}
-		else
-		{
-			baseUrl
-		}
-	}
+	fn from_u32(value: u32) -> Self;
 }

@@ -14,7 +14,7 @@ use ::tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
 impl Webserver
 {
-	pub(crate) fn start(updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>, httpSocket: &ServerSocket, httpsSocket: &ServerSocket, httpRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>, settings: Settings) -> io::Result<()>
+	pub(crate) fn start(updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>, httpSocket: ::std::net::TcpListener, httpsSocket: ::std::net::TcpListener, httpRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>, mut settings: Settings) -> io::Result<()>
 	{
 		let respondsToCtrlC = settings.respondsToCtrlC();
 		
@@ -24,7 +24,6 @@ impl Webserver
 		// Reconfiguration
 		{
 			// Also SIGUSR1 and SIGUSR2
-			// We should consider sending ourselves a signal in the event configuration is bad...
 			let updatableTlsServerConfigurationFactory = updatableTlsServerConfigurationFactory.clone();
 			let httpRequestHandlerFactory = httpRequestHandlerFactory.clone();
 			let httpsRequestHandlerFactory = httpsRequestHandlerFactory.clone();
@@ -71,9 +70,10 @@ impl Webserver
 		Ok(())
 	}
 	
-	fn http<R: 'static + RequestHandlerFactory>(handle: &Handle, httpSocket: &ServerSocket, httpRequestHandlerFactory: Arc<R>) -> io::Result<()>
+	fn http<R: 'static + RequestHandlerFactory>(handle: &Handle, httpSocket: ::std::net::TcpListener, httpRequestHandlerFactory: Arc<R>) -> io::Result<()>
 	{
-		let (port, cloneOfHandle) = Self::cloneForOuterClosure(httpSocket, &handle);
+		let port = httpSocket.local_addr().unwrap().port();
+		let cloneOfHandle = handle.clone();
 		Self::forEachIncomingClient(httpSocket, &handle, move |(tcpStream, clientSocketAddress)|
 		{
 			let requestHandler = httpRequestHandlerFactory.produce();
@@ -82,9 +82,10 @@ impl Webserver
 		})
 	}
 	
-	fn https<R: 'static + RequestHandlerFactory>(handle: &Handle, httpsSocket: &ServerSocket, httpsRequestHandlerFactory: Arc<R>, updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>) -> io::Result<()>
+	fn https<R: 'static + RequestHandlerFactory>(handle: &Handle, httpsSocket: ::std::net::TcpListener, httpsRequestHandlerFactory: Arc<R>, updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>) -> io::Result<()>
 	{
-		let (port, cloneOfHandle) = Self::cloneForOuterClosure(httpsSocket, &handle);
+		let port = httpsSocket.local_addr().unwrap().port();
+		let cloneOfHandle = handle.clone();
 		Self::forEachIncomingClient(httpsSocket, &handle, move |(tcpStream, clientSocketAddress)|
 		{
 			let requestHandler = httpsRequestHandlerFactory.produce();
@@ -102,17 +103,14 @@ impl Webserver
 		Signal::new(signal, &handle).flatten_stream()
 	}
 	
-	fn cloneForOuterClosure(serverSocket: &ServerSocket, handle: &Handle) -> (u16, Handle)
-	{
-		(serverSocket.port(), handle.clone())
-	}
-	
 	#[allow(deprecated)]
-	fn forEachIncomingClient<F, U>(serverSocket: &ServerSocket, handle: &Handle, closure: F) -> io::Result<()>
+	fn forEachIncomingClient<F, U>(serverSocket: ::std::net::TcpListener, handle: &Handle, closure: F) -> io::Result<()>
 	where F: 'static + FnMut((::tokio_core::net::TcpStream, SocketAddr)) -> U,
 		  U: 'static + IntoFuture<Item=(), Error=io::Error>,
 	{
-		let serverFuture = serverSocket.tokioCoreNetTcpListener(handle)?.incoming().for_each(closure).map_err(|_| ());
+		let listeningOn = serverSocket.local_addr().unwrap();
+		let tokioListener = ::tokio_core::net::TcpListener::from_listener(serverSocket, &listeningOn, handle)?;
+		let serverFuture = tokioListener.incoming().for_each(closure).map_err(|_| ());
 		handle.spawn(serverFuture);
 		Ok(())
 	}

@@ -12,6 +12,7 @@
 extern crate base64;
 extern crate brotli2;
 extern crate clap;
+extern crate daemonize;
 extern crate futures;
 extern crate handlebars;
 extern crate hyper;
@@ -62,6 +63,7 @@ use ::std::fs::remove_file;
 use ::std::fs::set_permissions;
 use ::std::io;
 use ::std::io::BufReader;
+use ::std::io::BufWriter;
 use ::std::io::Read;
 use ::std::io::Write;
 use ::std::os::unix::fs::PermissionsExt;
@@ -87,8 +89,6 @@ include!("PathExt.rs");
 
 fn main()
 {
-	setUMaskToUserOnly();
-	
 	let matches = App::new("cordial")
 		.version("0.0.0")
 		.about("Creates static websites")
@@ -160,14 +160,17 @@ fn main()
 	
 	matches.configureStandardErrorLogging();
 	
-	let respondsToCtrlC = !matches.is_present("daemon");
+	let isDaemon = matches.is_present("daemon");
 	let environment = matches.value_of("environment").unwrap_or("development");
 	let uncanonicalizedInputFolderPath = matches.defaultPathForCommandLineOption("input", "./input");
 	let uncanonicalizedOutputFolderPath = matches.defaultPathForCommandLineOption("output", "./output");
 	
+	setUMaskToUserOnly();
+	
 	let (inputFolderPath, outputFolderPath) = canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath, uncanonicalizedOutputFolderPath);
 	
-	let settings = Settings::new(environment, inputFolderPath, outputFolderPath, respondsToCtrlC);
+	let settings = Settings::new(environment, inputFolderPath, outputFolderPath, isDaemon);
+	
 	
 	if let Err(error) = settings.startWebserver()
 	{

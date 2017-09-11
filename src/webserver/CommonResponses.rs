@@ -26,6 +26,9 @@ trait CommonResponses: Sized
 	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self;
 	
 	#[inline(always)]
+	fn old_temporary_redirect(isHead: bool, url: &Url) -> Self;
+	
+	#[inline(always)]
 	fn not_found(isHead: bool) -> Self;
 	
 	#[inline(always)]
@@ -124,8 +127,16 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::MovedPermanently, format!("<!doctype html><title>Moved permanently</title><p>The document has moved <a href='{}'>here</a>.", url))
+		Self::static_html_response(isHead, StatusCode::MovedPermanently, format!("<!doctype html><title>Moved permanently</title><p>The document has permanently moved <a href='{}'>here</a>.", url))
 		.with_header(commonCacheControlHeader(31536000))
+		.with_header(Location::new(url.as_ref().to_owned()))
+	}
+	
+	#[inline(always)]
+	fn old_temporary_redirect(isHead: bool, url: &Url) -> Self
+	{
+		Self::static_html_response(isHead, StatusCode::Found, format!("<!doctype html><title>Moved permanently</title><p>The document has temporarily moved <a href='{}'>here</a>.", url))
+		.with_header(commonCacheControlHeader(60))
 		.with_header(Location::new(url.as_ref().to_owned()))
 	}
 	

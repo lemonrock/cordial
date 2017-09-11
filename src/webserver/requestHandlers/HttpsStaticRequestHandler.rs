@@ -5,7 +5,7 @@
 #[derive(Debug)]
 pub(crate) struct HttpsStaticRequestHandler
 {
-	resourcesByHostNameAndPathAndVariant: HashMap<String, Trie<String, RegularAndPjaxStaticResponse>>,
+	resources: Arc<Resources>,
 	httpKeepAlive: bool,
 }
 
@@ -16,7 +16,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 	#[inline(always)]
 	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool
 	{
-		!self.resourcesByHostNameAndPathAndVariant.contains_key(hostName)
+		self.resources.isNotOneOfOurHostNames(hostName)
 	}
 	
 	#[inline(always)]
@@ -38,7 +38,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 		match method
 		{
 			Options => HttpService::<Self>::response(Response::options(methods())),
-			Head | Get  => self.static_resource(isHead, hostName, path, query, requestHeaders),
+			Head | Get  => self.response(isHead, hostName, path, query, requestHeaders),
 			_ => HttpService::<Self>::response(Response::method_not_allowed(methods())),
 		}
 	}
@@ -47,45 +47,24 @@ impl RequestHandler for HttpsStaticRequestHandler
 impl HttpsStaticRequestHandler
 {
 	#[inline(always)]
-	pub(crate) fn new(ourHostNames: &HashSet<String>, httpKeepAlive: bool) -> Self
+	pub(crate) fn new(resources: Resources, httpKeepAlive: bool) -> Self
 	{
-		let mut this = Self
+		Self
 		{
-			resourcesByHostNameAndPathAndVariant: HashMap::with_capacity(ourHostNames.len()),
+			resources: Arc::new(resources),
 			httpKeepAlive,
-		};
-		for hostName in ourHostNames.iter()
-		{
-			this.resourcesByHostNameAndPathAndVariant.insert(hostName.to_owned(), Trie::new());
 		}
-		this
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addResource(&mut self, url: Url, response: RegularAndPjaxStaticResponse)
+	pub(crate) fn resources(&self) -> Arc<Resources>
 	{
-		let radixTrie = self.resourcesByHostNameAndPathAndVariant.get_mut(url.host_str().unwrap()).unwrap();
-		radixTrie.insert(url.path().to_owned(), response);
-		
+		self.resources.clone()
 	}
 	
 	#[inline(always)]
-	fn static_resource(&self, isHead: bool, hostName: &str, path: String, _query: Option<String>, requestHeaders: Headers) -> Either<FutureResult<Response, ::hyper::Error>, <HttpsStaticRequestHandler as RequestHandler>::AlternativeFuture>
+	fn response(&self, isHead: bool, hostName: &str, path: String, query: Option<String>, requestHeaders: Headers) -> Either<FutureResult<Response, ::hyper::Error>, <HttpsStaticRequestHandler as RequestHandler>::AlternativeFuture>
 	{
-		match self.resourcesByHostNameAndPathAndVariant.get(hostName)
-		{
-			None => HttpService::<Self>::response(Response::not_found(isHead)),
-			Some(trie) => match trie.get(&path)
-			{
-				None => HttpService::<Self>::response(Response::not_found(isHead)),
-				Some(regularAndPjaxStaticResponse) =>
-				{
-					let isPjax = requestHeaders.get_raw("X-PJAX").is_some();
-					let preferredEncoding = PreferredEncoding::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
-					
-					HttpService::<Self>::response(regularAndPjaxStaticResponse.staticResponse(isHead, isPjax, preferredEncoding))
-				}
-			}
-		}
+		HttpService::<Self>::response(self.resources.response(isHead, hostName, path, query, requestHeaders))
 	}
 }

@@ -48,6 +48,10 @@ The license for this project is MIT.
 	* Allow specification of Cache-Control no-cache for / and /file (HTML) pages
 	* Create ETag values for all resources
 	* Unique version URLs for all non-HTML resources (ie sub-resources)
+* Versioning if cached assets (eg CSS)
+	* Use the ETag for the version number
+	* However, such an approach requires ordering of asset creation, so that PNGs, CSS, etc are created before a referencing HTML page
+		
 
 ### Notes
 

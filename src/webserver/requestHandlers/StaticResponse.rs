@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct StaticResponse
 {
 	statusCode: StatusCode,
@@ -10,51 +10,49 @@ pub(crate) struct StaticResponse
 	headers: Vec<(String, String)>,
 	uncompressedBody: Vec<u8>,
 	gzipAndBrotliCompressedBodies: Option<(Vec<u8>, Vec<u8>)>,
-	entityTag: String,
 }
 
 impl StaticResponse
 {
 	pub(crate) fn new(statusCode: StatusCode, contentType: ContentType, headers: Vec<(String, String)>, uncompressedBody: Vec<u8>, gzipAndBrotliCompressedBodies: Option<(Vec<u8>, Vec<u8>)>) -> Self
 	{
-		let entityTag =
-		{
-			let mut responseHeaders = Headers::with_capacity(1 + headers.len());
-			
-			responseHeaders.set(contentType.clone());
-			
-			for &(ref name, ref value) in headers.iter()
-			{
-				responseHeaders.set_raw(name.to_owned(), value.to_owned())
-			}
-			
-			let mut context = Context::new(&SHA256);
-			context.update(format!("{}", responseHeaders).as_bytes());
-			context.update(&uncompressedBody);
-			let digest = context.finish();
-			let bytes = digest.as_ref();
-			
-			// Unfortunately there is a slight possibility of generating a leading 'W/' with the ZeroMQ 85 (a variant of Base85 or Ascii85) encoding, which makes the ETag 'weak'
-			let base85EncodedDigest = bytes.to_z85().unwrap();
-			let mut entityTagSafe = String::with_capacity(1 + base85EncodedDigest.len());
-			entityTagSafe.push('x');
-			entityTagSafe.push_str(&base85EncodedDigest);
-			entityTagSafe
-		};
-		
 		Self
 		{
 			statusCode,
 			contentType,
 			headers,
 			uncompressedBody,
-			gzipAndBrotliCompressedBodies,
-			entityTag
+			gzipAndBrotliCompressedBodies
 		}
 	}
 	
+	pub(crate) fn entityTag(&self) -> String
+	{
+		let mut responseHeaders = Headers::with_capacity(1 + self.headers.len());
+		
+		responseHeaders.set(self.contentType.clone());
+		
+		for &(ref name, ref value) in self.headers.iter()
+		{
+			responseHeaders.set_raw(name.to_owned(), value.to_owned())
+		}
+		
+		let mut context = Context::new(&SHA256);
+		context.update(format!("{}", responseHeaders).as_bytes());
+		context.update(&self.uncompressedBody);
+		let digest = context.finish();
+		let bytes = digest.as_ref();
+		
+		// Unfortunately there is a slight possibility of generating a leading 'W/' with the ZeroMQ 85 (a variant of Base85 or Ascii85) encoding, which makes the ETag 'weak'
+		let base85EncodedDigest = bytes.to_z85().unwrap();
+		let mut entityTagSafe = String::with_capacity(1 + base85EncodedDigest.len());
+		entityTagSafe.push('x');
+		entityTagSafe.push_str(&base85EncodedDigest);
+		entityTagSafe
+	}
+	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, preferredEncoding: PreferredEncoding) -> Response
+	fn staticResponse(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str) -> Response
 	{
 		let mut response = Response::common_headers(self.statusCode.clone(), self.contentType.clone());
 		
@@ -62,7 +60,7 @@ impl StaticResponse
 		{
 			let headers = response.headers_mut();
 			
-			headers.set(ETag(EntityTag::new(false, self.entityTag.to_owned())));
+			headers.set(ETag(EntityTag::new(false, entityTag.to_owned())));
 			
 			for &(ref name, ref value) in self.headers.iter()
 			{

@@ -3,38 +3,27 @@
 
 
 #[derive(Debug, Clone)]
-pub(crate) struct RegularAndPjaxStaticResponse
+struct UserNewType(User);
+
+impl<'de> Deserialize<'de> for UserNewType
 {
-	regular: StaticResponse,
-	pjax: Option<StaticResponse>,
-	entityTag: String,
+	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
+	{
+		deserializer.deserialize_any(StringOrNumberVisitor(PhantomData))
+	}
 }
 
-impl RegularAndPjaxStaticResponse
+impl FromStringOrNumber for UserNewType
 {
 	#[inline(always)]
-	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
+	fn from_str<'a>(value: &'a str) -> Self
 	{
-		let entityTag = regular.entityTag();
-		
-		Self
-		{
-			regular,
-			pjax,
-			entityTag
-		}
+		UserNewType(User::from(value))
 	}
 	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding) -> Response
+	fn from_u32(value: u32) -> Self
 	{
-		if isPjax && self.pjax.is_some()
-		{
-			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag)
-		}
-		else
-		{
-			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag)
-		}
+		UserNewType(User::from(value))
 	}
 }

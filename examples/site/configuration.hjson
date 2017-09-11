@@ -26,24 +26,33 @@
 #<link rel="alternate" href="http://example.com/" hreflang="x-default" />
 
 {
-	http_socket:
+	daemon:
 	{
-		socket: 127.0.0.1:8080
-		time_to_live: 64
-		only_v6: false
-		reuse_address: false
-		reuse_port: false
-		linger: null
-	}
+		# Can also be a string or a number
+		user: null
+		# Can also be a string or a number
+		group: null
+		pid_file: /var/run/cordial.pid
 
-	https_socket:
-	{
-		socket: 127.0.0.1:8443
-		time_to_live: 64
-		only_v6: false
-		reuse_address: false
-		reuse_port: false
-		linger: null
+		http_socket:
+		{
+			socket: 127.0.0.1:8080
+			time_to_live: 64
+			only_v6: false
+			reuse_address: false
+			reuse_port: false
+			linger: null
+		}
+
+		https_socket:
+		{
+			socket: 127.0.0.1:8443
+			time_to_live: 64
+			only_v6: false
+			reuse_address: false
+			reuse_port: false
+			linger: null
+		}
 	}
 
 	maximum_number_of_tls_sessions: 4096

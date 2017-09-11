@@ -5,15 +5,13 @@
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct Configuration
 {
-	#[serde(default = "Configuration::http_socket_default")] http_socket: ServerSocket,
-	#[serde(default = "Configuration::https_socket_default")] https_socket: ServerSocket,
+	#[serde(default)] daemon: daemon,
 	#[serde(default = "Configuration::maximum_number_of_tls_sessions_default")] maximum_number_of_tls_sessions: u32,
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	localization: localization,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] cacheFolderPath: PathBuf,
-	#[serde(default, skip_deserializing)] siteOutputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
 	#[serde(default, skip_deserializing)] deploymentVersion: String,
 }
@@ -21,46 +19,49 @@ pub(crate) struct Configuration
 impl Configuration
 {
 	#[inline(always)]
-	pub(crate) fn serverSockets<'a>(&'a self) -> (&'a ServerSocket, &'a ServerSocket)
+	pub(crate) fn daemonizeAndBindSockets(&self, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
 	{
-		(&self.http_socket, &self.https_socket)
+		self.daemon.daemonizeAndBindSockets(&self.cacheFolderPath, isDaemon)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResources: Arc<Resources>) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
 		let cacheFolderPath = outputFolderPath.createSubFolder("cache").context(outputFolderPath)?;
-		let siteOutputFolderPath = outputFolderPath.recreateSubFolder("site").context(outputFolderPath)?;
-		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, cacheFolderPath, siteOutputFolderPath)?;
+		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, cacheFolderPath)?;
 		
-		configuration.finishReconfigure()
+		configuration.finishReconfigure(oldResources)
 	}
 	
 	#[inline(always)]
-	fn finishReconfigure(self) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	fn finishReconfigure(self, oldResources: Arc<Resources>) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
 	{
 		let resources = DiscoverResources::discoverResources(&self, &self.inputFolderPath)?;
 		
-		let (tlsServerConfiguration, mut httpsHandler, httpHandler) = self.requestHandlers()?;
+		let ourHostNames = self.localization.serverHostNames()?;
+		let mut newResources = Resources::new(&ourHostNames);
 		
 		{
 			let visitor = |languageCode: &str, language: &language, _isPrimaryLanguage: bool|
 			{
 				for (_, resource) in resources.iter()
 				{
-					resource.createOutput(&self.environment, languageCode, language, &self.localization, &self.siteOutputFolderPath, &self.inputFolderPath, &mut httpsHandler, &self.deploymentVersion)?
+					resource.createOutput(&self.environment, languageCode, language, &self.localization, &self.inputFolderPath, &mut newResources, oldResources.clone(), &self.deploymentVersion)?
 				}
 				Ok(())
 			};
 			self.visitLanguagesWithPrimaryFirst(visitor)?;
 		}
 		
+		let tlsServerConfiguration = self.tlsServerConfiguration()?;
+		let httpHandler = HttpRedirectToHttpsRequestHandler::new(self.daemon.https_socket.port(), ourHostNames, self.http_keep_alive);
+		let httpsHandler = HttpsStaticRequestHandler::new(newResources, self.http_keep_alive);
 		Ok((self, tlsServerConfiguration, httpHandler, httpsHandler))
 	}
 	
 	#[inline(always)]
-	fn loadBaselineConfiguration(inputFolderPath: &Path, environment: &str, cacheFolderPath: PathBuf, siteOutputFolderPath: PathBuf) -> Result<Configuration, CordialError>
+	fn loadBaselineConfiguration(inputFolderPath: &Path, environment: &str, cacheFolderPath: PathBuf) -> Result<Configuration, CordialError>
 	{
 		let configurationHjson = loadHjson(&inputFolderPath.join("configuration.hjson"))?;
 		
@@ -81,7 +82,6 @@ impl Configuration
 		configuration.resource_template = Some(resource_template);
 		configuration.inputFolderPath = inputFolderPath.to_path_buf();
 		configuration.cacheFolderPath = cacheFolderPath;
-		configuration.siteOutputFolderPath = siteOutputFolderPath;
 		configuration.environment = environment.to_owned();
 		configuration.deploymentVersion = Self::deploymentVersion();
 		
@@ -112,20 +112,6 @@ impl Configuration
 	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
 		self.localization.visitLanguagesWithPrimaryFirst(visitor)
-	}
-	
-	#[inline(always)]
-	fn requestHandlers(&self) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler), CordialError>
-	{
-		let ourHostNames = self.localization.serverHostNames()?;
-		Ok
-		(
-			(
-				self.tlsServerConfiguration()?,
-				HttpsStaticRequestHandler::new(&ourHostNames, self.http_keep_alive),
-				HttpRedirectToHttpsRequestHandler::new(self.https_socket.port(), ourHostNames, self.http_keep_alive)
-			)
-		)
 	}
 	
 	#[inline(always)]
@@ -249,36 +235,6 @@ impl Configuration
 		else
 		{
 			errors.push(format!("{:?} is unknown (?Solaris Door?)", path));
-		}
-	}
-	
-	#[inline(always)]
-	fn http_socket_default() -> ServerSocket
-	{
-		ServerSocket
-		{
-			socket: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
-			time_to_live: 0,
-			only_v6: false,
-			reuse_address: false,
-			reuse_port: false,
-			backlog: 0,
-			linger: None,
-		}
-	}
-	
-	#[inline(always)]
-	fn https_socket_default() -> ServerSocket
-	{
-		ServerSocket
-		{
-			socket: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8443),
-			time_to_live: 0,
-			only_v6: false,
-			reuse_address: false,
-			reuse_port: false,
-			backlog: 0,
-			linger: None,
 		}
 	}
 	

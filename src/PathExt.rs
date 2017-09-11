@@ -38,13 +38,13 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>;
 	
+	fn fileContentsAsACleanedSvgFrom(&self) -> Result<Vec<u8>, CordialError>;
+	
 	fn createFileWithByteContents(&self, bytes: &[u8]) -> io::Result<()>;
 	
 	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>;
 	
 	fn createFileWithPngImage(&self, image: ::image::DynamicImage) -> Result<(), CordialError>;
-	
-	fn createFileWithCleanedSvgFrom(&self, from: &Path) -> Result<(), CordialError>;
 	
 	fn createFileWithCopyOf(&self, from: &Path) -> io::Result<()>;
 	
@@ -269,46 +269,14 @@ impl PathExt for Path
 		Ok(x)
 	}
 	
-	fn createParentFolderForFilePath(&self) -> io::Result<()>
-	{
-		self.parent().unwrap().createFolder()
-	}
-	
-	fn createFileWithByteContents(&self, buffer: &[u8]) -> io::Result<()>
-	{
-		self.createParentFolderForFilePath()?;
-		let mut file = File::create(self)?;
-		file.write_all(buffer)
-	}
-	
-	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>
-	{
-		self.createFileWithByteContents(string.as_bytes())
-	}
-	
-	fn createFileWithCopyOf(&self, from: &Path) -> io::Result<()>
-	{
-		self.createParentFolderForFilePath()?;
-		fs::copy(from, self)?;
-		Ok(())
-	}
-	
-	fn createFileWithPngImage(&self, image: ::image::DynamicImage) -> Result<(), CordialError>
-	{
-		self.createParentFolderForFilePath().context(self)?;
-		let mut writer = File::create(self).context(self)?;
-		image.save(&mut writer, ::image::ImageFormat::PNG).context(self)?;
-		Ok(())
-	}
-	
-	fn createFileWithCleanedSvgFrom(&self, from: &Path) -> Result<(), CordialError>
+	fn fileContentsAsACleanedSvgFrom(&self) -> Result<Vec<u8>, CordialError>
 	{
 		use ::svgcleaner::CleaningOptions as SvgCleanOptions;
 		use ::svgcleaner::cleaner::clean_doc as svgDocumentCleaner;
 		
 		self.createParentFolderForFilePath().context(self)?;
 		
-		let (document, svgString) = from.fileContentsAsSvgDocument()?;
+		let (document, svgString) = self.fileContentsAsSvgDocument()?;
 		
 		use ::svgdom::WriteOptions as SvgWriteOptions;
 		use ::svgdom::WriteOptionsPaths as SvgWriteOptionsPaths;
@@ -341,12 +309,43 @@ impl PathExt for Path
 		// Write out the smaller of the original or cleaned
 		if buffer.len() > svgString.len()
 		{
-			self.createFileWithStringContents(&svgString).context(self)?;
+			Ok(svgString.as_bytes().to_owned())
 		}
 		else
 		{
-			self.createFileWithByteContents(&buffer).context(self)?;
+			Ok(buffer)
 		}
+	}
+	
+	fn createParentFolderForFilePath(&self) -> io::Result<()>
+	{
+		self.parent().unwrap().createFolder()
+	}
+	
+	fn createFileWithByteContents(&self, buffer: &[u8]) -> io::Result<()>
+	{
+		self.createParentFolderForFilePath()?;
+		let mut file = File::create(self)?;
+		file.write_all(buffer)
+	}
+	
+	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>
+	{
+		self.createFileWithByteContents(string.as_bytes())
+	}
+	
+	fn createFileWithCopyOf(&self, from: &Path) -> io::Result<()>
+	{
+		self.createParentFolderForFilePath()?;
+		fs::copy(from, self)?;
+		Ok(())
+	}
+	
+	fn createFileWithPngImage(&self, image: ::image::DynamicImage) -> Result<(), CordialError>
+	{
+		self.createParentFolderForFilePath().context(self)?;
+		let mut writer = File::create(self).context(self)?;
+		image.save(&mut writer, ::image::ImageFormat::PNG).context(self)?;
 		Ok(())
 	}
 	

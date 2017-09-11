@@ -9,6 +9,7 @@
       <w>cloexec</w>
       <w>cpus</w>
       <w>cvlan</w>
+      <w>daemonize</w>
       <w>datagrams</w>
       <w>datatype</w>
       <w>deflaters</w>
@@ -106,6 +107,7 @@
       <w>unextended</w>
       <w>unsharpen</w>
       <w>unsubscribes</w>
+      <w>unversioned</w>
       <w>webserver</w>
       <w>werror</w>
       <w>whitelist</w>

@@ -34,6 +34,7 @@ pub(crate) enum pipeline
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		input_format: InputImageFormat,
 		jpeg_quality: Option<u8>,
@@ -43,6 +44,7 @@ pub(crate) enum pipeline
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
@@ -50,6 +52,7 @@ pub(crate) enum pipeline
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
@@ -57,6 +60,7 @@ pub(crate) enum pipeline
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		skip: bool,
 	}
@@ -97,6 +101,12 @@ impl pipeline
 	fn is_downloadable_false_default() -> bool
 	{
 		false
+	}
+	
+	#[inline(always)]
+	fn is_versioned_true_default() -> bool
+	{
+		true
 	}
 	
 	pub(crate) fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
@@ -208,13 +218,13 @@ impl pipeline
 		(relativeUrl, additionalContentFileNameIfAny)
 	}
 	
-	pub(crate) fn isFor(&self) -> (u32, bool, bool, bool, ContentType, bool)
+	pub(crate) fn isFor<'a>(&self, deploymentVersion: &'a str) -> (u32, bool, bool, bool, ContentType, bool, Option<&'a str>)
 	{
 		use self::pipeline::*;
 		match *self
 		{
-			md { max_age_in_seconds, .. } => (max_age_in_seconds, false, false, true, ContentType::html(), false),
-			raster_image { max_age_in_seconds, is_downloadable, language_aware, jpeg_quality, .. } =>
+			md { max_age_in_seconds, .. } => (max_age_in_seconds, false, false, true, ContentType::html(), false, None),
+			raster_image { max_age_in_seconds, is_downloadable, is_versioned, language_aware, jpeg_quality, .. } =>
 			{
 				let contentType = if jpeg_quality.is_some()
 				{
@@ -224,15 +234,15 @@ impl pipeline
 				{
 					ContentType::png()
 				};
-				(max_age_in_seconds, language_aware, true, false, contentType, is_downloadable)
+				(max_age_in_seconds, language_aware, true, false, contentType, is_downloadable, if is_versioned { Some(deploymentVersion) } else { None })
 			}
-			sass { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable),
-			scss { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable),
-			svg { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(Mime::from_str("image/svg+xml").unwrap()), is_downloadable),
+			sass { max_age_in_seconds, is_downloadable, is_versioned, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable, if is_versioned { Some(deploymentVersion) } else { None }),
+			scss { max_age_in_seconds, is_downloadable, is_versioned, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable, if is_versioned { Some(deploymentVersion) } else { None }),
+			svg { max_age_in_seconds, is_downloadable, is_versioned, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(Mime::from_str("image/svg+xml").unwrap()), is_downloadable, if is_versioned { Some(deploymentVersion) } else { None }),
 		}
 	}
 	
-	pub(crate) fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, inputContentFilePath: &Path, _variant: Variant, inputFolderPath: &Path) -> Result<Vec<u8>, CordialError>
 	{
 		use self::pipeline::*;
 		match *self
@@ -242,31 +252,27 @@ impl pipeline
 				panic!("Implement me");
 			}
 			
-			raster_image { input_format, jpeg_quality, ref transformations, .. } => Self::raster_image(inputContentFilePath, outputFilePath, input_format, jpeg_quality, transformations),
+			raster_image { input_format, jpeg_quality, ref transformations, .. } => Self::raster_image(inputContentFilePath, input_format, jpeg_quality, transformations),
 			
-			sass { precision, .. } => Self::sass_or_scss(inputContentFilePath, outputFilePath, precision, canonicalizedInputFolderPath, true),
+			sass { precision, .. } => Self::sass_or_scss(inputContentFilePath, precision, inputFolderPath, true),
 			
-			scss { precision, .. } => Self::sass_or_scss(inputContentFilePath, outputFilePath, precision, canonicalizedInputFolderPath, false),
+			scss { precision, .. } => Self::sass_or_scss(inputContentFilePath, precision, inputFolderPath, false),
 			
 			svg { skip, .. } =>
 			{
 				if skip
 				{
-					outputFilePath.createFileWithCopyOf(&inputContentFilePath).context(&outputFilePath)?
+					Ok(inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?)
 				}
 				else
 				{
-					outputFilePath.createFileWithCleanedSvgFrom(&inputContentFilePath)?
+					inputContentFilePath.fileContentsAsACleanedSvgFrom()
 				}
-				
-				let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
-				
-				Ok(bytes)
 			}
 		}
 	}
 	
-	fn raster_image(inputContentFilePath: &Path, outputFilePath: PathBuf, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<Vec<u8>, CordialError>
+	fn raster_image(inputContentFilePath: &Path, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<Vec<u8>, CordialError>
 	{
 		let image = inputContentFilePath.fileContentsAsImage(input_format)?;
 		
@@ -276,10 +282,6 @@ impl pipeline
 		// save & optimize
 		if jpeg_quality.is_some()
 		{
-			let mut temporaryFile = Temp::new_file().context(&outputFilePath)?;
-			let temporaryFilePath = temporaryFile.to_path_buf();
-			temporaryFilePath.createFileWithPngImage(image)?;
-			
 			let quality = match jpeg_quality.unwrap()
 			{
 				0 => 1,
@@ -287,25 +289,34 @@ impl pipeline
 				_ => 100
 			};
 			
-			CordialError::executeCommandCapturingOnlyStandardError(Command::new("guetzli").env_clear().args(&["--nomemlimit", "--quality", &format!("{}", quality)]).arg(&temporaryFilePath).arg(&outputFilePath), &outputFilePath)?;
+			// create PNG bytes
+			let mut pngBytes = Vec::with_capacity(128 * 1024);
+			{
+				let mut writer = BufWriter::with_capacity(pngBytes.len(), &mut pngBytes);
+				image.save(&mut writer, ::image::ImageFormat::PNG).context(inputContentFilePath)?;
+			}
 			
-			temporaryFilePath.deleteOverridingPermissions().context(&temporaryFilePath)?;
-			
-			temporaryFile.release();
+			// create JPEG
+			Ok(CordialError::executeCommandCapturingStandardOut(Command::new("guetzli").env_clear().args(&["--nomemlimit", "--quality", &format!("{}", quality), "-", "-"]), inputContentFilePath, pngBytes)?)
 		}
 		else
 		{
-			outputFilePath.createFileWithPngImage(image)?;
+			let mut temporaryFile = Temp::new_file().context(inputContentFilePath)?;
+			let temporaryFilePath = temporaryFile.to_path_buf();
 			
-			outputFilePath.modifyPngWithOxipng()?;
+			temporaryFilePath.createFileWithPngImage(image)?;
+			temporaryFilePath.modifyPngWithOxipng()?;
+			
+			let bytes = temporaryFilePath.fileContentsAsBytes().context(&temporaryFilePath)?;
+			
+			temporaryFilePath.deleteOverridingPermissions().context(&temporaryFilePath)?;
+			temporaryFile.release();
+			
+			Ok(bytes)
 		}
-		
-		let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
-		
-		Ok(bytes)
 	}
 	
-	fn sass_or_scss(inputContentFilePath: &Path, outputFilePath: PathBuf, precision: u8, canonicalizedInputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
+	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, inputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
 		{
@@ -335,17 +346,13 @@ impl pipeline
 			output_style: ::sass_rs::OutputStyle::Compressed,
 			precision: precision as usize,
 			indented_syntax: isSass,
-			include_paths: findImportPaths(&canonicalizedInputFolderPath)?,
+			include_paths: findImportPaths(inputFolderPath)?,
 		};
 		
 		match ::sass_rs::compile_file(inputContentFilePath, options)
 		{
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
-			Ok(css) => outputFilePath.createFileWithStringContents(&css).context(&outputFilePath)?,
+			Ok(css) => Ok(css.as_bytes().to_owned()),
 		}
-		
-		let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
-		
-		Ok(bytes)
 	}
 }

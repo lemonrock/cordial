@@ -8,42 +8,50 @@ pub(crate) struct Settings
 	environment: String,
 	inputFolderPath: PathBuf,
 	outputFolderPath: PathBuf,
-	respondsToCtrlC: bool,
+	isDaemon: bool,
+	oldResources: Arc<Resources>,
 }
 
 impl Settings
 {
 	#[inline(always)]
-	pub(crate) fn new(environment: &str, inputFolderPath: PathBuf, outputFolderPath: PathBuf, respondsToCtrlC: bool) -> Self
+	pub(crate) fn new(environment: &str, inputFolderPath: PathBuf, outputFolderPath: PathBuf, isDaemon: bool) -> Self
 	{
 		Self
 		{
 			environment: environment.to_owned(),
 			inputFolderPath,
 			outputFolderPath,
-			respondsToCtrlC,
+			isDaemon,
+			oldResources: Arc::new(Resources::empty())
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn startWebserver(self) -> Result<(), CordialError>
+	pub(crate) fn startWebserver(mut self) -> Result<(), CordialError>
 	{
 		let (configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
 		
-		let (httpSocket, httpsSocket) = configuration.serverSockets();
+		self.oldResources = httpsStaticRequestHandler.resources();
+		
 		let updatableTlsServerConfigurationFactory = UpdatableTlsServerConfigurationFactory::new(serverConfig);
 		let httpRequestHandlerFactory = UpdatableRequestHandlerFactory::new(httpRedirectToHttpsRequestHandler);
 		let httpsRequestHandlerFactory = UpdatableRequestHandlerFactory::new(httpsStaticRequestHandler);
 		
 		let context = self.inputFolderPath.clone();
+		
+		let (httpSocket, httpsSocket) = configuration.daemonizeAndBindSockets(self.isDaemon)?;
 		Webserver::start(updatableTlsServerConfigurationFactory, httpSocket, httpsSocket, httpRequestHandlerFactory, httpsRequestHandlerFactory, self).context(context)?;
 		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn reconfigure(&self, updatableTlsServerConfigurationFactory: &Arc<UpdatableTlsServerConfigurationFactory>, httpRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>) -> Result<(), CordialError>
+	pub(crate) fn reconfigure(&mut self, updatableTlsServerConfigurationFactory: &Arc<UpdatableTlsServerConfigurationFactory>, httpRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>) -> Result<(), CordialError>
 	{
 		let (_configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
+		
+		self.oldResources = httpsStaticRequestHandler.resources();
+		
 		updatableTlsServerConfigurationFactory.update(serverConfig);
 		httpRequestHandlerFactory.update(httpRedirectToHttpsRequestHandler);
 		httpsRequestHandlerFactory.update(httpsStaticRequestHandler);
@@ -53,12 +61,12 @@ impl Settings
 	#[inline(always)]
 	fn justConfigurationReconfigure(&self) -> Result<(Configuration, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
 	{
-		Configuration::reconfigure(&self.environment, &self.inputFolderPath, &self.outputFolderPath)
+		Configuration::reconfigure(&self.environment, &self.inputFolderPath, &self.outputFolderPath, self.oldResources.clone())
 	}
 	
 	#[inline(always)]
 	pub(crate) fn respondsToCtrlC(&self) -> bool
 	{
-		self.respondsToCtrlC
+		!self.isDaemon
 	}
 }

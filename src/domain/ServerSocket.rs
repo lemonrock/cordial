@@ -55,10 +55,4 @@ impl ServerSocket
 		}
 		Ok(netTcpListener)
 	}
-	
-	#[inline(always)]
-	pub(crate) fn tokioCoreNetTcpListener(&self, handle: &Handle) -> io::Result<::tokio_core::net::TcpListener>
-	{
-		tokio_core::net::TcpListener::from_listener(self.stdNetTcpListener()?, &self.socket, handle)
-	}
 }

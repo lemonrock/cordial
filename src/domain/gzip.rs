@@ -25,10 +25,8 @@ impl gzip
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub fn compress(&self, inputFilePath: &Path, inData: &[u8]) -> Result<(), CordialError>
+	pub fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
-		let outputFilePath = inputFilePath.appendExtension("gz");
-		
 		warn!("The zopfli library currently does not support options");
 		
 //		let options = ::zopfli::Options
@@ -48,11 +46,15 @@ impl gzip
 		
 		let options = ::zopfli::Options::default();
 		
+		let mut writer = Vec::with_capacity(inputData.len());
+		
+		if let Err(error) = ::zopfli::compress(&options, &::zopfli::Format::Gzip, &inputData, &mut writer)
 		{
-			let writer = File::create(&outputFilePath).context(outputFilePath.clone())?;
-			::zopfli::compress(&options, &::zopfli::Format::Gzip, &inData, writer).context(inputFilePath.to_path_buf())?;
+			return Err(CordialError::CouldNotCompressData("gzip", error))
 		}
 		
-		Ok(())
+		writer.shrink_to_fit();
+		
+		Ok(writer)
 	}
 }

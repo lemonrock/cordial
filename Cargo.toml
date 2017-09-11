@@ -28,6 +28,7 @@ debug-assertions = false
 codegen-units = 1
 
 [dependencies]
+base64 = "0.6.0"
 brotli2 = "0.3.0"
 clap = "2.26.0"
 futures = "0.1.15"
@@ -41,6 +42,8 @@ net2 = "0.2.31"
 num_cpus = "1.6.2"
 oxipng = "0.16.3"
 quick-error = "1.1.0"
+radix_trie = "0.1.1"
+ring = "0.12.1"
 rustls = "0.11.0"
 sass-rs = "0.2.0"
 serde_derive = "^1.0.8"
@@ -58,6 +61,7 @@ tokio-signal = "0.1"
 #tokio-service = "0.1.0"
 url = "1.5.1"
 url_serde = "0.2.0"
+zero85 = "0.2.0"
 zopfli = "0.3.6"
 
 [target.'cfg(unix)'.dependencies]

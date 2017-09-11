@@ -8,15 +8,32 @@ pub enum pipeline
 {
 	md
 	{
+		#[serde(default = "pipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
 		#[serde(default)] is_leaf: bool,
 		
-		// TODO: Needs to be reworked to be per-language
-		title: String,
-		description: String,
-		extract_markdown: String, // markdown
+		abstracts: HashMap<String, Abstract>,
+		/*
+		{
+			en:
+			{
+				title: String,
+				description: String,
+				extract: String, // markdown / handlebars template
+			}
+		}
+		*/
+		
+		// status-code overrides
+			// 301 - Moved Perm (OLD)
+			// 302 - Moved Temp (OLD)
+			// 303 - See Other
+			// 307 - Moved Temp (HTTP/1.1)
+			// 308 - Moved Perm (HTTP 2 / HTTP rewrite)
 	},
 	raster_image
 	{
+		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default)] language_aware: bool,
 		input_format: InputImageFormat,
 		jpeg_quality: Option<u8>,
@@ -24,36 +41,35 @@ pub enum pipeline
 	},
 	sass
 	{
+		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
 	scss
 	{
+		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
 	},
 	svg
 	{
+		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default)] language_aware: bool,
 		skip: bool,
 	}
-//	sitemap, // xml
+//	sitemap, // xml  https://github.com/netvl/xml-rs
 //	robots,
 //	rss, // xml
 //	json,
 //	// js,
-//	png,
-//	jpeg,
-//	gif,
-//	svg,
+//	gif (animations only),
+//  favicon
 //	redirect,
 	// eg for temp or perm redirect
 	// empty body
-	// 301 - Moved Perm (OLD)
-	// 302 - Moved Temp (OLD)
-	// 303 - See Other
-	// 307 - Moved Temp (HTTP/1.1)
-	// 308 - Moved Perm (HTTP 2 / HTTP rewrite)
 	// Needs access to site configuration in order to write out the 'Location' header
 	// header field values are visible US-ASCII, ie 32 - 126 incl
 }
@@ -63,6 +79,24 @@ impl pipeline
 	fn cssDefaultPrecision() -> u8
 	{
 		5
+	}
+	
+	#[inline(always)]
+	fn max_age_in_seconds_none_default() -> u32
+	{
+		0
+	}
+	
+	#[inline(always)]
+	fn max_age_in_seconds_long_default() -> u32
+	{
+		31536000
+	}
+	
+	#[inline(always)]
+	fn is_downloadable_false_default() -> bool
+	{
+		false
 	}
 	
 	pub fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
@@ -174,20 +208,31 @@ impl pipeline
 		(relativeUrl, additionalContentFileNameIfAny)
 	}
 	
-	pub fn isForPrimaryLanguageAndCanonicalUrlOnly(&self) -> (bool, bool)
+	pub fn isFor(&self) -> (u32, bool, bool, bool, ContentType, bool)
 	{
 		use self::pipeline::*;
 		match *self
 		{
-			md { .. } => (false, false),
-			raster_image { language_aware, .. } => (language_aware, false),
-			sass { language_aware, .. } => (language_aware, false),
-			scss { language_aware, .. } => (language_aware, false),
-			svg { language_aware, .. } => (language_aware, false),
+			md { max_age_in_seconds, .. } => (max_age_in_seconds, false, false, true, ContentType::html(), false),
+			raster_image { max_age_in_seconds, is_downloadable, language_aware, jpeg_quality, .. } =>
+			{
+				let contentType = if jpeg_quality.is_some()
+				{
+					ContentType::jpeg()
+				}
+				else
+				{
+					ContentType::png()
+				};
+				(max_age_in_seconds, language_aware, true, false, contentType, is_downloadable)
+			}
+			sass { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable),
+			scss { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(TEXT_CSS), is_downloadable),
+			svg { max_age_in_seconds, is_downloadable, language_aware, .. } => (max_age_in_seconds, language_aware, true, true, ContentType(Mime::from_str("image/svg+xml").unwrap()), is_downloadable),
 		}
 	}
 	
-	pub fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<PathBuf>, CordialError>
+	pub fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<u8>, CordialError>
 	{
 		use self::pipeline::*;
 		match *self
@@ -214,12 +259,14 @@ impl pipeline
 					outputFilePath.createFileWithCleanedSvgFrom(&inputContentFilePath)?
 				}
 				
-				Ok(vec![outputFilePath])
+				let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
+				
+				Ok(bytes)
 			}
 		}
 	}
 	
-	fn raster_image(inputContentFilePath: &Path, outputFilePath: PathBuf, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<Vec<PathBuf>, CordialError>
+	fn raster_image(inputContentFilePath: &Path, outputFilePath: PathBuf, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation]) -> Result<Vec<u8>, CordialError>
 	{
 		let image = inputContentFilePath.fileContentsAsImage(input_format)?;
 		
@@ -253,10 +300,12 @@ impl pipeline
 			outputFilePath.modifyPngWithOxipng()?;
 		}
 		
-		Ok(vec![outputFilePath])
+		let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
+		
+		Ok(bytes)
 	}
 	
-	fn sass_or_scss(inputContentFilePath: &Path, outputFilePath: PathBuf, precision: u8, canonicalizedInputFolderPath: &Path, isSass: bool) -> Result<Vec<PathBuf>, CordialError>
+	fn sass_or_scss(inputContentFilePath: &Path, outputFilePath: PathBuf, precision: u8, canonicalizedInputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
 		{
@@ -277,6 +326,7 @@ impl pipeline
 					}
 				}
 			}
+			
 			Ok(importPaths)
 		}
 		
@@ -294,6 +344,8 @@ impl pipeline
 			Ok(css) => outputFilePath.createFileWithStringContents(&css).context(&outputFilePath)?,
 		}
 		
-		Ok(vec![outputFilePath])
+		let bytes = outputFilePath.fileContentsAsBytes().context(outputFilePath)?;
+		
+		Ok(bytes)
 	}
 }

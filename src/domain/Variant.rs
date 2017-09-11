@@ -20,10 +20,23 @@ impl Variant
 		{
 			Canonical => None,
 			AMP => Some("amp/"),
-			PJAX => Some("pjax/"),
+			PJAX => None,
 		}
 	}
 	
+	#[inline(always)]
+	pub fn fileExtensionWithLeadingPeriod(self) -> &'static str
+	{
+		use self::Variant::*;
+		match self
+		{
+			Canonical => "",
+			AMP => "",
+			PJAX => ".pjax",
+		}
+	}
+	
+	#[inline(always)]
 	pub fn appendToUrl(self, baseUrl: Url) -> Url
 	{
 		if let Some(pathWithTrailingSlash) = self.pathWithTrailingSlash()

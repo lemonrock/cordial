@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub struct resource
 {
-	pipeline: pipeline, // html, sitemap/xml, robots/txt, rss/xml, json, ?js?, png, jpeg, gif, svg, sass, scss, temporary-redirect, permanent-redirect
+	pipeline: pipeline,
 	headers: HashMap<String, String>,
 	compression: compression,
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
@@ -36,19 +36,24 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub fn createOutput(&self, primaryLanguage: &language, language: &language, variant: Variant, siteOutputFolderPath: &Path, canonicalizedInputFolderPath: &Path) -> Result<(), CordialError>
+	pub fn createOutput(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: &language, localization: &localization, siteOutputFolderPath: &Path, inputFolderPath: &Path, httpsHandler: &mut HttpsStaticRequestHandler, deploymentVersion: &str) -> Result<(), CordialError>
 	{
-		let (isForPrimaryLanguageOnly, isForCanonicalUrlOnly) = self.pipeline.isForPrimaryLanguageAndCanonicalUrlOnly();
+		let (maximumAge, isForPrimaryLanguageOnly, isForCanonicalUrlOnly, canBeCompressed, contentType, isDownloadable) = self.pipeline.isFor();
 		
+		let primaryLanguage = localization.primaryLanguage()?;
 		if language != primaryLanguage && isForPrimaryLanguageOnly
 		{
 			return Ok(());
 		}
 		
-		if variant != Variant::Canonical && isForCanonicalUrlOnly
+		let languageData = if isForPrimaryLanguageOnly
 		{
-			return Ok(());
+			Some((iso_639_1_alpha_2_language_code, language))
 		}
+		else
+		{
+			None
+		};
 		
 		let inputContentFilePath = if isForPrimaryLanguageOnly
 		{
@@ -59,20 +64,79 @@ impl resource
 			self.inputContentFilePath(primaryLanguage, Some(language))?
 		};
 		
-		info!("Creating output for URL {}", self.url(language, variant).unwrap());
 		
-		let relativeOutputContentFilePath = self.relativeOutputContentFilePath(language, variant)?;
-		let outputFilePath = siteOutputFolderPath.join(relativeOutputContentFilePath);
+		if isForCanonicalUrlOnly
 		{
-			let outputParentFolderPath = outputFilePath.parent().unwrap();
-			outputParentFolderPath.createFolder().context(outputParentFolderPath)?;
+			let variant = Variant::Canonical;
+			let url = self.url(language, variant)?;
+			let outputFilePath = self.outputContentFilePath(siteOutputFolderPath,language, variant)?;
+			let regularHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
+			let regularBody = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, inputFolderPath)?;
+			
+			let regularCompressed = if canBeCompressed
+			{
+				Some(self.compression.compress(&regularBody)?)
+			}
+			else
+			{
+				None
+			};
+			
+			httpsHandler.addResource(url, RegularAndPjaxStaticResponse
+			{
+				regular: StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed),
+				pjax: None,
+			});
 		}
-		
-		let resourcesToCompress = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, canonicalizedInputFolderPath)?;
-		
-		for resourceToCompress in resourcesToCompress
+		else
 		{
-			self.compression.compress(&resourceToCompress)?
+			let url = self.url(language, Variant::Canonical)?;
+			
+			let variant = Variant::Canonical;
+			let outputFilePath = self.outputContentFilePath(siteOutputFolderPath,language, variant)?;
+			let regularHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
+			let regularBody = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, inputFolderPath)?;
+			
+			let variant = Variant::PJAX;
+			let outputFilePath = self.outputContentFilePath(siteOutputFolderPath,language, variant)?;
+			let pjaxHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
+			let pjaxBody = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, inputFolderPath)?;
+			
+			let (regularCompressed, pjaxCompressed) = if canBeCompressed
+			{
+				(Some(self.compression.compress(&regularBody)?), Some(self.compression.compress(&pjaxBody)?))
+			}
+			else
+			{
+				(None, None)
+			};
+			
+			httpsHandler.addResource(url, RegularAndPjaxStaticResponse
+			{
+				regular: StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed),
+				pjax: Some(StaticResponse::new(StatusCode::Ok, contentType.clone(), pjaxHeaders, pjaxBody, pjaxCompressed)),
+			});
+			
+			
+			let url = self.url(language, variant)?;
+			let variant = Variant::AMP;
+			let outputFilePath = self.outputContentFilePath(siteOutputFolderPath,language, variant)?;
+			let ampHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
+			let ampBody = self.pipeline.execute(&inputContentFilePath, variant, outputFilePath, inputFolderPath)?;
+			let ampCompressed = if canBeCompressed
+			{
+				Some(self.compression.compress(&ampBody)?)
+			}
+			else
+			{
+				None
+			};
+			
+			httpsHandler.addResource(url, RegularAndPjaxStaticResponse
+			{
+				regular: StaticResponse::new(StatusCode::Ok, contentType, ampHeaders, ampBody, ampCompressed),
+				pjax: None,
+			});
 		}
 		
 		Ok(())
@@ -113,20 +177,62 @@ impl resource
 	}
 	
 	#[inline(always)]
-	fn generateHeaders(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: Option<&language>, variant: Variant, localization: &localization) -> Result<HashMap<String, String>, CordialError>
+	fn outputContentFilePath(&self, siteOutputFolderPath: &Path, language: &language, variant: Variant) -> Result<PathBuf, CordialError>
 	{
-		let mut headers = HashMap::with_capacity(self.headers.len());
-		
-		let (ourLanguage, otherLanguages) = if let Some(language) = language
+		let relativeOutputContentFilePath = self.relativeOutputContentFilePath(language, variant)?;
+		let outputFilePath = siteOutputFolderPath.join(relativeOutputContentFilePath);
 		{
-			let mut ourLanguage = HashMap::with_capacity(2);
-			ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
-			ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
-			(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
+			let outputParentFolderPath = outputFilePath.parent().unwrap();
+			outputParentFolderPath.createFolder().context(outputParentFolderPath)?;
+		}
+		Ok(outputFilePath)
+	}
+	
+	#[inline(always)]
+	fn generateHeaders(&self, environment: &str, languageData: Option<(&str, &language)>, variant: Variant, deploymentVersion: &str, localization: &localization, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool) -> Result<Vec<(String, String)>, CordialError>
+	{
+		let mut headers = Vec::with_capacity(self.headers.len() * 2);
+		
+		if variant == Variant::PJAX
+		{
+			headers.push(("X-PJAX-Version".to_owned(), format!("{}", deploymentVersion)));
+		}
+		if canBeCompressed
+		{
+			if variant == Variant::PJAX
+			{
+				headers.push(("Vary".to_owned(), "content-encoding, x-pjax".to_owned()))
+			}
+			else
+			{
+				headers.push(("Vary".to_owned(), "content-encoding".to_owned()))
+			}
+		}
+		if maximumAge == 0
+		{
+			headers.push(("Cache-Control".to_owned(), "no-cache".to_owned()))
 		}
 		else
 		{
-			(None, None)
+			headers.push(("Cache-Control".to_owned(), format!("max-age={}; no-transform; immutable", maximumAge)))
+		}
+		if isDownloadable
+		{
+			headers.push(("Content-Disposition".to_owned(), "attachment".to_owned()))
+		}
+		
+		let (ourLanguage, otherLanguages) = match languageData
+		{
+			None => (None, None),
+			Some((iso_639_1_alpha_2_language_code, language)) =>
+			{
+				headers.push(("Content-Language".to_owned(), iso_639_1_alpha_2_language_code.to_owned()));
+				
+				let mut ourLanguage = HashMap::with_capacity(2);
+				ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
+				ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
+				(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
+			}
 		};
 		
 		for (headerName, headerTemplate) in self.headers.iter()
@@ -137,8 +243,10 @@ impl resource
 				"variant": variant,
 				"variant_path_with_trailing_slash": variant.pathWithTrailingSlash(),
 				"our_language": ourLanguage,
-				"primary_iso_639_1_alpha_2_language_code": localization.primary_iso_639_1_alpha_2_language_code(),
+				"localization": localization,
 				"other_languages": otherLanguages,
+				"can_be_compressed": canBeCompressed,
+				"deployment_version": deploymentVersion,
 				
 				"header": headerName,
 			});
@@ -147,37 +255,24 @@ impl resource
 			// Provide a shortcode for Content-Disposition: header
 			// Provide whatever is needed for 30x redirects: Location
 			
-			// Generate Content-Length
-			// Generate Content-Type
-			// (Generate Content-Encoding)
-			// Generate Content-Language
-			// ? Content-Location ?
-			// Generate Last-Modified
-			// ?Generate ETag
-			//X-DNS-Prefetch-Control
-			/*
-				Expires: Thu, 05 Oct 2017 18:12:17 GMT
-				Cache-Control: public, max-age=2592000
-			*/
+			// SourceMap Header (for non-production)
+			// Use deploymentVersion for unique URLs for css, etc
+			
+			//
+			// Do not generate Expires, Last-Modified headers; just use etag & Cache-Control
+			// Cache-Control
+				// See https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching
+				// HTML pages should be Cache-Control: no-cache and rely on ETag
+				// All others should use commonCacheControlHeader(X) where X is a year
+				// We should version URLs, perhaps as http://example.com/assets/style.ABC.css, where ABC is a version or timestamp, perhaps Last-Modified
+				// Versioned assets should also have a (temporary) redirect for the unversioned form
 			
 			let reg = Handlebars::new();
 			let headerValue = reg.template_render(headerTemplate, &json)?;
-			headers.insert(headerName.to_owned(), headerValue);
-			
-			//
-			//
-			//
-			// println!(
-			//     "{}",
-			//     reg.template_render("Hello {{name}}", &json!({"name": "foo"}))
-			//         .unwrap()
-			// );
-			//
-			// // register template using given name
-			// reg.register_template_string("tpl_1", "Good afternoon, {{name}}").unwrap();
-			// println!("{}", reg.render("tpl_1", &json!({"name": "foo"})).unwrap());
+			headers.push((headerName.to_owned(), headerValue));
 		}
 		
+		headers.shrink_to_fit();
 		Ok(headers)
 	}
 	
@@ -241,6 +336,7 @@ impl resource
 		let mut resourceRelativePathString = String::with_capacity(1024);
 		resourceRelativePathString.push_str(fileLikeUrl.host_str().unwrap());
 		resourceRelativePathString.push_str(fileLikeUrl.path());
+		resourceRelativePathString.push_str(variant.fileExtensionWithLeadingPeriod());
 		Ok(PathBuf::from(resourceRelativePathString))
 	}
 }

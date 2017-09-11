@@ -2,16 +2,10 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub trait RequestHandler: Debug
-{
-	type AlternativeFuture: Future<Item=Response, Error=::hyper::Error>;
-	
-	#[inline(always)]
-	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool;
-	
-	#[inline(always)]
-	fn httpKeepAlive(&self) -> bool;
-	
-	#[inline(always)]
-	fn handle(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: String, query: Option<String>, requestHeaders: Headers, requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>;
-}
+use super::requestHandlers::RequestHandler;
+use ::std::sync::Arc;
+use ::std::sync::RwLock;
+
+
+include!("RequestHandlerFactory.rs");
+include!("UpdatableRequestHandlerFactory.rs");

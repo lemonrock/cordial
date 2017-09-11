@@ -5,12 +5,26 @@
 #[derive(Debug, Clone)]
 pub struct HttpRedirectToHttpsRequestHandler
 {
-	pub portToRedirectTo: u16,
+	portToRedirectTo: u16,
+	ourHostNames: HashSet<String>,
+	httpKeepAlive: bool,
 }
 
 impl RequestHandler for HttpRedirectToHttpsRequestHandler
 {
 	type AlternativeFuture = Empty<Response, ::hyper::Error>;
+	
+	#[inline(always)]
+	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool
+	{
+		!self.ourHostNames.contains(hostName)
+	}
+	
+	#[inline(always)]
+	fn httpKeepAlive(&self) -> bool
+	{
+		self.httpKeepAlive
+	}
 	
 	#[inline(always)]
 	fn handle(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: String, query: Option<String>, _requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
@@ -39,6 +53,20 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 				HttpService::<Self>::response(Response::old_permanent_redirect(isHead, &url))
 			},
 			_ => HttpService::<Self>::response(Response::method_not_allowed(methods())),
+		}
+	}
+}
+
+impl HttpRedirectToHttpsRequestHandler
+{
+	#[inline(always)]
+	pub fn new(portToRedirectTo: u16, ourHostNames: HashSet<String>, httpKeepAlive: bool) -> Self
+	{
+		Self
+		{
+			portToRedirectTo,
+			ourHostNames,
+			httpKeepAlive,
 		}
 	}
 }

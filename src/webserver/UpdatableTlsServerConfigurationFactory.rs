@@ -2,16 +2,33 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub trait RequestHandler: Debug
+pub struct UpdatableTlsServerConfigurationFactory
 {
-	type AlternativeFuture: Future<Item=Response, Error=::hyper::Error>;
+	current: RwLock<Arc<ServerConfig>>,
+}
+
+impl UpdatableTlsServerConfigurationFactory
+{
+	pub(crate) fn new(tlsServerConfiguration: ServerConfig) -> Arc<Self>
+	{
+		Arc::new
+		(
+			Self
+			{
+				current: RwLock::new(Arc::new(tlsServerConfiguration))
+			}
+		)
+	}
 	
 	#[inline(always)]
-	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool;
+	fn produce(&self) -> Arc<ServerConfig>
+	{
+		(*self.current.read().unwrap()).clone()
+	}
 	
 	#[inline(always)]
-	fn httpKeepAlive(&self) -> bool;
-	
-	#[inline(always)]
-	fn handle(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: String, query: Option<String>, requestHeaders: Headers, requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>;
+	pub(crate) fn update(&self, tlsServerConfiguration: ServerConfig)
+	{
+		*self.current.write().unwrap() = Arc::new(tlsServerConfiguration);
+	}
 }

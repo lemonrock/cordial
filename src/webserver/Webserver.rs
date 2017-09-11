@@ -14,8 +14,10 @@ use ::tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
 impl Webserver
 {
-	pub fn start<HttpR: 'static + RequestHandler, HttpsR: 'static + RequestHandler>(tlsServerConfiguration: Arc<ServerConfig>, httpSocket: &ServerSocket, httpsSocket: &ServerSocket, httpKeepAlive: bool, ourHostNames: Arc<HashSet<String>>, httpRequestHandler: Arc<HttpR>, httpsRequestHandler: Arc<HttpsR>, respondsToCtrlC: bool) -> io::Result<()>
+	pub fn start(updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>, httpSocket: &ServerSocket, httpsSocket: &ServerSocket, httpRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>, settings: Settings) -> io::Result<()>
 	{
+		let respondsToCtrlC = settings.respondsToCtrlC();
+		
 		let mut core = Core::new().unwrap();
 		let handle = core.handle();
 		
@@ -23,18 +25,25 @@ impl Webserver
 		{
 			// Also SIGUSR1 and SIGUSR2
 			// We should consider sending ourselves a signal in the event configuration is bad...
+			let updatableTlsServerConfigurationFactory = updatableTlsServerConfigurationFactory.clone();
+			let httpRequestHandlerFactory = httpRequestHandlerFactory.clone();
+			let httpsRequestHandlerFactory = httpsRequestHandlerFactory.clone();
 			let reconfigure = Self::flattenedSignalStream(SIGHUP, &handle);
-			let future = reconfigure.for_each(|_signal|
+			let future = reconfigure.for_each(move |_signal|
 			{
-				eprintln!("TODO: Reload configuration");
+				if let Err(error) = settings.reconfigure(&updatableTlsServerConfigurationFactory, &httpRequestHandlerFactory, &httpsRequestHandlerFactory)
+				{
+					error!("{}", error);
+				}
+				
 				Ok(())
 			}).map_err(|_| ());
 			handle.spawn(future);
 		}
 		
-		Self::http(&handle, &ourHostNames, httpKeepAlive, httpSocket, httpRequestHandler)?;
+		Self::http(&handle, httpSocket, httpRequestHandlerFactory)?;
 		
-		Self::https(&handle, &ourHostNames, httpKeepAlive, httpsSocket, httpsRequestHandler, tlsServerConfiguration)?;
+		Self::https(&handle, httpsSocket, httpsRequestHandlerFactory, updatableTlsServerConfigurationFactory)?;
 		
 		// Run the event loop until terminated
 		if respondsToCtrlC
@@ -62,26 +71,27 @@ impl Webserver
 		Ok(())
 	}
 	
-	fn http<R: 'static + RequestHandler>(handle: &Handle, ourHostNames: &Arc<HashSet<String>>, httpKeepAlive: bool, httpSocket: &ServerSocket, httpRequestHandler: Arc<R>) -> io::Result<()>
+	fn http<R: 'static + RequestHandlerFactory>(handle: &Handle, httpSocket: &ServerSocket, httpRequestHandlerFactory: Arc<R>) -> io::Result<()>
 	{
-		let (port, cloneOfHandle, ourHostNames) = Self::cloneForOuterClosure(httpSocket, &handle, &ourHostNames);
+		let (port, cloneOfHandle) = Self::cloneForOuterClosure(httpSocket, &handle);
 		Self::forEachIncomingClient(httpSocket, &handle, move |(tcpStream, clientSocketAddress)|
 		{
-			let (ourHostNames, requestHandler) = Self::cloneForInnerClosure(&ourHostNames, &httpRequestHandler);
+			let requestHandler = httpRequestHandlerFactory.produce();
 			
-			Self::handlerHttp(httpKeepAlive, &cloneOfHandle, tcpStream, clientSocketAddress, "http", port, ourHostNames, requestHandler)
+			Self::handlerHttp(&cloneOfHandle, tcpStream, clientSocketAddress, "http", port, requestHandler)
 		})
 	}
 	
-	fn https<R: 'static + RequestHandler>(handle: &Handle, ourHostNames: &Arc<HashSet<String>>, httpKeepAlive: bool, httpsSocket: &ServerSocket, httpsRequestHandler: Arc<R>, tlsServerConfiguration: Arc<ServerConfig>) -> io::Result<()>
+	fn https<R: 'static + RequestHandlerFactory>(handle: &Handle, httpsSocket: &ServerSocket, httpsRequestHandlerFactory: Arc<R>, updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>) -> io::Result<()>
 	{
-		let (port, cloneOfHandle, ourHostNames) = Self::cloneForOuterClosure(httpsSocket, &handle, &ourHostNames);
+		let (port, cloneOfHandle) = Self::cloneForOuterClosure(httpsSocket, &handle);
 		Self::forEachIncomingClient(httpsSocket, &handle, move |(tcpStream, clientSocketAddress)|
 		{
-			let (ourHostNames, requestHandler) = Self::cloneForInnerClosure(&ourHostNames, &httpsRequestHandler);
+			let requestHandler = httpsRequestHandlerFactory.produce();
 			
+			let tlsServerConfiguration = updatableTlsServerConfigurationFactory.produce();
 			let handle = cloneOfHandle.clone();
-			cloneOfHandle.spawn(tlsServerConfiguration.accept_async(tcpStream).and_then(move |tlsStream| Self::handlerHttp(httpKeepAlive, &handle, tlsStream, clientSocketAddress, "https", port, ourHostNames, requestHandler)).map_err(|_| ()));
+			cloneOfHandle.spawn(tlsServerConfiguration.accept_async(tcpStream).and_then(move |tlsStream| Self::handlerHttp(&handle, tlsStream, clientSocketAddress, "https", port, requestHandler)).map_err(|_| ()));
 			Ok(())
 		})
 	}
@@ -92,9 +102,9 @@ impl Webserver
 		Signal::new(signal, &handle).flatten_stream()
 	}
 	
-	fn cloneForOuterClosure(serverSocket: &ServerSocket, handle: &Handle, ourHostNames: &Arc<HashSet<String>>) -> (u16, Handle, Arc<HashSet<String>>)
+	fn cloneForOuterClosure(serverSocket: &ServerSocket, handle: &Handle) -> (u16, Handle)
 	{
-		(serverSocket.port(), handle.clone(), ourHostNames.clone())
+		(serverSocket.port(), handle.clone())
 	}
 	
 	#[allow(deprecated)]
@@ -107,17 +117,12 @@ impl Webserver
 		Ok(())
 	}
 	
-	fn cloneForInnerClosure<R: 'static + RequestHandler>(ourHostNames: &Arc<HashSet<String>>, requestHandler: &Arc<R>) -> (Arc<HashSet<String>>, Arc<R>)
-	{
-		(ourHostNames.clone(), requestHandler.clone())
-	}
-	
 	#[inline(always)]
-	fn handlerHttp<I: 'static + AsyncRead + AsyncWrite, R: 'static + RequestHandler>(httpKeepAlive: bool, handle: &Handle, stream: I, clientSocketAddress: SocketAddr, scheme: &'static str, port: u16, ourHostNames: Arc<HashSet<String>>, requestHandler: Arc<R>) -> io::Result<()>
+	fn handlerHttp<I: 'static + AsyncRead + AsyncWrite, R: 'static + RequestHandler>(handle: &Handle, stream: I, clientSocketAddress: SocketAddr, scheme: &'static str, port: u16, requestHandler: Arc<R>) -> io::Result<()>
 	{
 		let mut httpServer = Http::new();
-		httpServer.keep_alive(httpKeepAlive);
-		httpServer.bind_connection(handle, stream, clientSocketAddress, HttpService::new(scheme, port, ourHostNames, requestHandler));
+		httpServer.keep_alive(requestHandler.httpKeepAlive());
+		httpServer.bind_connection(handle, stream, clientSocketAddress, HttpService::new(scheme, port, requestHandler));
 		Ok(())
 	}
 }

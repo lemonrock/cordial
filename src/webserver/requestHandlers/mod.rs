@@ -9,12 +9,25 @@ use ::futures::future::Future;
 use ::futures::future::FutureResult;
 use ::hyper::Body;
 use ::hyper::Method;
+use ::hyper::header::AcceptEncoding;
+use ::hyper::header::ContentEncoding;
+use ::hyper::header::Encoding;
+use ::hyper::header::ETag;
+use ::hyper::header::EntityTag;
 use ::hyper::header::Headers;
 use ::hyper::server::Response;
+use ::radix_trie::Trie;
+use ::ring::digest::Context;
+use ::ring::digest::SHA256;
+use ::std::collections::HashMap;
 use ::std::fmt::Debug;
 use ::url::Url;
+use ::zero85::ToZ85;
 
 
 include!("HttpRedirectToHttpsRequestHandler.rs");
 include!("HttpsStaticRequestHandler.rs");
+include!("PreferredEncoding.rs");
 include!("RequestHandler.rs");
+include!("RegularAndPjaxStaticResponse.rs");
+include!("StaticResponse.rs");

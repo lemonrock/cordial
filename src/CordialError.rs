@@ -22,6 +22,19 @@ quick_error!
 			context(path: PathBuf, cause: ::std::io::Error) -> (path, cause)
 			context(path: &'a PathBuf, cause: ::std::io::Error) -> (path.clone(), cause)
 		}
+		
+		CouldNotCompressData(compressionAlgorithmName: &'static str, cause: ::std::io::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("I/O whilst compressing data using {} was '{}'", compressionAlgorithmName, cause)
+		}
+
+		ConfigurationInputFilesAreInvalid(errors: Vec<String>)
+		{
+			description("One or more input files are invalid")
+			display("Configuration input files are invalid because: {:?}", errors)
+		}
 
 		CouldNotParseUrl(reason: String, cause: ::url::ParseError)
 		{

@@ -13,13 +13,11 @@ pub struct compression
 impl compression
 {
 	#[inline(always)]
-	pub fn compress(&self, inputFilePath: &Path) -> Result<(), CordialError>
+	pub fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
 	{
-		let inData = inputFilePath.fileContentsAsBytes().context(inputFilePath)?;
+		let gzipCompressed = self.gzip.compress(&inputData)?;
+		let brotliCompressed = self.brotli.compress(&inputData)?;
 		
-		self.gzip.compress(inputFilePath, &inData)?;
-		self.brotli.compress(inputFilePath, &inData)?;
-		
-		Ok(())
+		Ok((gzipCompressed, brotliCompressed))
 	}
 }

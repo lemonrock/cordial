@@ -6,8 +6,10 @@
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
 #![feature(unboxed_closures)]
+#![recursion_limit="128"]
 
 
+extern crate base64;
 extern crate brotli2;
 extern crate clap;
 extern crate futures;
@@ -23,6 +25,8 @@ extern crate net2;
 extern crate num_cpus;
 extern crate ordermap;
 extern crate oxipng;
+extern crate radix_trie;
+extern crate ring;
 extern crate rustls;
 extern crate sass_rs;
 extern crate serde;
@@ -38,6 +42,7 @@ extern crate tokio_rustls;
 extern crate tokio_signal;
 extern crate url;
 extern crate url_serde;
+extern crate zero85;
 extern crate zopfli;
 
 
@@ -59,7 +64,6 @@ use ::std::io;
 use ::std::io::BufReader;
 use ::std::io::Read;
 use ::std::io::Write;
-use ::std::os::unix::fs::FileTypeExt;
 use ::std::os::unix::fs::PermissionsExt;
 use ::std::path::Path;
 use ::std::path::PathBuf;
@@ -77,10 +81,8 @@ pub(crate) mod webserver;
 
 include!("ArgMatchesExt.rs");
 include!("CordialError.rs");
-include!("createOutputStructure.rs");
 include!("fatal.rs");
 include!("PathExt.rs");
-include!("validateInputFiles.rs");
 
 
 fn main()
@@ -144,50 +146,32 @@ fn main()
 				.multiple(false)
 				.value_name("FOLDER_PATH")
 		)
+		.arg
+		(
+			Arg::with_name("daemon")
+				.short("d")
+				.long("daemon")
+				.required(false)
+				.help("Run in background as a daemon")
+				.takes_value(false)
+				.multiple(false)
+		)
 		.get_matches();
 	
 	matches.configureStandardErrorLogging();
 	
+	let respondsToCtrlC = !matches.is_present("daemon");
 	let environment = matches.value_of("environment").unwrap_or("development");
+	let uncanonicalizedInputFolderPath = matches.defaultPathForCommandLineOption("input", "./input");
+	let uncanonicalizedOutputFolderPath = matches.defaultPathForCommandLineOption("output", "./output");
 	
-	let inputFolderPath = matches.defaultPathForCommandLineOption("input", "./input");
-	let canonicalizedInputFolderPath = validateInputFiles(inputFolderPath);
+	let (inputFolderPath, outputFolderPath) = canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath, uncanonicalizedOutputFolderPath);
 	
-	let outputFolderPath = matches.defaultPathForCommandLineOption("output", "./output");
-	let (_cacheFolderPath, _temporaryFolderPath, siteOutputFolderPath, _rootFolderPath, _errorsFolderPath, _pjaxFolderPath) = createOutputStructure(&outputFolderPath);
+	let settings = Settings::new(environment, inputFolderPath, outputFolderPath, respondsToCtrlC);
 	
-	let configuration = match Configuration::loadBaselineConfiguration(&canonicalizedInputFolderPath, environment)
+	if let Err(error) = settings.startWebserver()
 	{
-		Err(error) => fatal(format!("Could not load baseline configuration '{}'", error), 1),
-		Ok(configuration) => configuration,
-	};
-	
-	let primaryLanguage = match configuration.primaryLanguage()
-	{
-		Err(error) => fatal(format!("{}", error), 1),
-		Ok(language) => language,
-	};
-	
-	let resources = match DiscoverResources::discoverResources(&configuration, &canonicalizedInputFolderPath)
-	{
-		Err(error) => fatal(format!("Could not load resources '{}'", error), 1),
-		Ok(configuration) => configuration,
-	};
-	
-	let visitor = |_languageCode: &str, language: &language, _isPrimaryLanguage: bool|
-	{
-		for variant in Variant::all()
-		{
-			for (_, resource) in resources.iter()
-			{
-				resource.createOutput(primaryLanguage, language, variant, &siteOutputFolderPath, &canonicalizedInputFolderPath)?
-			}
-		}
-		Ok(())
-	};
-	if let Err(error) = configuration.visitLanguagesWithPrimaryFirst(visitor)
-	{
-		fatal(format!("Could not create resource '{}'", error), 1);
+		fatal(format!("Could not start webserver '{}'", error), 1);
 	}
 }
 
@@ -198,4 +182,50 @@ fn setUMaskToUserOnly()
 		let mode = ::nix::sys::stat::Mode::from_bits(0o7077).unwrap();
 		::nix::sys::stat::umask(mode);
 	}
+}
+
+fn canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath: PathBuf, uncanonicalizedOutputFolderPath: PathBuf) -> (PathBuf, PathBuf)
+{
+	let canonicalizedInputFolderPath = match uncanonicalizedInputFolderPath.metadata()
+	{
+		Err(error) =>
+		{
+			fatal(format!("Could not read from --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2);
+		}
+		Ok(metadata) =>
+		{
+			if !metadata.is_dir()
+			{
+				fatal(format!("--input {:?} is not a folder path", uncanonicalizedInputFolderPath), 2);
+			}
+			match uncanonicalizedInputFolderPath.canonicalize()
+			{
+				Err(error) => fatal(format!("Could not canonicalize --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2),
+				Ok(canonicalizedInputFolderPath) => canonicalizedInputFolderPath,
+			}
+		}
+	};
+	
+	if !canonicalizedInputFolderPath.is_dir()
+	{
+		fatal(format!("Canonicalized input path {:?} is a not a folder", canonicalizedInputFolderPath), 1);
+	}
+	
+	if let Err(error) = create_dir_all(&uncanonicalizedOutputFolderPath)
+	{
+		fatal(format!("Could not create --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2);
+	}
+	
+	let canonicalizedOutputFolderPath = match uncanonicalizedOutputFolderPath.canonicalize()
+	{
+		Err(error) => fatal(format!("Could not canonicalize --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2),
+		Ok(canonicalizedOutputFolderPath) => canonicalizedOutputFolderPath,
+	};
+	
+	if let Err(error) = canonicalizedOutputFolderPath.makeUserOnlyWritableFolder()
+	{
+		fatal(format!("Could not make --output {:?} writable because '{}'", canonicalizedInputFolderPath, error), 2);
+	}
+	
+	(canonicalizedInputFolderPath, canonicalizedOutputFolderPath)
 }

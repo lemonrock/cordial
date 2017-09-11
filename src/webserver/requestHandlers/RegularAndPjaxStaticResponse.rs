@@ -2,9 +2,25 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-fn commonCacheControlHeader(maxAge: u32) -> CacheControl
+#[derive(Debug)]
+pub struct RegularAndPjaxStaticResponse
 {
-	use ::hyper::header::CacheDirective::*;
-	
-	CacheControl(vec![Public, MaxAge(maxAge), NoTransform, immutableCacheDirective()])
+	pub regular: StaticResponse,
+	pub pjax: Option<StaticResponse>,
+}
+
+impl RegularAndPjaxStaticResponse
+{
+	#[inline(always)]
+	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding) -> Response
+	{
+		if isPjax && self.pjax.is_some()
+		{
+			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding)
+		}
+		else
+		{
+			self.regular.staticResponse(isHead, preferredEncoding)
+		}
+	}
 }

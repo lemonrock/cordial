@@ -12,6 +12,7 @@ The license for this project is MIT.
 
 ## TODO
 
+* Modify zopfli crate to allow specifying options
 * Order of processing
 	* SVG, Favicon, Image
 	* Then HTML

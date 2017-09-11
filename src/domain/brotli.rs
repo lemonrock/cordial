@@ -11,22 +11,27 @@ pub struct brotli
 
 impl brotli
 {
-	// NOTE: This approach is probably not optimal; it should read-and-write in blocks of, say 128Kb, not read all the file contents at once (`fileContentsAsBytes()`)
-	// NOTE: That said, most files are likely to be quite small that use this compressor
-	pub fn compress(&self, inputFilePath: &Path, inData: &[u8]) -> Result<(), CordialError>
+	pub fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
-		let outputFilePath = inputFilePath.appendExtension("gz");
-		
 		let mut compressionParameters = ::brotli2::CompressParams::new();
 		compressionParameters.mode(self.compressionMode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);
 		
+		let mut writer = Vec::with_capacity(inputData.len());
 		{
-			let writer = File::create(&outputFilePath).context(&outputFilePath)?;
-			let mut compressor = ::brotli2::write::BrotliEncoder::from_params(writer, &compressionParameters);
-			compressor.write_all(&inData).context(inputFilePath)?;
-			compressor.finish().context(inputFilePath)?;
+			let mut compressor = ::brotli2::write::BrotliEncoder::from_params(writer.as_mut_slice(), &compressionParameters);
+			
+			if let Err(error) = compressor.write_all(&inputData)
+			{
+				return Err(CordialError::CouldNotCompressData("brotli write_all", error))
+			}
+			
+			if let Err(error) = compressor.finish()
+			{
+				return Err(CordialError::CouldNotCompressData("brotli finish", error))
+			}
 		}
+		writer.shrink_to_fit();
 		
-		Ok(())
+		Ok(writer)
 	}
 }

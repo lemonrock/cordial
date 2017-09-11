@@ -7,7 +7,7 @@ macro_rules! static_response_only_header
 	($struct_name: ident, $header_name: expr, $header_value: expr) =>
 	{
 		#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
-		struct $struct_name(&'static str);
+		pub(crate) struct $struct_name(&'static str);
 		
 		impl Header for $struct_name
 		{
@@ -41,7 +41,7 @@ macro_rules! static_response_only_header
 		
 		impl $struct_name
 		{
-			const Default: Self = $struct_name($header_value);
+			pub(crate) const Default: Self = $struct_name($header_value);
 		}
 	}
 }

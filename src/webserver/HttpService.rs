@@ -11,19 +11,17 @@ pub struct HttpService<R: RequestHandler>
 {
 	ourScheme: &'static str,
 	ourDefaultPort: u16,
-	ourHostNames: Arc<HashSet<String>>,
 	requestHandler: Arc<R>,
 }
 
 impl<R: RequestHandler> HttpService<R>
 {
-	fn new(ourScheme: &'static str, ourDefaultPort: u16, ourHostNames: Arc<HashSet<String>>, requestHandler: Arc<R>) -> Self
+	fn new(ourScheme: &'static str, ourDefaultPort: u16, requestHandler: Arc<R>) -> Self
 	{
 		Self
 		{
 			ourScheme,
 			ourDefaultPort,
-			ourHostNames,
 			requestHandler,
 		}
 	}
@@ -133,7 +131,7 @@ impl<R: RequestHandler> HttpService<R>
 			return Self::response(Response::authority_port_is_not_ours(isHead));
 		}
 		
-		if !self.ourHostNames.contains(hostName)
+		if self.requestHandler.isNotOneOfOurHostNames(hostName)
 		{
 			return Self::response(Response::authority_server_is_not_one_of_ours(isHead));
 		}

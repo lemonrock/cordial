@@ -5,6 +5,9 @@
 trait CommonResponses: Sized
 {
 	#[inline(always)]
+	fn common_headers(statusCode: StatusCode, contentType: ContentType) -> Self;
+	
+	#[inline(always)]
 	fn static_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, contentType: ContentType, body: I) -> Self;
 	
 	#[inline(always)]
@@ -21,6 +24,9 @@ trait CommonResponses: Sized
 	
 	#[inline(always)]
 	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self;
+	
+	#[inline(always)]
+	fn not_found(isHead: bool) -> Self;
 	
 	#[inline(always)]
 	fn bad_request<I: Into<Cow<'static, str>>>(isHead: bool, body: I) -> Self;
@@ -54,24 +60,27 @@ trait CommonResponses: Sized
 	
 	#[inline(always)]
 	fn authority_server_is_not_one_of_ours(isHead: bool) -> Self;
-	
-	fn SOMETHING_FOR_NOW(isHead: bool) -> Self;
 }
 
 impl CommonResponses for Response
 {
 	#[inline(always)]
-	fn static_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, contentType: ContentType, body: I) -> Self
+	fn common_headers(statusCode: StatusCode, contentType: ContentType) -> Self
 	{
-		let body = body.into();
-		let response = Response::new()
+		Response::new()
 		.with_status(statusCode)
 		.with_header(contentType)
-		.with_header(ContentLength(body.len() as u64))
 		.with_header(X_XSS_Protection::Default)
 		.with_header(X_Content_Type_Options::Default)
 		.with_header(X_Frame_Options::Default)
-		.with_header(Date(SystemTime::now().into()));
+		.with_header(Date(SystemTime::now().into()))
+	}
+	
+	#[inline(always)]
+	fn static_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, contentType: ContentType, body: I) -> Self
+	{
+		let body = body.into();
+		let response = Self::common_headers(statusCode, contentType).with_header(ContentLength(body.len() as u64));
 		
 		if isHead
 		{
@@ -118,6 +127,13 @@ impl CommonResponses for Response
 		Self::static_html_response(isHead, StatusCode::MovedPermanently, format!("<!doctype html><title>Moved permanently</title><p>The document has moved <a href='{}'>here</a>.", url))
 		.with_header(commonCacheControlHeader(31536000))
 		.with_header(Location::new(url.as_ref().to_owned()))
+	}
+	
+	#[inline(always)]
+	fn not_found(isHead: bool) -> Self
+	{
+		Self::static_html_response(isHead, StatusCode::NotFound, "<!doctype html><title>Not found</title><p>The document has not found here.".to_owned())
+		.with_header(commonCacheControlHeader(60))
 	}
 	
 	#[inline(always)]
@@ -184,10 +200,5 @@ impl CommonResponses for Response
 	fn authority_server_is_not_one_of_ours(isHead: bool) -> Self
 	{
 		Self::misdirected_request(isHead)
-	}
-	
-	fn SOMETHING_FOR_NOW(isHead: bool) -> Self
-	{
-		Self::static_html_response(isHead, StatusCode::Ok, "<!doctype html><html><head><title>Options</title></head><body><p>Hello World</p></body></html>")
 	}
 }

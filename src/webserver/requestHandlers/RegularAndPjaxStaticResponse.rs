@@ -3,7 +3,7 @@
 
 
 #[derive(Debug)]
-pub struct RegularAndPjaxStaticResponse
+pub(crate) struct RegularAndPjaxStaticResponse
 {
 	pub regular: StaticResponse,
 	pub pjax: Option<StaticResponse>,

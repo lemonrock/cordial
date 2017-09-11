@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub fn loadHjsonIfExtant(configurationFilePath: &Path) -> Result<Option<HjsonValue>, CordialError>
+pub(crate) fn loadHjsonIfExtant(configurationFilePath: &Path) -> Result<Option<HjsonValue>, CordialError>
 {
 	if configurationFilePath.exists() && configurationFilePath.is_file()
 	{

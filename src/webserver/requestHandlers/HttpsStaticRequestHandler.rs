@@ -3,7 +3,7 @@
 
 
 #[derive(Debug)]
-pub struct HttpsStaticRequestHandler
+pub(crate) struct HttpsStaticRequestHandler
 {
 	resourcesByHostNameAndPathAndVariant: HashMap<String, Trie<String, RegularAndPjaxStaticResponse>>,
 	httpKeepAlive: bool,
@@ -47,7 +47,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 impl HttpsStaticRequestHandler
 {
 	#[inline(always)]
-	pub fn new(ourHostNames: &HashSet<String>, httpKeepAlive: bool) -> Self
+	pub(crate) fn new(ourHostNames: &HashSet<String>, httpKeepAlive: bool) -> Self
 	{
 		let mut this = Self
 		{
@@ -62,7 +62,7 @@ impl HttpsStaticRequestHandler
 	}
 	
 	#[inline(always)]
-	pub fn addResource(&mut self, url: Url, response: RegularAndPjaxStaticResponse)
+	pub(crate) fn addResource(&mut self, url: Url, response: RegularAndPjaxStaticResponse)
 	{
 		let radixTrie = self.resourcesByHostNameAndPathAndVariant.get_mut(url.host_str().unwrap()).unwrap();
 		radixTrie.insert(url.path().to_owned(), response);

@@ -3,7 +3,7 @@
 
 
 #[derive(Debug)]
-pub struct UpdatableRequestHandlerFactory<R: RequestHandler>
+pub(crate) struct UpdatableRequestHandlerFactory<R: RequestHandler>
 {
 	current: RwLock<Arc<R>>,
 }

@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum InputImageFormat
+pub(crate) enum InputImageFormat
 {
 	PNG,
 	JPEG,
@@ -21,7 +21,7 @@ pub enum InputImageFormat
 impl InputImageFormat
 {
 	#[inline(always)]
-	pub fn fileExtensions(&self) -> Vec<&'static str>
+	pub(crate) fn fileExtensions(&self) -> Vec<&'static str>
 	{
 		use self::InputImageFormat::*;
 		match *self

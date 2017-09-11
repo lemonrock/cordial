@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Clone)]
-pub struct Settings
+pub(crate) struct Settings
 {
 	environment: String,
 	inputFolderPath: PathBuf,
@@ -14,7 +14,7 @@ pub struct Settings
 impl Settings
 {
 	#[inline(always)]
-	pub fn new(environment: &str, inputFolderPath: PathBuf, outputFolderPath: PathBuf, respondsToCtrlC: bool) -> Self
+	pub(crate) fn new(environment: &str, inputFolderPath: PathBuf, outputFolderPath: PathBuf, respondsToCtrlC: bool) -> Self
 	{
 		Self
 		{
@@ -26,7 +26,7 @@ impl Settings
 	}
 	
 	#[inline(always)]
-	pub fn startWebserver(self) -> Result<(), CordialError>
+	pub(crate) fn startWebserver(self) -> Result<(), CordialError>
 	{
 		let (configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
 		
@@ -41,7 +41,7 @@ impl Settings
 	}
 	
 	#[inline(always)]
-	pub fn reconfigure(&self, updatableTlsServerConfigurationFactory: &Arc<UpdatableTlsServerConfigurationFactory>, httpRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>) -> Result<(), CordialError>
+	pub(crate) fn reconfigure(&self, updatableTlsServerConfigurationFactory: &Arc<UpdatableTlsServerConfigurationFactory>, httpRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>) -> Result<(), CordialError>
 	{
 		let (_configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
 		updatableTlsServerConfigurationFactory.update(serverConfig);
@@ -57,7 +57,7 @@ impl Settings
 	}
 	
 	#[inline(always)]
-	pub fn respondsToCtrlC(&self) -> bool
+	pub(crate) fn respondsToCtrlC(&self) -> bool
 	{
 		self.respondsToCtrlC
 	}

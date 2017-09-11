@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct resource
+pub(crate) struct resource
 {
 	pipeline: pipeline,
 	headers: HashMap<String, String>,
@@ -19,13 +19,13 @@ pub struct resource
 impl resource
 {
 	#[inline(always)]
-	pub fn name(&self) -> PathBuf
+	pub(crate) fn name(&self) -> PathBuf
 	{
 		self.canonicalParentFolderPath.join(format!("{}.resource.hjson", self.resourceInputName))
 	}
 	
 	#[inline(always)]
-	pub fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf)
+	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf)
 	{
 		self.canonicalParentFolderPath = canonicalParentFolderPath;
 		self.resourceInputName = resourceInputName.to_owned();
@@ -36,7 +36,7 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub fn createOutput(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: &language, localization: &localization, siteOutputFolderPath: &Path, inputFolderPath: &Path, httpsHandler: &mut HttpsStaticRequestHandler, deploymentVersion: &str) -> Result<(), CordialError>
+	pub(crate) fn createOutput(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: &language, localization: &localization, siteOutputFolderPath: &Path, inputFolderPath: &Path, httpsHandler: &mut HttpsStaticRequestHandler, deploymentVersion: &str) -> Result<(), CordialError>
 	{
 		let (maximumAge, isForPrimaryLanguageOnly, isForCanonicalUrlOnly, canBeCompressed, contentType, isDownloadable) = self.pipeline.isFor();
 		
@@ -292,25 +292,7 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub fn canonicalUrl(&self, primaryLanguage: &language) -> Result<Url, CordialError>
-	{
-		self.url(primaryLanguage, Variant::Canonical)
-	}
-	
-	#[inline(always)]
-	pub fn ampUrl(&self, language: &language) -> Result<Url, CordialError>
-	{
-		self.url(language, Variant::AMP)
-	}
-	
-	#[inline(always)]
-	pub fn pjaxUrl(&self, language: &language) -> Result<Url, CordialError>
-	{
-		self.url(language, Variant::PJAX)
-	}
-	
-	#[inline(always)]
-	pub fn url(&self, language: &language, variant: Variant) -> Result<Url, CordialError>
+	fn url(&self, language: &language, variant: Variant) -> Result<Url, CordialError>
 	{
 		let baseUrl = language.baseUrl()?;
 		
@@ -321,7 +303,7 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub fn relativeOutputContentFilePath(&self, language: &language, variant: Variant) -> Result<PathBuf, CordialError>
+	fn relativeOutputContentFilePath(&self, language: &language, variant: Variant) -> Result<PathBuf, CordialError>
 	{
 		let url = self.url(language, variant)?;
 		let fileLikeUrl = if let Some(additionalContentFileName) = self.additionalContentFileNameIfAny

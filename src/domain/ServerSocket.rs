@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct ServerSocket
+pub(crate) struct ServerSocket
 {
 	socket: SocketAddr,
 	#[serde(default)] time_to_live: u32,
@@ -18,13 +18,13 @@ pub struct ServerSocket
 impl ServerSocket
 {
 	#[inline(always)]
-	pub fn port(&self) -> u16
+	pub(crate) fn port(&self) -> u16
 	{
 		self.socket.port()
 	}
 	
 	#[inline(always)]
-	pub fn stdNetTcpListener(&self) -> io::Result<::std::net::TcpListener>
+	pub(crate) fn stdNetTcpListener(&self) -> io::Result<::std::net::TcpListener>
 	{
 		let builder = match self.socket
 		{
@@ -57,7 +57,7 @@ impl ServerSocket
 	}
 	
 	#[inline(always)]
-	pub fn tokioCoreNetTcpListener(&self, handle: &Handle) -> io::Result<::tokio_core::net::TcpListener>
+	pub(crate) fn tokioCoreNetTcpListener(&self, handle: &Handle) -> io::Result<::tokio_core::net::TcpListener>
 	{
 		tokio_core::net::TcpListener::from_listener(self.stdNetTcpListener()?, &self.socket, handle)
 	}

@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Clone)]
-pub struct HttpRedirectToHttpsRequestHandler
+pub(crate) struct HttpRedirectToHttpsRequestHandler
 {
 	portToRedirectTo: u16,
 	ourHostNames: HashSet<String>,
@@ -60,7 +60,7 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 impl HttpRedirectToHttpsRequestHandler
 {
 	#[inline(always)]
-	pub fn new(portToRedirectTo: u16, ourHostNames: HashSet<String>, httpKeepAlive: bool) -> Self
+	pub(crate) fn new(portToRedirectTo: u16, ourHostNames: HashSet<String>, httpKeepAlive: bool) -> Self
 	{
 		Self
 		{

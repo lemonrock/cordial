@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct language
+pub(crate) struct language
 {
 	iso_3166_1_alpha_2_country_code: String,
 	language_tool_long_code: String,
@@ -15,25 +15,19 @@ pub struct language
 impl language
 {
 	#[inline(always)]
-	pub fn iso_3166_1_alpha_2_country_code(&self) -> &str
+	pub(crate) fn iso_3166_1_alpha_2_country_code(&self) -> &str
 	{
 		&self.iso_3166_1_alpha_2_country_code
 	}
 	
 	#[inline(always)]
-	pub fn language_tool_long_code(&self) -> &str
-	{
-		&self.language_tool_long_code
-	}
-	
-	#[inline(always)]
-	pub fn host(&self) -> &str
+	pub(crate) fn host(&self) -> &str
 	{
 		&self.host
 	}
 	
 	#[inline(always)]
-	pub fn relative_root_url(&self) -> &str
+	pub(crate) fn relative_root_url(&self) -> &str
 	{
 		if self.relative_root_url.is_empty()
 		{
@@ -46,7 +40,7 @@ impl language
 	}
 	
 	#[inline(always)]
-	pub fn baseUrl(&self) -> Result<Url, CordialError>
+	pub(crate) fn baseUrl(&self) -> Result<Url, CordialError>
 	{
 		let relative_root_url = self.relative_root_url();
 		let formattedUrl = format!("https://{}{}", &self.host, relative_root_url);

@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct compression
+pub(crate) struct compression
 {
 	gzip: gzip,
 	brotli: brotli,
@@ -13,7 +13,7 @@ pub struct compression
 impl compression
 {
 	#[inline(always)]
-	pub fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
 	{
 		let gzipCompressed = self.gzip.compress(&inputData)?;
 		let brotliCompressed = self.brotli.compress(&inputData)?;

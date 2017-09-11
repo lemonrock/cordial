@@ -7,7 +7,7 @@ use ::serde_json::Number as JsonNumber;
 use ::serde_json::Value as JsonValue;
 
 
-pub fn hjsonToJsonBecauseHjsonCrateUsesAnOldVersionOfSerde(hjsonValue: HjsonValue) -> JsonValue
+pub(crate) fn hjsonToJsonBecauseHjsonCrateUsesAnOldVersionOfSerde(hjsonValue: HjsonValue) -> JsonValue
 {
 	use self::HjsonValue::*;
 	match hjsonValue

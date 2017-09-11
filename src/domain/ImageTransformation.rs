@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone)]
-pub enum ImageTransformation
+pub(crate) enum ImageTransformation
 {
 	crop
 	{
@@ -62,7 +62,7 @@ pub enum ImageTransformation
 impl ImageTransformation
 {
 	#[inline(always)]
-	pub fn applyTransformations(mut image: ::image::DynamicImage, transformations: &[Self]) -> ::image::DynamicImage
+	pub(crate) fn applyTransformations(mut image: ::image::DynamicImage, transformations: &[Self]) -> ::image::DynamicImage
 	{
 		for transformation in transformations
 		{
@@ -72,7 +72,7 @@ impl ImageTransformation
 	}
 	
 	#[inline(always)]
-	pub fn transform(&self, mut image: ::image::DynamicImage) -> ::image::DynamicImage
+	pub(crate) fn transform(&self, mut image: ::image::DynamicImage) -> ::image::DynamicImage
 	{
 		use self::ImageTransformation::*;
 		match *self
@@ -100,7 +100,7 @@ impl ImageTransformation
 //noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum TransformFilterType
+pub(crate) enum TransformFilterType
 {
 	Nearest,
 	Triangle,
@@ -111,7 +111,7 @@ pub enum TransformFilterType
 
 impl TransformFilterType
 {
-	pub fn to_FilterType(&self) -> ::image::FilterType
+	pub(crate) fn to_FilterType(&self) -> ::image::FilterType
 	{
 		match *self
 		{

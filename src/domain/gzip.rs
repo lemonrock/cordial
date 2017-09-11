@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct gzip
+pub(crate) struct gzip
 {
 	#[serde(default = "gzip::iterations_default")] iterations: u8,
 	#[serde(default = "gzip::maximum_block_splits_default")] maximum_block_splits: u8,
@@ -25,7 +25,7 @@ impl gzip
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
 		warn!("The zopfli library currently does not support options");
 		

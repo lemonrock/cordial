@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub struct ResourceTemplates
+pub(crate) struct ResourceTemplates
 {
 	resourceTemplate: HjsonValue,
 	overridesOfResourceTemplate: HashMap<Vec<String>, HjsonValue>
@@ -11,7 +11,7 @@ pub struct ResourceTemplates
 impl ResourceTemplates
 {
 	#[inline(always)]
-	pub fn new(configuration: &Configuration) -> Self
+	pub(crate) fn new(configuration: &Configuration) -> Self
 	{
 		Self
 		{
@@ -21,7 +21,7 @@ impl ResourceTemplates
 	}
 	
 	#[inline(always)]
-	pub fn find(&self, hierarchy: &[String]) -> &HjsonValue
+	pub(crate) fn find(&self, hierarchy: &[String]) -> &HjsonValue
 	{
 		let mut sliceEndIndex = hierarchy.len();
 		loop
@@ -42,7 +42,7 @@ impl ResourceTemplates
 	}
 	
 	#[inline(always)]
-	pub fn store(&mut self, hierarchy: Vec<String>, overrideOfResourceTemplate: HjsonValue)
+	pub(crate) fn store(&mut self, hierarchy: Vec<String>, overrideOfResourceTemplate: HjsonValue)
 	{
 		self.overridesOfResourceTemplate.insert(hierarchy, overrideOfResourceTemplate);
 	}

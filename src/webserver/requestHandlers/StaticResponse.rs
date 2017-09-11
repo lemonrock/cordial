@@ -3,7 +3,7 @@
 
 
 #[derive(Debug)]
-pub struct StaticResponse
+pub(crate) struct StaticResponse
 {
 	statusCode: StatusCode,
 	contentType: ContentType,

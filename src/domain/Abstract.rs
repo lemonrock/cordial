@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct Abstract
+pub(crate) struct Abstract
 {
 	title: String,
 	description: String,  // used the meta description, caption (title) for links

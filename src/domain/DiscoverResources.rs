@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub struct DiscoverResources
+pub(crate) struct DiscoverResources
 {
 	prefix: PathBuf,
 	resourceTemplates: ResourceTemplates,
@@ -11,7 +11,7 @@ pub struct DiscoverResources
 
 impl DiscoverResources
 {
-	pub fn discoverResources(configuration: &Configuration, canonicalizedInputFolderPath: &Path) -> Result<HashMap<Vec<String>, resource>, CordialError>
+	pub(crate) fn discoverResources(configuration: &Configuration, canonicalizedInputFolderPath: &Path) -> Result<HashMap<Vec<String>, resource>, CordialError>
 	{
 		let prefix = canonicalizedInputFolderPath.join("root");
 		let mut this = Self

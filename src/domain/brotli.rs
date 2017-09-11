@@ -4,14 +4,14 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub struct brotli
+pub(crate) struct brotli
 {
 	compressionMode: BrotliCompressionMode,
 }
 
 impl brotli
 {
-	pub fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
 		let mut compressionParameters = ::brotli2::CompressParams::new();
 		compressionParameters.mode(self.compressionMode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);

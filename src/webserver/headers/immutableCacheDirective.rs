@@ -4,7 +4,7 @@
 
 /// Currently only works on Firefox. See http://bitsup.blogspot.fr/2016/05/cache-control-immutable.html
 #[inline(always)]
-pub fn immutableCacheDirective() -> CacheDirective
+pub(crate) fn immutableCacheDirective() -> CacheDirective
 {
 	CacheDirective::Extension("immutable".to_owned(), None)
 }

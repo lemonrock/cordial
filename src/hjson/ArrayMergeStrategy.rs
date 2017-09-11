@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ArrayMergeStrategy
+pub(crate) enum ArrayMergeStrategy
 {
 	/// This strategy mirrors that used for merging objects, as it treats indices as this they were keys
 	ByIndex,
@@ -17,7 +17,7 @@ pub enum ArrayMergeStrategy
 
 impl ArrayMergeStrategy
 {
-	pub fn merge(&self, parentVectorOfValues: &Vec<HjsonValue>, childVectorOfValues: &Vec<HjsonValue>) -> Vec<HjsonValue>
+	pub(crate) fn merge(&self, parentVectorOfValues: &Vec<HjsonValue>, childVectorOfValues: &Vec<HjsonValue>) -> Vec<HjsonValue>
 	{
 		use self::ArrayMergeStrategy::*;
 		match *self

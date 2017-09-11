@@ -7,7 +7,7 @@
 
 
 #[derive(Debug, Clone)]
-pub struct HttpService<R: RequestHandler>
+pub(crate) struct HttpService<R: RequestHandler>
 {
 	ourScheme: &'static str,
 	ourDefaultPort: u16,
@@ -159,7 +159,7 @@ impl<R: RequestHandler> HttpService<R>
 	}
 	
 	#[inline(always)]
-	pub fn response(response: Response) -> Either<FutureResult<<HttpService<R> as Service>::Response, <HttpService<R> as Service>::Error>, R::AlternativeFuture>
+	pub(crate) fn response(response: Response) -> Either<FutureResult<<HttpService<R> as Service>::Response, <HttpService<R> as Service>::Error>, R::AlternativeFuture>
 	{
 		Either::A(ok(response))
 	}

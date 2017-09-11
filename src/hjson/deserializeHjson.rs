@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub fn deserializeHjson<T: DeserializeOwned>(configurationHjson: HjsonValue) -> Result<T, CordialError>
+pub(crate) fn deserializeHjson<T: DeserializeOwned>(configurationHjson: HjsonValue) -> Result<T, CordialError>
 {
 	let configurationJson = hjsonToJsonBecauseHjsonCrateUsesAnOldVersionOfSerde(configurationHjson);
 	

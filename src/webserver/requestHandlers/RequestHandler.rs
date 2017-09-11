@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub trait RequestHandler: Debug
+pub(crate) trait RequestHandler: Debug
 {
 	type AlternativeFuture: Future<Item=Response, Error=::hyper::Error>;
 	

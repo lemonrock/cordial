@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub fn loadHjsonIfExtantAndMerge(configurationFilePath: &Path, parentHjson: HjsonValue) -> Result<HjsonValue, CordialError>
+pub(crate) fn loadHjsonIfExtantAndMerge(configurationFilePath: &Path, parentHjson: HjsonValue) -> Result<HjsonValue, CordialError>
 {
 	let configurationHjson = if let Some(childConfiguration) = loadHjsonIfExtant(&configurationFilePath)?
 	{

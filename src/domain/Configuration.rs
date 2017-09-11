@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct Configuration
+pub(crate) struct Configuration
 {
 	#[serde(default = "Configuration::http_socket_default")] http_socket: ServerSocket,
 	#[serde(default = "Configuration::https_socket_default")] https_socket: ServerSocket,
@@ -21,13 +21,13 @@ pub struct Configuration
 impl Configuration
 {
 	#[inline(always)]
-	pub fn serverSockets<'a>(&'a self) -> (&'a ServerSocket, &'a ServerSocket)
+	pub(crate) fn serverSockets<'a>(&'a self) -> (&'a ServerSocket, &'a ServerSocket)
 	{
 		(&self.http_socket, &self.https_socket)
 	}
 	
 	#[inline(always)]
-	pub fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
 		let cacheFolderPath = outputFolderPath.createSubFolder("cache").context(outputFolderPath)?;

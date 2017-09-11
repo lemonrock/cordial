@@ -3,7 +3,7 @@
 
 
 #[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum Variant
+pub(crate) enum Variant
 {
 	Canonical,
 	AMP,
@@ -13,7 +13,7 @@ pub enum Variant
 impl Variant
 {
 	#[inline(always)]
-	pub fn pathWithTrailingSlash(self) -> Option<&'static str>
+	fn pathWithTrailingSlash(self) -> Option<&'static str>
 	{
 		use self::Variant::*;
 		match self
@@ -25,7 +25,7 @@ impl Variant
 	}
 	
 	#[inline(always)]
-	pub fn fileExtensionWithLeadingPeriod(self) -> &'static str
+	fn fileExtensionWithLeadingPeriod(self) -> &'static str
 	{
 		use self::Variant::*;
 		match self
@@ -37,7 +37,7 @@ impl Variant
 	}
 	
 	#[inline(always)]
-	pub fn appendToUrl(self, baseUrl: Url) -> Url
+	fn appendToUrl(self, baseUrl: Url) -> Url
 	{
 		if let Some(pathWithTrailingSlash) = self.pathWithTrailingSlash()
 		{
@@ -47,12 +47,5 @@ impl Variant
 		{
 			baseUrl
 		}
-	}
-	
-	#[inline(always)]
-	pub fn all() -> Vec<Variant>
-	{
-		use self::Variant::*;
-		vec![Canonical, AMP, PJAX]
 	}
 }

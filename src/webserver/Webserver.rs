@@ -3,7 +3,7 @@
 
 
 #[derive(Clone)]
-pub struct Webserver
+pub(crate) struct Webserver
 {
 }
 
@@ -14,7 +14,7 @@ use ::tokio_signal::unix::{Signal, SIGHUP, SIGINT, SIGTERM};
 
 impl Webserver
 {
-	pub fn start(updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>, httpSocket: &ServerSocket, httpsSocket: &ServerSocket, httpRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>, settings: Settings) -> io::Result<()>
+	pub(crate) fn start(updatableTlsServerConfigurationFactory: Arc<UpdatableTlsServerConfigurationFactory>, httpSocket: &ServerSocket, httpsSocket: &ServerSocket, httpRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>, settings: Settings) -> io::Result<()>
 	{
 		let respondsToCtrlC = settings.respondsToCtrlC();
 		

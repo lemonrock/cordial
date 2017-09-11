@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct localization
+pub(crate) struct localization
 {
 	#[serde(with = "url_serde", default = "localization::language_tool_base_url_default")] language_tool_base_url: Url,
 	#[serde(default = "localization::primary_iso_639_1_alpha_2_language_code_default")] primary_iso_639_1_alpha_2_language_code: String,
@@ -26,19 +26,13 @@ impl localization
 	}
 	
 	#[inline(always)]
-	pub fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
-	{
-		&self.primary_iso_639_1_alpha_2_language_code
-	}
-	
-	#[inline(always)]
-	pub fn primaryLanguage(&self) -> Result<&language, CordialError>
+	pub(crate) fn primaryLanguage(&self) -> Result<&language, CordialError>
 	{
 		self.language(&self.primary_iso_639_1_alpha_2_language_code)
 	}
 	
 	#[inline(always)]
-	pub fn language(&self, iso_639_1_alpha_2_language_code: &str) -> Result<&language, CordialError>
+	pub(crate) fn language(&self, iso_639_1_alpha_2_language_code: &str) -> Result<&language, CordialError>
 	{
 		match self.languages.get(iso_639_1_alpha_2_language_code)
 		{
@@ -48,13 +42,13 @@ impl localization
 	}
 	
 	#[inline(always)]
-	pub fn otherLanguages(&self, iso_639_1_alpha_2_language_code: &str) -> HashMap<String, language>
+	pub(crate) fn otherLanguages(&self, iso_639_1_alpha_2_language_code: &str) -> HashMap<String, language>
 	{
 		self.languages.iter().filter(|&(code, _)| code != iso_639_1_alpha_2_language_code).map(|(code, language)| (code.to_owned(), language.clone())).collect()
 	}
 	
 	#[inline(always)]
-	pub fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
+	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
 	{
 		visitor(&self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?, true)?;
 		for (iso_639_1_alpha_2_language_code, language) in self.languages.iter()
@@ -67,7 +61,7 @@ impl localization
 		Ok(())
 	}
 	
-	pub fn serverHostNames(&self) -> Result<HashSet<String>, CordialError>
+	pub(crate) fn serverHostNames(&self) -> Result<HashSet<String>, CordialError>
 	{
 		let mut serverHostNames = HashSet::with_capacity(self.languages.len());
 		
@@ -79,7 +73,7 @@ impl localization
 		Ok(serverHostNames)
 	}
 	
-	pub fn serverHostNamesWithPrimaryFirst(&self) -> Result<OrderMap<String, ()>, CordialError>
+	pub(crate) fn serverHostNamesWithPrimaryFirst(&self) -> Result<OrderMap<String, ()>, CordialError>
 	{
 		let mut serverHostNames = OrderMap::with_capacity(self.languages.len());
 		

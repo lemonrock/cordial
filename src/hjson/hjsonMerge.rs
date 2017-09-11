@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub fn hjsonMerge(parent: &HjsonValue, child: &HjsonValue, arrayMergeStrategy: ArrayMergeStrategy) -> HjsonValue
+pub(crate) fn hjsonMerge(parent: &HjsonValue, child: &HjsonValue, arrayMergeStrategy: ArrayMergeStrategy) -> HjsonValue
 {
 	use self::HjsonValue::*;
 	match *parent

@@ -14,7 +14,7 @@ impl PreferredEncoding
 {
 	/// NOTE: This algorithm completely ignores quality parameter weights, q=0 and forms such as `*;q=0`
 	#[inline(always)]
-	pub fn preferredEncoding(acceptEncoding: Option<&AcceptEncoding>) -> Self
+	pub(crate) fn preferredEncoding(acceptEncoding: Option<&AcceptEncoding>) -> Self
 	{
 		use self::PreferredEncoding::*;
 		

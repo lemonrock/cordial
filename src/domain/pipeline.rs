@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub enum pipeline
+pub(crate) enum pipeline
 {
 	md
 	{
@@ -99,7 +99,7 @@ impl pipeline
 		false
 	}
 	
-	pub fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
+	pub(crate) fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
 	{
 		let mut result = Vec::with_capacity(4);
 		
@@ -145,7 +145,7 @@ impl pipeline
 		result
 	}
 	
-	pub fn resourceOutputRelativeUrl(&self, parentHierarchy: &[String], resourceInputName: &str) -> (String, Option<&'static str>)
+	pub(crate) fn resourceOutputRelativeUrl(&self, parentHierarchy: &[String], resourceInputName: &str) -> (String, Option<&'static str>)
 	{
 		let mut relativeUrl = String::with_capacity(1024);
 		for parent in parentHierarchy
@@ -208,7 +208,7 @@ impl pipeline
 		(relativeUrl, additionalContentFileNameIfAny)
 	}
 	
-	pub fn isFor(&self) -> (u32, bool, bool, bool, ContentType, bool)
+	pub(crate) fn isFor(&self) -> (u32, bool, bool, bool, ContentType, bool)
 	{
 		use self::pipeline::*;
 		match *self
@@ -232,7 +232,7 @@ impl pipeline
 		}
 	}
 	
-	pub fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, inputContentFilePath: &Path, _variant: Variant, outputFilePath: PathBuf, canonicalizedInputFolderPath: &Path) -> Result<Vec<u8>, CordialError>
 	{
 		use self::pipeline::*;
 		match *self

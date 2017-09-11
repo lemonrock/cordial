@@ -117,7 +117,7 @@ quick_error!
 
 impl CordialError
 {
-	pub fn couldNotFindResourceContentFile<R>(resource: &resource, primaryLanguage: &language, language: Option<&language>) -> Result<R, CordialError>
+	pub(crate) fn couldNotFindResourceContentFile<R>(resource: &resource, primaryLanguage: &language, language: Option<&language>) -> Result<R, CordialError>
 	{
 		let resourceName = resource.name();
 		let reason = match language
@@ -136,7 +136,7 @@ impl CordialError
 		Err(CordialError::CouldNotFindResourceContentFile(reason))
 	}
 	
-	pub fn executeCommandCapturingOnlyStandardError(command: &mut Command, context: &Path) -> Result<(), CordialError>
+	pub(crate) fn executeCommandCapturingOnlyStandardError(command: &mut Command, context: &Path) -> Result<(), CordialError>
 	{
 		let output = command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).output().context(context)?;
 		let exitStatus = output.status;

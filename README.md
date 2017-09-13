@@ -68,13 +68,10 @@ It also does a lot more to create a great experience for your users:-
 * HTTPS OCSP stapling is supported;
 
 
-## Bugs
-* When atomically upgrading, any URLs that have no direct replacement are not kept. This means that old versions may break
-
-
 ## Restrictions
 
 * [cordial] does not support `TRACE`, but this can be easily added if desired;
+* When atomically upgrading to a new deployment, it is not possible to serve old versions if a host name has been retired or changed (this is because we will no longer have any HTTPS information)
 * URL path segments containing `/` (technically possible because of percent-encoding) are not supported; this can be supported if required but the work is substantial and there is no simple, visually meaningful way (ie look at this file; that must be this URL) to map these to file system resources
 * It is impossible to have both an index and a leaf resource for an URL end path segment (eg '' for `https://example.com/about/` and 'about' for `https://example.com/about`). In practice this is rarely an issue. [cordial] supports automatic redirects for one to the other (one can specify which way).
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.

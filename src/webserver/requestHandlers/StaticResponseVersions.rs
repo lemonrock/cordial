@@ -30,6 +30,14 @@ pub(crate) enum StaticResponseVersions
 		previousVersionAsQuery: String,
 		previousLastModified: HttpDate,
 	},
+	
+	Discontinued
+	{
+		previousUrlOrVersionedUrl: Url,
+		previousResponse: RegularAndPjaxStaticResponse,
+		previousVersionAsQuery: Option<String>,
+		previousLastModified: HttpDate,
+	}
 }
 
 impl StaticResponseVersions
@@ -51,7 +59,7 @@ impl StaticResponseVersions
 				{
 					Response::old_temporary_redirect(isHead, &url)
 				}
-			},
+			}
 			
 			SingleVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery, currentLastModified } =>
 			{
@@ -85,6 +93,38 @@ impl StaticResponseVersions
 				else
 				{
 					Response::old_temporary_redirect(isHead, &versionedUrl)
+				}
+			}
+			
+			Discontinued { ref previousUrlOrVersionedUrl, ref previousResponse, ref previousVersionAsQuery, previousLastModified } =>
+			{
+				if previousVersionAsQuery.is_none()
+				{
+					if query.is_none()
+					{
+						previousResponse.staticResponse(isHead, isPjax, preferredEncoding, previousLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					}
+					else
+					{
+						Response::old_temporary_redirect(isHead, &previousUrlOrVersionedUrl)
+					}
+				}
+				else
+				{
+					if query.is_none()
+					{
+						return Response::old_temporary_redirect(isHead, &previousUrlOrVersionedUrl);
+					}
+					
+					let unwrapped = query.unwrap();
+					if unwrapped.as_ref() == previousVersionAsQuery.as_ref().unwrap()
+					{
+						previousResponse.staticResponse(isHead, isPjax, preferredEncoding, previousLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					}
+					else
+					{
+						Response::old_temporary_redirect(isHead, &previousUrlOrVersionedUrl)
+					}
 				}
 			}
 		}

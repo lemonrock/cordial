@@ -30,6 +30,7 @@ use ::mime_multipart::Part;
 use ::mime_multipart::generate_boundary;
 use ::mime_multipart::write_multipart;
 use ::radix_trie::Trie;
+use ::radix_trie::TrieCommon;
 use ::ring::digest::Context;
 use ::ring::digest::SHA256;
 use ::std::collections::BTreeMap;

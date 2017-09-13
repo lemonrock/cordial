@@ -105,6 +105,8 @@ impl Configuration
 			Ok(())
 		})?;
 		
+		newResources.addAnythingThatIsDiscontinued(oldResources);
+		
 		Ok(newResources)
 	}
 	

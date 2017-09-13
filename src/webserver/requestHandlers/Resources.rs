@@ -118,12 +118,47 @@ impl Resources
 			None => (None, None),
 			Some(trie) => match trie.get(path)
 			{
-				None => (None,  None),
+				None => (None, None),
 				Some(staticResponseVersions) => match staticResponseVersions
 				{
 					&Unversioned { ref currentLastModified, ref currentResponse, .. } => (Some((*currentLastModified, currentResponse)), None),
 					&SingleVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*currentLastModified, currentResponse)), Some(currentVersionAsQuery)),
 					&HasPrevisionVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*currentLastModified, currentResponse)), Some(currentVersionAsQuery)),
+					&Discontinued { .. } => (None, None),
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn addAnythingThatIsDiscontinued(&mut self, oldResources: &Arc<Self>)
+	{
+		use self::StaticResponseVersions::*;
+		
+		for (hostName, trie) in oldResources.resourcesByHostNameAndPathAndQueryString.iter()
+		{
+			let ourTrieByPath = self.resourcesByHostNameAndPathAndQueryString.get_mut(hostName).unwrap();
+			
+			for (path, staticResponseVersion) in trie.iter()
+			{
+				if ourTrieByPath.get(path).is_none()
+				{
+					if let Some((previousUrlOrVersionedUrl, previousResponse, previousVersionAsQuery, previousLastModified)) = match staticResponseVersion
+					{
+						&Unversioned { ref url, currentLastModified, ref currentResponse, .. } => Some((url, currentResponse, None, currentLastModified)),
+						&SingleVersion { ref versionedUrl, currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => Some((versionedUrl, currentResponse, Some(currentVersionAsQuery), currentLastModified)),
+						&HasPrevisionVersion { ref versionedUrl, currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => Some((versionedUrl, currentResponse, Some(currentVersionAsQuery), currentLastModified)),
+						&Discontinued { .. } => None,
+					}
+					{
+						ourTrieByPath.insert(path.to_owned(), Discontinued
+						{
+							previousUrlOrVersionedUrl: previousUrlOrVersionedUrl.clone(),
+							previousResponse: previousResponse.clone(),
+							previousVersionAsQuery: previousVersionAsQuery.cloned(),
+							previousLastModified
+						});
+					}
 				}
 			}
 		}

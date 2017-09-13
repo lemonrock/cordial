@@ -27,7 +27,7 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 	}
 	
 	#[inline(always)]
-	fn handle(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: String, query: Option<String>, _requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
+	fn handle<'a>(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, _requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
 	{
 		#[inline(always)]
 		fn methods() -> Vec<Method>

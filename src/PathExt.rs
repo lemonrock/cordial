@@ -44,7 +44,7 @@ pub(crate) trait PathExt
 	
 	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>;
 	
-	fn createFileWithPngImage(&self, image: ::image::DynamicImage) -> Result<(), CordialError>;
+	fn createFileWithPngImage(&self, image: &::image::DynamicImage) -> Result<(), CordialError>;
 	
 	fn createFileWithCopyOf(&self, from: &Path) -> io::Result<()>;
 	
@@ -341,7 +341,7 @@ impl PathExt for Path
 		Ok(())
 	}
 	
-	fn createFileWithPngImage(&self, image: ::image::DynamicImage) -> Result<(), CordialError>
+	fn createFileWithPngImage(&self, image: &::image::DynamicImage) -> Result<(), CordialError>
 	{
 		self.createParentFolderForFilePath().context(self)?;
 		let mut writer = File::create(self).context(self)?;

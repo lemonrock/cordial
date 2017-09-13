@@ -17,14 +17,12 @@ pub(crate) enum ImageTransformation
 	invert,
 	resize
 	{
-		width: u32,
-		height: u32,
+		scale: ImageScale,
 		filter: TransformFilterType,
 	},
 	resize_exact
 	{
-		width: u32,
-		height: u32,
+		scale: ImageScale,
 		filter: TransformFilterType,
 	},
 	blur
@@ -62,26 +60,26 @@ pub(crate) enum ImageTransformation
 impl ImageTransformation
 {
 	#[inline(always)]
-	pub(crate) fn applyTransformations(mut image: ::image::DynamicImage, transformations: &[Self]) -> ::image::DynamicImage
+	pub(crate) fn applyTransformations(mut image: ::image::DynamicImage, transformations: &[Self]) -> Result<::image::DynamicImage, CordialError>
 	{
 		for transformation in transformations
 		{
-			image = transformation.transform(image);
+			image = transformation.transform(image)?;
 		}
-		image
+		Ok(image)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn transform(&self, mut image: ::image::DynamicImage) -> ::image::DynamicImage
+	pub(crate) fn transform(&self, mut image: ::image::DynamicImage) -> Result<::image::DynamicImage, CordialError>
 	{
 		use self::ImageTransformation::*;
-		match *self
+		let image = match *self
 		{
 			crop { x, y, width, height } => image.crop(x, y, width, height),
 			grayscale => image.grayscale(),
 			invert => { image.invert(); image },
-			resize { width, height, filter } => image.resize(width, height, filter.to_FilterType()),
-			resize_exact { width, height, filter } => image.resize_exact(width, height, filter.to_FilterType()),
+			resize { scale, filter } => scale.resize(image, filter.to_FilterType())?,
+			resize_exact { scale, filter } => scale.resizeExact(image, filter.to_FilterType())?,
 			blur { sigma } => image.blur(sigma),
 			unsharpen { sigma, threshold } => image.unsharpen(sigma, threshold),
 			filter3x3 { ref kernel } => image.filter3x3(kernel),
@@ -93,33 +91,7 @@ impl ImageTransformation
 			rotate_90_degrees => image.rotate90(),
 			rotate_180_degrees => image.rotate180(),
 			rotate_270_degrees => image.rotate270(),
-		}
-	}
-}
-
-//noinspection SpellCheckingInspection
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum TransformFilterType
-{
-	Nearest,
-	Triangle,
-	CatmullRom,
-	Gaussian,
-	Lanczos3,
-}
-
-impl TransformFilterType
-{
-	pub(crate) fn to_FilterType(&self) -> ::image::FilterType
-	{
-		match *self
-		{
-			TransformFilterType::Nearest => ::image::FilterType::Nearest,
-			TransformFilterType::Triangle => ::image::FilterType::Triangle,
-			TransformFilterType::CatmullRom => ::image::FilterType::CatmullRom,
-			TransformFilterType::Gaussian => ::image::FilterType::Gaussian,
-			TransformFilterType::Lanczos3 => ::image::FilterType::Lanczos3,
-		}
+		};
+		Ok(image)
 	}
 }

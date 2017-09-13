@@ -11,57 +11,105 @@ pub(crate) struct Configuration
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	localization: localization,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
-	#[serde(default, skip_deserializing)] cacheFolderPath: PathBuf,
+	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
+	#[serde(default, skip_deserializing)] deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] deploymentVersion: String,
 }
 
 impl Configuration
 {
 	#[inline(always)]
-	pub(crate) fn daemonizeAndBindSockets(&self, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
+	pub(crate) fn resourceTemplate(&self) -> HjsonValue
 	{
-		self.daemon.daemonizeAndBindSockets(&self.cacheFolderPath, isDaemon)
+		self.resource_template.as_ref().unwrap().clone()
 	}
 	
 	#[inline(always)]
-	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResources: Arc<Resources>) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	pub(crate) fn daemonizeAndBindSockets(&self, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
+	{
+		self.daemon.daemonizeAndBindSockets(&self.outputFolderPath, isDaemon)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResources: Arc<Resources>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
-		let cacheFolderPath = outputFolderPath.createSubFolder("cache").context(outputFolderPath)?;
-		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, cacheFolderPath)?;
+		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
 		
 		configuration.finishReconfigure(oldResources)
 	}
 	
 	#[inline(always)]
-	fn finishReconfigure(self, oldResources: Arc<Resources>) -> Result<(Self, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	fn finishReconfigure(self, oldResources: Arc<Resources>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
-		let resources = DiscoverResources::discoverResources(&self, &self.inputFolderPath)?;
-		
 		let ourHostNames = self.localization.serverHostNames()?;
-		let mut newResources = Resources::new(&ourHostNames);
 		
-		{
-			let visitor = |languageCode: &str, language: &language, _isPrimaryLanguage: bool|
-			{
-				for (_, resource) in resources.iter()
-				{
-					resource.createOutput(&self.environment, languageCode, language, &self.localization, &self.inputFolderPath, &mut newResources, oldResources.clone(), &self.deploymentVersion)?
-				}
-				Ok(())
-			};
-			self.visitLanguagesWithPrimaryFirst(visitor)?;
-		}
-		
-		let tlsServerConfiguration = self.tlsServerConfiguration()?;
-		let httpHandler = HttpRedirectToHttpsRequestHandler::new(self.daemon.https_socket.port(), ourHostNames, self.http_keep_alive);
-		let httpsHandler = HttpsStaticRequestHandler::new(newResources, self.http_keep_alive);
-		Ok((self, tlsServerConfiguration, httpHandler, httpsHandler))
+		Ok
+		(
+			(
+				self.tlsServerConfiguration()?,
+				self.httpsStaticRequestHandler(&ourHostNames, oldResources)?,
+				self.httpRedirectToHttpsRequestHandler(ourHostNames),
+				self,
+			)
+		)
 	}
 	
 	#[inline(always)]
-	fn loadBaselineConfiguration(inputFolderPath: &Path, environment: &str, cacheFolderPath: PathBuf) -> Result<Configuration, CordialError>
+	fn tlsServerConfiguration(&self) -> Result<ServerConfig, CordialError>
+	{
+		let serverHostNamesWithPrimaryFirst = self.localization.serverHostNamesWithPrimaryFirst()?;
+		
+		let mut serverConfig = ServerConfig::new();
+		serverConfig.set_protocols(&["http/1.1".to_owned()]);  // TODO: When HTTP/2 is supported by hyper, add "h2"
+		serverConfig.set_persistence(ServerSessionMemoryCache::new(self.maximum_number_of_tls_sessions as usize));
+		serverConfig.cert_resolver = RsaManyServersResolvesServerCert::new(&self.inputFolderPath, &self.environment, serverHostNamesWithPrimaryFirst)?;
+		Ok(serverConfig)
+	}
+	
+	#[inline(always)]
+	fn httpRedirectToHttpsRequestHandler(&self, ourHostNames: HashSet<String>) -> HttpRedirectToHttpsRequestHandler
+	{
+		HttpRedirectToHttpsRequestHandler::new(self.daemon.https_socket.port(), ourHostNames, self.http_keep_alive)
+	}
+	
+	#[inline(always)]
+	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResources: Arc<Resources>) -> Result<HttpsStaticRequestHandler, CordialError>
+	{
+		let resourcesByProcessingPriority = self.discoverResources()?;
+		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames)?;
+		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
+	}
+	
+	#[inline(always)]
+	fn discoverResources(&self) -> Result<BTreeMap<ProcessingPriority, Vec<resource>>, CordialError>
+	{
+		DiscoverResources::discoverResourcesByProcessingPriority(&self, &self.inputFolderPath)
+	}
+	
+	#[inline(always)]
+	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>) -> Result<Resources, CordialError>
+	{
+		let mut newResources = Resources::new(self.deploymentDate, &ourHostNames);
+		
+		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+		{
+			for resources in resourcesByProcessingPriority.values_mut()
+			{
+				for resource in resources.iter_mut()
+				{
+					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self)?
+				}
+			}
+			Ok(())
+		})?;
+		
+		Ok(newResources)
+	}
+	
+	#[inline(always)]
+	fn loadBaselineConfiguration(inputFolderPath: &Path, environment: &str, outputFolderPath: &Path) -> Result<Configuration, CordialError>
 	{
 		let configurationHjson = loadHjson(&inputFolderPath.join("configuration.hjson"))?;
 		
@@ -79,51 +127,34 @@ impl Configuration
 		
 		let mut configuration: Configuration = deserializeHjson(configurationHjson)?;
 		
+		let deploymentDate = SystemTime::now();
+		
 		configuration.resource_template = Some(resource_template);
 		configuration.inputFolderPath = inputFolderPath.to_path_buf();
-		configuration.cacheFolderPath = cacheFolderPath;
+		configuration.outputFolderPath = outputFolderPath.to_path_buf();
 		configuration.environment = environment.to_owned();
-		configuration.deploymentVersion = Self::deploymentVersion();
+		configuration.deploymentDate = deploymentDate;
+		configuration.deploymentVersion = Self::deploymentVersion(deploymentDate);
 		
 		Ok(configuration)
 	}
 	
-	// This scheme, over 10 years, will use a maximum of 4 bytes, thus giving a version string of 6 URL-safe bytes (or 7 if one includes a period)
-	// This data should be cache'd
 	#[inline(always)]
-	fn deploymentVersion() -> String
+	fn deploymentVersion(deploymentDate: SystemTime) -> String
 	{
 		// Monday, September 11, 2017; time is start of day
 		const SensibleBaseLineSystemTimeInSeconds: u64 = 1505088000;
 		
-		let timeStamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() - SensibleBaseLineSystemTimeInSeconds;
+		let timeStamp = deploymentDate.duration_since(UNIX_EPOCH).unwrap().as_secs() - SensibleBaseLineSystemTimeInSeconds;
 		let consistent = timeStamp.to_be();
 		let raw: [u8; 8] = unsafe { transmute(consistent) };
 		base64Encode(&raw, URL_SAFE_NO_PAD)
 	}
 	
 	#[inline(always)]
-	fn resource_template(&self) -> HjsonValue
-	{
-		self.resource_template.as_ref().unwrap().clone()
-	}
-	
-	#[inline(always)]
 	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
 		self.localization.visitLanguagesWithPrimaryFirst(visitor)
-	}
-	
-	#[inline(always)]
-	fn tlsServerConfiguration(&self) -> Result<ServerConfig, CordialError>
-	{
-		let serverHostNamesWithPrimaryFirst = self.localization.serverHostNamesWithPrimaryFirst()?;
-		
-		let mut serverConfig = ServerConfig::new();
-		serverConfig.set_protocols(&["http/1.1".to_owned()]);  // TODO: When HTTP/2 is supported by hyper, add "h2"
-		serverConfig.set_persistence(ServerSessionMemoryCache::new(self.maximum_number_of_tls_sessions as usize));
-		serverConfig.cert_resolver = RsaManyServersResolvesServerCert::new(&self.inputFolderPath, &self.environment, serverHostNamesWithPrimaryFirst)?;
-		Ok(serverConfig)
 	}
 	
 	#[inline(always)]

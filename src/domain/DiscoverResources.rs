@@ -6,35 +6,32 @@ pub(crate) struct DiscoverResources
 {
 	prefix: PathBuf,
 	resourceTemplates: ResourceTemplates,
-	resources: HashMap<Vec<String>, resource>
+	resources: BTreeMap<ProcessingPriority, Vec<resource>>
 }
 
 impl DiscoverResources
 {
-	pub(crate) fn discoverResources(configuration: &Configuration, canonicalizedInputFolderPath: &Path) -> Result<HashMap<Vec<String>, resource>, CordialError>
+	pub(crate) fn discoverResourcesByProcessingPriority(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<ProcessingPriority, Vec<resource>>, CordialError>
 	{
-		let prefix = canonicalizedInputFolderPath.join("root");
+		let prefix = inputFolderPath.join("root");
 		let mut this = Self
 		{
 			prefix: prefix.clone(),
 			resourceTemplates: ResourceTemplates::new(configuration),
-			resources: HashMap::with_capacity(8192),
+			resources: ProcessingPriority::newBTreeMap(1024),
 		};
-		this.processRootFile(canonicalizedInputFolderPath)?;
+		this.processRootFile(inputFolderPath)?;
 		this.processFolder(&prefix)?;
 		Ok(this.resources)
 	}
 	
-	fn processRootFile(&mut self, canonicalizedInputFolderPath: &Path) -> Result<(), CordialError>
+	#[inline(always)]
+	fn insertResource(&mut self, resource: resource)
 	{
-		let rootResourceFilePath = canonicalizedInputFolderPath.join("root.resource.hjson");
-		let configurationHjson = loadHjsonIfExtantAndMerge(&rootResourceFilePath, self.resourceTemplates.resourceTemplate.clone())?;
-		let mut resource: resource = deserializeHjson(configurationHjson)?;
-		resource.finishInitialization(Vec::new(), "root", canonicalizedInputFolderPath.to_path_buf());
-		self.resources.insert(Vec::new(), resource);
-		Ok(())
+		self.resources.get_mut(&resource.pipeline.processingPriority()).unwrap().push(resource);
 	}
 	
+	#[inline(always)]
 	fn processFolder(&mut self, folderPath: &Path) -> Result<(), CordialError>
 	{
 		let mut hierarchy =
@@ -69,6 +66,17 @@ impl DiscoverResources
 		Ok(())
 	}
 	
+	fn processRootFile(&mut self, inputFolderPath: &Path) -> Result<(), CordialError>
+	{
+		let rootResourceFilePath = inputFolderPath.join("root.resource.hjson");
+		let configurationHjson = loadHjsonIfExtantAndMerge(&rootResourceFilePath, self.resourceTemplates.resourceTemplate.clone())?;
+		let mut resource: resource = deserializeHjson(configurationHjson)?;
+		resource.finishInitialization(Vec::new(), "root", inputFolderPath.to_path_buf());
+		self.insertResource(resource);
+		Ok(())
+	}
+	
+	#[inline(always)]
 	fn processFile(&mut self, filePath: &Path) -> Result<(), CordialError>
 	{
 		const ResourceFileEnding: &'static str = ".resource.hjson";
@@ -82,17 +90,23 @@ impl DiscoverResources
 				return Err(CordialError::InvalidFile(filePath.to_path_buf(), "it has a file name which resolves to an empty resource input name".to_owned()));
 			}
 			
-			let relativeEntryPath = filePath.strip_prefix(&self.prefix).unwrap();
-			let parentHierarchy = Self::hierarchy(relativeEntryPath.parent().unwrap())?;
-			let parentHjsonConfiguration = self.resourceTemplates.find(parentHierarchy.as_slice());
+			let parentHierarchy =
+			{
+				let relativeEntryPath = filePath.strip_prefix(&self.prefix).unwrap();
+				Self::hierarchy(relativeEntryPath.parent().unwrap())?
+			};
 			
-			let hjsonConfiguration = loadHjsonIfExtantAndMerge(filePath, parentHjsonConfiguration.clone())?;
+			let hjsonConfiguration =
+			{
+				let parentHjsonConfiguration = self.resourceTemplates.find(parentHierarchy.as_slice());
+				loadHjsonIfExtantAndMerge(filePath, parentHjsonConfiguration.clone())?
+			};
 			
 			let mut resource: resource = deserializeHjson(hjsonConfiguration)?;
 			
 			resource.finishInitialization(parentHierarchy.clone(), resourceInputName, filePath.parent().unwrap().to_path_buf());
 			
-			self.resources.insert(parentHierarchy, resource);
+			self.insertResource(resource);
 		}
 		
 		Ok(())

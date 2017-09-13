@@ -31,18 +31,26 @@ impl Default for daemon
 impl daemon
 {
 	#[inline(always)]
-	pub (crate) fn daemonizeAndBindSockets(&self, cacheFolderPath: &Path, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
+	pub (crate) fn daemonizeAndBindSockets(&self, outputFolderPath: &Path, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
 	{
 		if isDaemon
 		{
 			let httpSocket = self.http_socket.clone();
 			let httpsSocket = self.https_socket.clone();
-			let context = cacheFolderPath.to_path_buf();
+			let outputFolderPath = outputFolderPath.to_path_buf();
 			
-			let mut daemonize = Daemonize::new().chown_pid_file(true).umask(0o7077).working_directory(cacheFolderPath).pid_file(&self.pid_file).privileged_action(move ||
+			let mut daemonize = Daemonize::new().chown_pid_file(true).umask(0o7077).working_directory(&outputFolderPath).pid_file(&self.pid_file).privileged_action(move ||
 			{
-				let httpSocket = httpSocket.stdNetTcpListener().context(context.clone())?;
-				let httpsSocket = httpsSocket.stdNetTcpListener().context(context.clone())?;
+				if let Err(error) = outputFolderPath.makeUserOnlyWritableFolder()
+				{
+					fatal(format!("Could not make --output {:?} writable because '{}'", outputFolderPath, error), 2);
+				}
+				
+				let cacheFolderPath = outputFolderPath.createSubFolder("cache").context(outputFolderPath.clone())?;
+				
+				let httpSocket = httpSocket.stdNetTcpListener().context(outputFolderPath.clone())?;
+				let httpsSocket = httpsSocket.stdNetTcpListener().context(outputFolderPath.clone())?;
+				Self::removeAllCapabilitiesOnLinux();
 				Ok((httpSocket, httpsSocket))
 			});
 			
@@ -62,8 +70,9 @@ impl daemon
 		}
 		else
 		{
-			let httpSocket = self.http_socket.stdNetTcpListener().context(cacheFolderPath)?;
-			let httpsSocket = self.https_socket.stdNetTcpListener().context(cacheFolderPath)?;
+			let httpSocket = self.http_socket.stdNetTcpListener().context(outputFolderPath)?;
+			let httpsSocket = self.https_socket.stdNetTcpListener().context(outputFolderPath)?;
+			Self::removeAllCapabilitiesOnLinux();
 			Ok((httpSocket, httpsSocket))
 		}
 	}
@@ -102,5 +111,65 @@ impl daemon
 	fn pid_file_default() -> PathBuf
 	{
 		PathBuf::from("/var/run/cordial.pid")
+	}
+	
+	#[cfg(any(target_os = "android", target_os = "linux"))]
+	fn removeAllCapabilitiesOnLinux()
+	{
+		use ::dpdk_unix::andorid_linux::capabilities::*;
+		
+		const CapabilitiesToDrop: [Capability; 37] =
+		[
+			Capability::AuditControl,
+			Capability::AuditRead,
+			Capability::AuditWrite,
+			Capability::BlockSuspend,
+			Capability::Chown,
+			Capability::DiscretionaryAccessControlBypass,
+			Capability::DiscretionaryAccessControlFileReadBypass,
+			Capability::FileOwnerBypass,
+			Capability::FileSetId,
+			Capability::LockMemory,
+			Capability::IpcOwner,
+			Capability::Kill,
+			Capability::Lease,
+			Capability::Immutable,
+			Capability::MandatoryAccessControlBypass,
+			Capability::MandatoryAccessControlOverride,
+			Capability::MakeNodes,
+			Capability::SystemAdministration,
+			Capability::NetworkAdministration,
+			Capability::BindPortsBelow1024,
+			Capability::NetRaw,
+			Capability::SetUid,
+			Capability::SetGid,
+			Capability::SetFileCapabilities,
+			Capability::SetProcessCapabilities,
+			Capability::RebootAndKexecLoad,
+			Capability::Chroot,
+			Capability::KernelModule,
+			Capability::Nice,
+			Capability::ProcessAccounting,
+			Capability::PTrace,
+			Capability::RawIO,
+			Capability::Resource,
+			Capability::Time,
+			Capability::TtyConfig,
+			Capability::Syslog,
+			Capability::WakeAlarm,
+		];
+		Capability::ensureDropped(&CapabilitiesToDrop);
+		
+		Capability::clearAllAmbientCapabilities();
+		
+		use ::dpdk_unix::andorid_linux::processControl::*;
+		disableDumpable();
+		noNewPrivileges();
+		lockSecureBitsAndRemoveAmbientCapabilityRaiseAndKeepCaps();
+	}
+	
+	#[cfg(not(any(target_os = "android", target_os = "linux")))]
+	fn removeAllCapabilitiesOnLinux()
+	{
 	}
 }

@@ -13,6 +13,7 @@ extern crate base64;
 extern crate brotli2;
 extern crate clap;
 extern crate daemonize;
+#[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
 extern crate futures;
 extern crate handlebars;
 extern crate hyper;
@@ -21,6 +22,7 @@ extern crate image;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate maplit;
 extern crate mktemp;
+extern crate mime_multipart;
 extern crate net2;
 #[cfg(unix)] extern crate nix;
 extern crate num_cpus;
@@ -53,6 +55,7 @@ use ::clap::Arg;
 use ::clap::ArgMatches;
 use ::rustls::Certificate;
 use ::rustls::PrivateKey;
+use ::std::borrow::Cow;
 use ::std::ffi::OsStr;
 use ::std::ffi::OsString;
 use ::std::fs;
@@ -74,6 +77,8 @@ use ::std::process::Stdio;
 use ::std::process::exit;
 use ::stderr_logging::StandardErrorAnsiLog;
 use ::quick_error::ResultExt;
+use ::url::Url;
+use ::url::percent_encoding::percent_decode;
 
 
 pub(crate) mod domain;
@@ -165,12 +170,14 @@ fn main()
 	let uncanonicalizedInputFolderPath = matches.defaultPathForCommandLineOption("input", "./input");
 	let uncanonicalizedOutputFolderPath = matches.defaultPathForCommandLineOption("output", "./output");
 	
+	if let Err(error) = resourceLimits()
+	{
+		fatal(format!("Could not set resource limits '{}'", error), 1);
+	}
+	
 	setUMaskToUserOnly();
 	
-	let (inputFolderPath, outputFolderPath) = canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath, uncanonicalizedOutputFolderPath);
-	
-	let settings = Settings::new(environment, inputFolderPath, outputFolderPath, isDaemon);
-	
+	let settings = Settings::new(environment, uncanonicalizedInputFolderPath, uncanonicalizedOutputFolderPath, isDaemon);
 	
 	if let Err(error) = settings.startWebserver()
 	{
@@ -178,57 +185,29 @@ fn main()
 	}
 }
 
+
+fn resourceLimits() -> Result<(), CordialError>
+{
+	#[cfg(any(target_os = "android", target_os = "linux"))]
+	{
+		use ::dpdk_unix::android_linux::resourceLimits::ResourceLimit;
+		use ::dpdk_unix::android_linux::resourceLimits::ResourceLimitsSet;
+		
+		let procPath = PathBuf::from("/proc");
+		let maximum_number_of_file_descriptors = ResourceLimit::maximumNumberOfFileDescriptors(&procPath).context(&procPath)?;
+		let resourceLimits = ResourceLimitsSet::defaultish(maximum_number_of_file_descriptors);
+		resourceLimits.change();
+	}
+	
+	Ok(())
+}
+
 fn setUMaskToUserOnly()
 {
 	#[cfg(unix)]
 	{
-		let mode = ::nix::sys::stat::Mode::from_bits(0o7077).unwrap();
-		::nix::sys::stat::umask(mode);
+		use ::nix::sys::stat::*;
+		let mode = Mode::from_bits(0o7077).unwrap();
+		umask(mode);
 	}
-}
-
-fn canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath: PathBuf, uncanonicalizedOutputFolderPath: PathBuf) -> (PathBuf, PathBuf)
-{
-	let canonicalizedInputFolderPath = match uncanonicalizedInputFolderPath.metadata()
-	{
-		Err(error) =>
-		{
-			fatal(format!("Could not read from --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2);
-		}
-		Ok(metadata) =>
-		{
-			if !metadata.is_dir()
-			{
-				fatal(format!("--input {:?} is not a folder path", uncanonicalizedInputFolderPath), 2);
-			}
-			match uncanonicalizedInputFolderPath.canonicalize()
-			{
-				Err(error) => fatal(format!("Could not canonicalize --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2),
-				Ok(canonicalizedInputFolderPath) => canonicalizedInputFolderPath,
-			}
-		}
-	};
-	
-	if !canonicalizedInputFolderPath.is_dir()
-	{
-		fatal(format!("Canonicalized input path {:?} is a not a folder", canonicalizedInputFolderPath), 1);
-	}
-	
-	if let Err(error) = create_dir_all(&uncanonicalizedOutputFolderPath)
-	{
-		fatal(format!("Could not create --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2);
-	}
-	
-	let canonicalizedOutputFolderPath = match uncanonicalizedOutputFolderPath.canonicalize()
-	{
-		Err(error) => fatal(format!("Could not canonicalize --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2),
-		Ok(canonicalizedOutputFolderPath) => canonicalizedOutputFolderPath,
-	};
-	
-	if let Err(error) = canonicalizedOutputFolderPath.makeUserOnlyWritableFolder()
-	{
-		fatal(format!("Could not make --output {:?} writable because '{}'", canonicalizedInputFolderPath, error), 2);
-	}
-	
-	(canonicalizedInputFolderPath, canonicalizedOutputFolderPath)
 }

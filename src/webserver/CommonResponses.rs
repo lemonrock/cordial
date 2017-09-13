@@ -29,7 +29,22 @@ trait CommonResponses: Sized
 	fn old_temporary_redirect(isHead: bool, url: &Url) -> Self;
 	
 	#[inline(always)]
+	fn precondition_failed(isHead: bool, entityTag: &str, lastModified: HttpDate) -> Self;
+	
+	#[inline(always)]
 	fn not_found(isHead: bool) -> Self;
+	
+	#[inline(always)]
+	fn range_not_satisfiable(contentLength: u64) -> Self;
+	
+	#[inline(always)]
+	fn single_part_partial_content(isInResponseToIfRange: bool, contentType: &ContentType, entityTag: &str, lastModified: HttpDate, headers: &[(String, String)], fullBodyLength: usize, fromInclusive: usize, toExclusive: usize, contentFragment: &[u8]) -> Self;
+	
+	#[inline(always)]
+	fn multi_part_partial_content(isInResponseToIfRange: bool, entityTag: &str, lastModified: HttpDate, headers: &[(String, String)], body: Vec<u8>, boundary: Vec<u8>) -> Self;
+	
+	#[inline(always)]
+	fn not_modified(entityTag: &str, lastModified: HttpDate, headers: &[(String, String)]) -> Self;
 	
 	#[inline(always)]
 	fn bad_request<I: Into<Cow<'static, str>>>(isHead: bool, body: I) -> Self;
@@ -141,10 +156,155 @@ impl CommonResponses for Response
 	}
 	
 	#[inline(always)]
+	fn precondition_failed(isHead: bool, entityTag: &str, lastModified: HttpDate) -> Self
+	{
+		Self::static_html_response(isHead, StatusCode::PreconditionFailed, "<!doctype html><title>Precondition failed</title><p>Precondition failed.".to_owned())
+		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
+		.with_header(LastModified(lastModified))
+	}
+	
+	#[inline(always)]
+	fn not_modified(entityTag: &str, lastModified: HttpDate, headers: &[(String, String)]) -> Self
+	{
+		let mut response = Response::new()
+		.with_status(statusCode)
+		.with_header(Date(SystemTime::now().into()))
+		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
+		.with_header(LastModified(lastModified));
+		
+		{
+			let mut responseHeaders = response.headers_mut();
+			
+			for &(ref headerName, ref headerValue) in headers.iter()
+			{
+				match headerName.to_ascii_lowercase()
+				{
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+				}
+			}
+		}
+		
+		response
+	}
+	
+	#[inline(always)]
 	fn not_found(isHead: bool) -> Self
 	{
 		Self::static_html_response(isHead, StatusCode::NotFound, "<!doctype html><title>Not found</title><p>The document has not found here.".to_owned())
 		.with_header(commonCacheControlHeader(60))
+	}
+	
+	#[inline(always)]
+	fn range_not_satisfiable(contentLength: u64) -> Self
+	{
+		Response::new()
+		.with_status(StatusCode::RangeNotSatisfiable)
+		.with_header(Date(SystemTime::now().into()))
+		.with_header(ContentRange(ContentRangeSpec::Bytes
+		{
+			range: None,
+			instance_length: Some(contentLength),
+		}))
+	}
+	
+	#[inline(always)]
+	fn single_part_partial_content(isInResponseToIfRange: bool, contentType: &ContentType, entityTag: &str, lastModified: HttpDate, headers: &[(String, String)], fullBodyLength: usize, fromInclusive: usize, toExclusive: usize, contentFragment: &[u8]) -> Self
+	{
+		let mut response = Response::new()
+		.with_status(StatusCode::PartialContent)
+		.with_header(Date(SystemTime::now().into()))
+		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
+		.with_header(LastModified(lastModified))
+		.with_header(ContentLength(contentFragment.len() as u64))
+		.with_header(contentType.clone())
+		.with_header(ContentRange(ContentRangeSpec::Bytes
+		{
+			range: Some(fromInclusive as u64, (toExclusive - 1) as u64),
+			instance_length: Some(fullBodyLength as u64),
+		}));
+		
+		if isInResponseToIfRange
+		{
+			let mut responseHeaders = response.headers_mut();
+			
+			for &(ref headerName, ref headerValue) in headers.iter()
+			{
+				match headerName.to_ascii_lowercase()
+				{
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+				}
+			}
+		}
+		else
+		{
+			let mut responseHeaders = response.headers_mut();
+			
+			responseHeaders.set(AcceptRanges(vec![RangeUnit::Bytes]));
+			
+			for &(ref headerName, ref headerValue) in headers.iter()
+			{
+				match headerName.to_ascii_lowercase()
+				{
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+					_ => responseHeaders.append_raw(headerName, headerValue),
+				}
+			}
+		}
+		
+		response.with_body(body);
+		
+		response
+	}
+	
+	#[inline(always)]
+	fn multi_part_partial_content(isInResponseToIfRange: bool, entityTag: &str, lastModified: HttpDate, headers: &[(String, String)], body: Vec<u8>, boundary: Vec<u8>) -> Self
+	{
+		let mimeType = Mime::from_str(&format!("multipart/byteranges; boundary={}", unsafe { String::from_utf8_unchecked(boundary) })).expect("Should be valid");
+		
+		let mut response = Response::new()
+		.with_status(StatusCode::PartialContent)
+		.with_header(Date(SystemTime::now().into()))
+		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
+		.with_header(LastModified(lastModified))
+		.with_header(ContentLength(body.len() as u64))
+		.with_header(ContentType(mimeType));
+		
+		if isInResponseToIfRange
+		{
+			let mut responseHeaders = response.headers_mut();
+			
+			for &(ref headerName, ref headerValue) in headers.iter()
+			{
+				match headerName.to_ascii_lowercase()
+				{
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+				}
+			}
+		}
+		else
+		{
+			let mut responseHeaders = response.headers_mut();
+			
+			responseHeaders.set(AcceptRanges(vec![RangeUnit::Bytes]));
+			
+			for &(ref headerName, ref headerValue) in headers.iter()
+			{
+				match headerName.to_ascii_lowercase()
+				{
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+					_ => responseHeaders.append_raw(headerName, headerValue),
+				}
+			}
+		}
+		
+		response.with_body(body);
+		
+		response
 	}
 	
 	#[inline(always)]

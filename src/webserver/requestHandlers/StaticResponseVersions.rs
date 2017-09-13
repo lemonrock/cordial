@@ -8,7 +8,8 @@ pub(crate) enum StaticResponseVersions
 	Unversioned
 	{
 		url: Url,
-		currentResponse: RegularAndPjaxStaticResponse
+		currentResponse: RegularAndPjaxStaticResponse,
+		currentLastModified: HttpDate,
 	},
 	
 	SingleVersion
@@ -16,6 +17,7 @@ pub(crate) enum StaticResponseVersions
 		versionedUrl: Url,
 		currentResponse: RegularAndPjaxStaticResponse,
 		currentVersionAsQuery: String,
+		currentLastModified: HttpDate,
 	},
 	
 	HasPrevisionVersion
@@ -23,15 +25,17 @@ pub(crate) enum StaticResponseVersions
 		versionedUrl: Url,
 		currentResponse: RegularAndPjaxStaticResponse,
 		currentVersionAsQuery: String,
+		currentLastModified: HttpDate,
 		previousResponse: RegularAndPjaxStaticResponse,
 		previousVersionAsQuery: String,
+		previousLastModified: HttpDate,
 	},
 }
 
 impl StaticResponseVersions
 {
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<String>) -> Response
+	fn staticResponse<'a>(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<Cow<'a, str>>, ifMatch: Option<IfMatch>, ifUnmodifiedSince: Option<IfUnmodifiedSince>, ifNoneMatch: Option<IfNoneMatch>, ifModifiedSince: Option<IfModifiedSince>, ifRange: Option<IfRange>, range: Option<Range>) -> Response
 	{
 		use self::StaticResponseVersions::*;
 		
@@ -41,7 +45,7 @@ impl StaticResponseVersions
 			{
 				if query.is_none()
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{
@@ -56,39 +60,31 @@ impl StaticResponseVersions
 					return Response::old_temporary_redirect(isHead, &versionedUrl);
 				}
 				
-				let unwrapped = &query.unwrap();
+				let unwrapped = query.unwrap();
 				if unwrapped == currentVersionAsQuery
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding)
-				}
-				else if unwrapped == ""
-				{
-					Response::old_temporary_redirect(isHead, &versionedUrl)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{
-					Response::not_found(isHead)
+					Response::old_temporary_redirect(isHead, &versionedUrl)
 				}
 			}
 			
 			HasPrevisionVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery, ref previousVersionAsQuery, ref previousResponse } =>
 			{
-				let unwrapped = &query.unwrap();
+				let unwrapped = query.unwrap();
 				if unwrapped == currentVersionAsQuery
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else if unwrapped == previousVersionAsQuery
 				{
-					previousResponse.staticResponse(isHead, isPjax, preferredEncoding)
-				}
-				else if unwrapped == ""
-				{
-					Response::old_temporary_redirect(isHead, &versionedUrl)
+					previousResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{
-					Response::not_found(isHead)
+					Response::old_temporary_redirect(isHead, &versionedUrl)
 				}
 			}
 		}

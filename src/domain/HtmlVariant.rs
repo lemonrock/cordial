@@ -3,19 +3,19 @@
 
 
 #[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum Variant
+pub(crate) enum HtmlVariant
 {
 	Canonical,
 	AMP,
 	PJAX,
 }
 
-impl Variant
+impl HtmlVariant
 {
 	#[inline(always)]
 	fn pathWithTrailingSlash(self) -> Option<&'static str>
 	{
-		use self::Variant::*;
+		use self::HtmlVariant::*;
 		match self
 		{
 			Canonical => None,

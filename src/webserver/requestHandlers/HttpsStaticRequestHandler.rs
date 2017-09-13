@@ -26,7 +26,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 	}
 	
 	#[inline(always)]
-	fn handle(&self, isHead: bool, method: Method, hostName: &str, _port: u16, path: String, query: Option<String>, requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
+	fn handle<'a>(&self, isHead: bool, method: Method, hostName: &str, _port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
 	{
 		#[inline(always)]
 		fn methods() -> Vec<Method>
@@ -63,7 +63,7 @@ impl HttpsStaticRequestHandler
 	}
 	
 	#[inline(always)]
-	fn response(&self, isHead: bool, hostName: &str, path: String, query: Option<String>, requestHeaders: Headers) -> Either<FutureResult<Response, ::hyper::Error>, <HttpsStaticRequestHandler as RequestHandler>::AlternativeFuture>
+	fn response<'a>(&self, isHead: bool, hostName: &str,path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers) -> Either<FutureResult<Response, ::hyper::Error>, <HttpsStaticRequestHandler as RequestHandler>::AlternativeFuture>
 	{
 		HttpService::<Self>::response(self.resources.response(isHead, hostName, path, query, requestHeaders))
 	}

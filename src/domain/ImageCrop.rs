@@ -2,16 +2,21 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) trait RequestHandler: Debug
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone)]
+pub(crate) struct ImageCrop
 {
-	type AlternativeFuture: Future<Item=Response, Error=::hyper::Error>;
-	
+	x: u32,
+	y: u32,
+	width: u32,
+	height: u32,
+}
+
+impl ImageCrop
+{
 	#[inline(always)]
-	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool;
-	
-	#[inline(always)]
-	fn httpKeepAlive(&self) -> bool;
-	
-	#[inline(always)]
-	fn handle<'a>(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers, requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>;
+	fn crop(&self, image: &mut ::image::DynamicImage) -> ::image::DynamicImage
+	{
+		image.crop(self.x, self.y, self.width,self.height)
+	}
 }

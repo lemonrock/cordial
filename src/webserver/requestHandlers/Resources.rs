@@ -6,18 +6,19 @@
 pub(crate) struct Resources
 {
 	resourcesByHostNameAndPathAndQueryString: HashMap<String, Trie<String, StaticResponseVersions>>,
+	deploymentDate: HttpDate,
 }
 
 impl Resources
 {
 	#[inline(always)]
-	pub(crate) fn empty() -> Self
+	pub(crate) fn empty(deploymentDate: SystemTime) -> Self
 	{
-		Self::new(&HashSet::with_capacity(0))
+		Self::new(deploymentDate, &HashSet::with_capacity(0))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn new(ourHostNames: &HashSet<String>) -> Self
+	pub(crate) fn new(deploymentDate: SystemTime, ourHostNames: &HashSet<String>) -> Self
 	{
 		let mut resourcesByHostNameAndPathAndQueryString = HashMap::with_capacity(ourHostNames.len());
 		
@@ -29,45 +30,71 @@ impl Resources
 		Self
 		{
 			resourcesByHostNameAndPathAndQueryString,
+			deploymentDate: HttpDate::from(deploymentDate),
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn addResource(&mut self, url: Url, currentResponse: RegularAndPjaxStaticResponse, oldResources: Arc<Resources>)
 	{
-		use self::StaticResponseVersions::*;
-		
 		let hostName = url.host_str().unwrap();
 		let path = url.path().to_owned();
 		let currentVersionAsQuery = url.query();
+		let (previousLastModifiedAndPreviousResponse, previousVersionAsQuery) = oldResources.previous(hostName, &path);
 		
-		let staticResponseVersions = if let Some(currentVersionAsQuery) = currentVersionAsQuery
+		use self::StaticResponseVersions::*;
+		let staticResponseVersions = match previousLastModifiedAndPreviousResponse
 		{
-			let versionedUrl = url.clone();
-			match oldResources.latestVersionIfVersioned(hostName, &path)
-			{
-				None => SingleVersion
-				{
-					versionedUrl,
-					currentResponse,
-					currentVersionAsQuery: currentVersionAsQuery.to_owned(),
-				},
-				Some((previousVersionAsQuery, previousResponse)) => HasPrevisionVersion
-				{
-					versionedUrl,
-					currentResponse,
-					currentVersionAsQuery: currentVersionAsQuery.to_owned(),
-					previousResponse,
-					previousVersionAsQuery: previousVersionAsQuery.to_owned(),
-				}
-			}
-		}
-		else
-		{
-			Unversioned
+			None => Unversioned
 			{
 				url: url.clone(),
 				currentResponse,
+				currentLastModified: self.deploymentDate,
+			},
+			Some((previousLastModified, previousResponse)) =>
+			{
+				let currentLastModified = if currentResponse.entityTag() == previousResponse.entityTag()
+				{
+					previousLastModified
+				}
+				else
+				{
+					self.deploymentDate
+				};
+				
+				if let Some(currentVersionAsQuery) = currentVersionAsQuery
+				{
+					let versionedUrl = url.clone();
+					match previousVersionAsQuery
+					{
+						None => SingleVersion
+						{
+							versionedUrl,
+							currentResponse,
+							currentVersionAsQuery: currentVersionAsQuery.to_owned(),
+							currentLastModified,
+						},
+						Some(previousVersionAsQuery) => HasPrevisionVersion
+						{
+							versionedUrl,
+							currentResponse,
+							currentVersionAsQuery: currentVersionAsQuery.to_owned(),
+							currentLastModified,
+							previousResponse,
+							previousVersionAsQuery: previousVersionAsQuery.to_owned(),
+							previousLastModified,
+						}
+					}
+				}
+				else
+				{
+					Unversioned
+					{
+						url: url.clone(),
+						currentResponse,
+						currentLastModified,
+					}
+				}
 			}
 		};
 		
@@ -82,7 +109,7 @@ impl Resources
 	}
 	
 	#[inline(always)]
-	fn latestVersionIfVersioned(&self, hostName: &str, path: &str) -> Option<(String, RegularAndPjaxStaticResponse)>
+	fn previous<'a>(&'a self, hostName: &str, path: &str) -> (Option<(HttpDate, &'a RegularAndPjaxStaticResponse)>, Option<&'a str>)
 	{
 		use self::StaticResponseVersions::*;
 		
@@ -91,19 +118,19 @@ impl Resources
 			None => None,
 			Some(trie) => match trie.get(path)
 			{
-				None => None,
+				None => (None,  None),
 				Some(staticResponseVersions) => match staticResponseVersions
 				{
-					&Unversioned { .. } => None,
-					&SingleVersion { ref currentVersionAsQuery, ref currentResponse, .. } => Some((currentVersionAsQuery.to_owned(), currentResponse.clone())),
-					&HasPrevisionVersion { ref currentVersionAsQuery, ref currentResponse, .. } => Some((currentVersionAsQuery.to_owned(), currentResponse.clone())),
+					&Unversioned { ref currentLastModified, ref currentResponse, .. } => (Some((*lastModified, currentResponse)), None),
+					&SingleVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*lastModified, currentResponse)), Some(currentVersionAsQuery)),
+					&HasPrevisionVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*lastModified, currentResponse)), Some(currentVersionAsQuery)),
 				}
 			}
 		}
 	}
 	
 	#[inline(always)]
-	fn response(&self, isHead: bool, hostName: &str, path: String, query: Option<String>, requestHeaders: Headers) -> Response
+	fn response<'a>(&self, isHead: bool, hostName: &str, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers) -> Response
 	{
 		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)
 		{
@@ -116,33 +143,9 @@ impl Resources
 					let isPjax = requestHeaders.get_raw("X-PJAX").is_some();
 					let preferredEncoding = PreferredEncoding::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
 					
-					staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query)
+					staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>())
 				}
 			}
 		}
 	}
-	
-	//	#[inline(always)]
-	//	fn relativeOutputContentFilePath(&self, language: &language, variant: Variant, version: Option<&str>) -> Result<PathBuf, CordialError>
-	//	{
-	//		let url = self.url(language, variant)?;
-	//		let fileLikeUrl = if let Some(additionalContentFileName) = self.additionalContentFileNameIfAny
-	//		{
-	//			url.join(additionalContentFileName).unwrap()
-	//		}
-	//		else
-	//		{
-	//			url
-	//		};
-	//
-	//		let mut resourceRelativePathString = String::with_capacity(1024);
-	//		resourceRelativePathString.push_str(fileLikeUrl.host_str().unwrap());
-	//		resourceRelativePathString.push_str(fileLikeUrl.path());
-	//		if let Some(version) = version
-	//		{
-	//			resourceRelativePathString.push_str(variant.fileExtensionWithLeadingPeriod());
-	//		}
-	//		resourceRelativePathString.push_str(variant.fileExtensionWithLeadingPeriod());
-	//		Ok(PathBuf::from(resourceRelativePathString))
-	//	}
 }

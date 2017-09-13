@@ -8,12 +8,13 @@ pub(crate) struct RegularAndPjaxStaticResponse
 	regular: StaticResponse,
 	pjax: Option<StaticResponse>,
 	entityTag: String,
+	lastModified: HttpDate,
 }
 
 impl RegularAndPjaxStaticResponse
 {
 	#[inline(always)]
-	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
+	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>, lastModified: HttpDate) -> Self
 	{
 		let entityTag = regular.entityTag();
 		
@@ -26,15 +27,21 @@ impl RegularAndPjaxStaticResponse
 	}
 	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding) -> Response
+	pub(crate) fn entityTag<'a>(&'a self) -> &'a str
+	{
+		&self.entityTag
+	}
+	
+	#[inline(always)]
+	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, ifMatch: Option<IfMatch>, ifUnmodifiedSince: Option<IfUnmodifiedSince>, ifNoneMatch: Option<IfNoneMatch>, ifModifiedSince: Option<IfModifiedSince>, ifRange: Option<IfRange>, range: Option<Range>) -> Response
 	{
 		if isPjax && self.pjax.is_some()
 		{
-			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag)
+			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag, self.lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 		}
 		else
 		{
-			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag)
+			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag, self.lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 		}
 	}
 }

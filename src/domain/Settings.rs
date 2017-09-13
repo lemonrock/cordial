@@ -15,22 +15,24 @@ pub(crate) struct Settings
 impl Settings
 {
 	#[inline(always)]
-	pub(crate) fn new(environment: &str, inputFolderPath: PathBuf, outputFolderPath: PathBuf, isDaemon: bool) -> Self
+	pub(crate) fn new(environment: &str, uncanonicalizedInputFolderPath: PathBuf, uncanonicalizedOutputFolderPath: PathBuf, isDaemon: bool) -> Self
 	{
+		let (inputFolderPath, outputFolderPath) = Self::canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath, uncanonicalizedOutputFolderPath);
+		
 		Self
 		{
 			environment: environment.to_owned(),
 			inputFolderPath,
 			outputFolderPath,
 			isDaemon,
-			oldResources: Arc::new(Resources::empty())
+			oldResources: Arc::new(Resources::empty(SystemTime::now()))
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn startWebserver(mut self) -> Result<(), CordialError>
 	{
-		let (configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
+		let (serverConfig, httpsStaticRequestHandler, httpRedirectToHttpsRequestHandler, configuration) = self.justConfigurationReconfigure()?;
 		
 		self.oldResources = httpsStaticRequestHandler.resources();
 		
@@ -48,7 +50,7 @@ impl Settings
 	#[inline(always)]
 	pub(crate) fn reconfigure(&mut self, updatableTlsServerConfigurationFactory: &Arc<UpdatableTlsServerConfigurationFactory>, httpRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpRedirectToHttpsRequestHandler>>, httpsRequestHandlerFactory: &Arc<UpdatableRequestHandlerFactory<HttpsStaticRequestHandler>>) -> Result<(), CordialError>
 	{
-		let (_configuration, serverConfig, httpRedirectToHttpsRequestHandler, httpsStaticRequestHandler) = self.justConfigurationReconfigure()?;
+		let (serverConfig, httpsStaticRequestHandler, httpRedirectToHttpsRequestHandler, _configuration) = self.justConfigurationReconfigure()?;
 		
 		self.oldResources = httpsStaticRequestHandler.resources();
 		
@@ -59,7 +61,7 @@ impl Settings
 	}
 	
 	#[inline(always)]
-	fn justConfigurationReconfigure(&self) -> Result<(Configuration, ServerConfig, HttpRedirectToHttpsRequestHandler, HttpsStaticRequestHandler), CordialError>
+	fn justConfigurationReconfigure(&self) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Configuration), CordialError>
 	{
 		Configuration::reconfigure(&self.environment, &self.inputFolderPath, &self.outputFolderPath, self.oldResources.clone())
 	}
@@ -68,5 +70,46 @@ impl Settings
 	pub(crate) fn respondsToCtrlC(&self) -> bool
 	{
 		!self.isDaemon
+	}
+	
+	fn canonicalizeInputAndOutputFolderPaths(uncanonicalizedInputFolderPath: PathBuf, uncanonicalizedOutputFolderPath: PathBuf) -> (PathBuf, PathBuf)
+	{
+		let canonicalizedInputFolderPath = match uncanonicalizedInputFolderPath.metadata()
+		{
+			Err(error) =>
+			{
+				fatal(format!("Could not read from --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2);
+			}
+			Ok(metadata) =>
+			{
+				if !metadata.is_dir()
+				{
+					fatal(format!("--input {:?} is not a folder path", uncanonicalizedInputFolderPath), 2);
+				}
+				match uncanonicalizedInputFolderPath.canonicalize()
+				{
+					Err(error) => fatal(format!("Could not canonicalize --input {:?} because '{}'", uncanonicalizedInputFolderPath, error), 2),
+					Ok(canonicalizedInputFolderPath) => canonicalizedInputFolderPath,
+				}
+			}
+		};
+		
+		if !canonicalizedInputFolderPath.is_dir()
+		{
+			fatal(format!("Canonicalized input path {:?} is a not a folder", canonicalizedInputFolderPath), 1);
+		}
+		
+		if let Err(error) = create_dir_all(&uncanonicalizedOutputFolderPath)
+		{
+			fatal(format!("Could not create --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2);
+		}
+		
+		let canonicalizedOutputFolderPath = match uncanonicalizedOutputFolderPath.canonicalize()
+		{
+			Err(error) => fatal(format!("Could not canonicalize --output {:?} because '{}'", canonicalizedInputFolderPath, error), 2),
+			Ok(canonicalizedOutputFolderPath) => canonicalizedOutputFolderPath,
+		};
+		
+		(canonicalizedInputFolderPath, canonicalizedOutputFolderPath)
 	}
 }

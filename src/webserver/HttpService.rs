@@ -55,10 +55,10 @@ impl<R: RequestHandler> Service for HttpService<R>
 			Some(host) => (host.hostname().to_owned(), host.port().unwrap_or(self.ourDefaultPort)),
 		};
 		
-		let path = uri.path();
+		let percentEncodedPath = uri.path();
 		
 		// asterisk-form
-		if path == "*"
+		if percentEncodedPath == "*"
 		{
 			if method == Options
 			{
@@ -70,7 +70,7 @@ impl<R: RequestHandler> Service for HttpService<R>
 			}
 		}
 		// authority-form
-		else if path.is_empty()
+		else if percentEncodedPath.is_empty()
 		{
 			if method == Connect
 			{
@@ -82,13 +82,32 @@ impl<R: RequestHandler> Service for HttpService<R>
 			}
 		}
 		// invalid
-		else if path.starts_with("//")
+		else if percentEncodedPath.starts_with("//")
 		{
 			Self::response(Response::invalid_request_uri(isHead))
 		}
 		// either absolute-form or origin-form
 		else
 		{
+			// Validate path
+			// Validate query
+			
+			let path = match percent_decode(percentEncodedPath.as_bytes()).decode_utf8()
+			{
+				Err(_) => return Self::response(Response::path_is_not_validly_encoded(isHead)),
+				Ok(cow) => cow,
+			};
+			
+			let query = match uri.query()
+			{
+				None => None,
+				Some(percentEncodedQuery) => match percent_decode(percentEncodedQuery.as_bytes()).decode_utf8()
+				{
+					Err(_) => return Self::response(Response::path_is_not_validly_encoded(isHead)),
+					Ok(cow) => Some(cow),
+				}
+			};
+			
 			if uri.is_absolute()
 			{
 				match uri.scheme()
@@ -106,7 +125,7 @@ impl<R: RequestHandler> Service for HttpService<R>
 							Some(finalHostName) =>
 							{
 								let port = uri.port().unwrap_or(hostPort);
-								self.safeguardRequest(isHead, method, finalHostName, port, path, uri.query(), requestHeaders, requestBody)
+								self.safeguardRequest(isHead, method, finalHostName, port, path, query, requestHeaders, requestBody)
 							}
 						}
 					}
@@ -114,7 +133,7 @@ impl<R: RequestHandler> Service for HttpService<R>
 			}
 			else
 			{
-				self.safeguardRequest(isHead, method, &hostName, hostPort, path, uri.query(), requestHeaders, requestBody)
+				self.safeguardRequest(isHead, method, &hostName, hostPort, path, query, requestHeaders, requestBody)
 			}
 		}
 	}
@@ -123,7 +142,7 @@ impl<R: RequestHandler> Service for HttpService<R>
 impl<R: RequestHandler> HttpService<R>
 {
 	#[inline(always)]
-	fn safeguardRequest(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: &str, query: Option<&str>, requestHeaders: Headers, requestBody: Body) -> <HttpService<R> as Service>::Future
+	fn safeguardRequest<'a>(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers, requestBody: Body) -> <HttpService<R> as Service>::Future
 	{
 		// We only run on one port
 		if port != self.ourDefaultPort
@@ -135,25 +154,6 @@ impl<R: RequestHandler> HttpService<R>
 		{
 			return Self::response(Response::authority_server_is_not_one_of_ours(isHead));
 		}
-		
-		let path = match percent_decode(path.as_bytes()).decode_utf8()
-		{
-			Err(_) => return Self::response(Response::path_is_not_validly_encoded(isHead)),
-			Ok(cow) => cow.into_owned(),
-		};
-		
-		let query = if let Some(query) = query
-		{
-			match percent_decode(query.as_bytes()).decode_utf8()
-			{
-				Err(_) => return Self::response(Response::query_is_not_validly_encoded(isHead)),
-				Ok(cow) => Some(cow.into_owned()),
-			}
-		}
-		else
-		{
-			None
-		};
 		
 		self.requestHandler.handle(isHead, method, hostName, port, path, query, requestHeaders, requestBody)
 	}

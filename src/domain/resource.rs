@@ -13,7 +13,6 @@ pub(crate) struct resource
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
 	#[serde(default, skip_deserializing)] resourceOutputRelativeUrl: String,
-	#[serde(default, skip_deserializing)] additionalContentFileNameIfAny: Option<&'static str>,
 }
 
 impl resource
@@ -30,17 +29,15 @@ impl resource
 		self.canonicalParentFolderPath = canonicalParentFolderPath;
 		self.resourceInputName = resourceInputName.to_owned();
 		self.resourceInputContentFileNamesWithExtension = self.pipeline.resourceInputContentFileNamesWithExtension(resourceInputName);
-		let (resourceOutputRelativeUrl, additionalContentFileNameIfAny) = self.pipeline.resourceOutputRelativeUrl(&parentHierarchy, resourceInputName);
-		self.resourceOutputRelativeUrl = resourceOutputRelativeUrl;
-		self.additionalContentFileNameIfAny = additionalContentFileNameIfAny;
+		self.resourceOutputRelativeUrl = self.pipeline.resourceOutputRelativeUrl(&parentHierarchy, resourceInputName);
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createOutput(&self, environment: &str, iso_639_1_alpha_2_language_code: &str, language: &language, localization: &localization, inputFolderPath: &Path, newResources: &mut Resources, oldResources: Arc<Resources>, deploymentVersion: &str) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, iso_639_1_alpha_2_language_code: &str, language: &language, newResources: &mut Resources, oldResources: Arc<Resources>, configuration: &Configuration) -> Result<(), CordialError>
 	{
-		let (maximumAge, isForPrimaryLanguageOnly, isForCanonicalUrlOnly, canBeCompressed, contentType, isDownloadable, version) = self.pipeline.isFor(deploymentVersion);
+		let (isForPrimaryLanguageOnly, isVersioned) = self.pipeline.is();
 		
-		let primaryLanguage = localization.primaryLanguage()?;
+		let primaryLanguage = configuration.localization.primaryLanguage()?;
 		if language != primaryLanguage && isForPrimaryLanguageOnly
 		{
 			return Ok(());
@@ -64,12 +61,12 @@ impl resource
 			self.inputContentFilePath(primaryLanguage, Some(language))?
 		};
 		
-		if isForCanonicalUrlOnly
+		let unversionedCanonicalUrl = self.unversionedUrl(language)?;
+		
+		let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, &self.headers, languageData, configuration)?;
+		for (mut url, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 		{
-			let variant = Variant::Canonical;
-			let url = self.url(language, variant, version)?;
-			let regularHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
-			let regularBody = self.pipeline.execute(&inputContentFilePath, variant, inputFolderPath)?;
+			let hasPjax = pjax.is_some();
 			
 			let regularCompressed = if canBeCompressed
 			{
@@ -80,52 +77,31 @@ impl resource
 				None
 			};
 			
-			let newResponse = RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), None);
-			
-			newResources.addResource(url, newResponse, oldResources);
-		}
-		else
-		{
-			let url = self.url(language, Variant::Canonical, version)?;
-			
-			let variant = Variant::Canonical;
-			let regularHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
-			let regularBody = self.pipeline.execute(&inputContentFilePath, variant, inputFolderPath)?;
-			
-			let variant = Variant::PJAX;
-			let pjaxHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
-			let pjaxBody = self.pipeline.execute(&inputContentFilePath, variant, inputFolderPath)?;
-			
-			let (regularCompressed, pjaxCompressed) = if canBeCompressed
+			let newResponse = if hasPjax
 			{
-				(Some(self.compression.compress(&regularBody)?), Some(self.compression.compress(&pjaxBody)?))
+				let (pjaxHeaders, pjaxBody) = pjax.unwrap();
+				let pjaxCompressed = if canBeCompressed
+				{
+					Some(self.compression.compress(&pjaxBody)?)
+				}
+				else
+				{
+					None
+				};
+				
+				RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
 			}
 			else
 			{
-				(None, None)
+				RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType, regularHeaders, regularBody, regularCompressed), None)
 			};
 			
-			let newResource = RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType.clone(), pjaxHeaders, pjaxBody, pjaxCompressed)));
-			
-			newResources.addResource(url, newResource, oldResources.clone());
-			
-			
-			let url = self.url(language, variant, version)?;
-			let variant = Variant::AMP;
-			let ampHeaders = self.generateHeaders(environment, languageData, variant, deploymentVersion, localization, canBeCompressed, maximumAge, isDownloadable)?;
-			let ampBody = self.pipeline.execute(&inputContentFilePath, variant, inputFolderPath)?;
-			let ampCompressed = if canBeCompressed
+			if isVersioned
 			{
-				Some(self.compression.compress(&ampBody)?)
+				url.set_query(Some(&format!("v={}", newResponse.entityTag())))
 			}
-			else
-			{
-				None
-			};
 			
-			let newResource = RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType, ampHeaders, ampBody, ampCompressed), None);
-			
-			newResources.addResource(url, newResource, oldResources);
+			newResources.addResource(url, deploymentDate, newResponse, oldResources.clone());
 		}
 		
 		Ok(())
@@ -166,81 +142,6 @@ impl resource
 	}
 	
 	#[inline(always)]
-	fn generateHeaders(&self, environment: &str, languageData: Option<(&str, &language)>, variant: Variant, deploymentVersion: &str, localization: &localization, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool) -> Result<Vec<(String, String)>, CordialError>
-	{
-		let mut headers = Vec::with_capacity(self.headers.len() * 2);
-		
-		if variant == Variant::PJAX
-		{
-			headers.push(("X-PJAX-Version".to_owned(), format!("{}", deploymentVersion)));
-		}
-		if canBeCompressed
-		{
-			if variant == Variant::PJAX
-			{
-				headers.push(("Vary".to_owned(), "content-encoding, x-pjax".to_owned()))
-			}
-			else
-			{
-				headers.push(("Vary".to_owned(), "content-encoding".to_owned()))
-			}
-		}
-		if maximumAge == 0
-		{
-			headers.push(("Cache-Control".to_owned(), "no-cache".to_owned()))
-		}
-		else
-		{
-			headers.push(("Cache-Control".to_owned(), format!("max-age={}; no-transform; immutable", maximumAge)))
-		}
-		if isDownloadable
-		{
-			headers.push(("Content-Disposition".to_owned(), "attachment".to_owned()))
-		}
-		
-		let (ourLanguage, otherLanguages) = match languageData
-		{
-			None => (None, None),
-			Some((iso_639_1_alpha_2_language_code, language)) =>
-			{
-				headers.push(("Content-Language".to_owned(), iso_639_1_alpha_2_language_code.to_owned()));
-				
-				let mut ourLanguage = HashMap::with_capacity(2);
-				ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
-				ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
-				(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
-			}
-		};
-		
-		for (headerName, headerTemplate) in self.headers.iter()
-		{
-			let json = &json!
-			({
-				"environment": environment,
-				"variant": variant,
-				"variant_path_with_trailing_slash": variant.pathWithTrailingSlash(),
-				"our_language": ourLanguage,
-				"localization": localization,
-				"other_languages": otherLanguages,
-				"can_be_compressed": canBeCompressed,
-				"deployment_version": deploymentVersion,
-				
-				"header": headerName,
-			});
-			
-			// SourceMap Header (for non-production)
-			// Use deploymentVersion for unique URLs for css, etc
-			
-			let reg = Handlebars::new();
-			let headerValue = reg.template_render(headerTemplate, &json)?;
-			headers.push((headerName.to_owned(), headerValue));
-		}
-		
-		headers.shrink_to_fit();
-		Ok(headers)
-	}
-	
-	#[inline(always)]
 	fn languageNeutralInputContentFilePath(&self, primaryLanguage: &language, language: Option<&language>) -> Result<PathBuf, CordialError>
 	{
 		for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
@@ -256,11 +157,17 @@ impl resource
 	}
 	
 	#[inline(always)]
-	fn url(&self, language: &language, variant: Variant, version: Option<&str>) -> Result<Url, CordialError>
+	fn unversionedUrl(&self, language: &language) -> Result<Url, CordialError>
+	{
+		self.url(language, HtmlVariant::Canonical, None)
+	}
+	
+	#[inline(always)]
+	fn url(&self, language: &language, htmlVariant: HtmlVariant, version: Option<&str>) -> Result<Url, CordialError>
 	{
 		let baseUrl = language.baseUrl()?;
 		
-		let urlWithAmpOrPjaxPath = variant.appendToUrl(baseUrl);
+		let urlWithAmpOrPjaxPath = htmlVariant.appendToUrl(baseUrl);
 		
 		let mut url = urlWithAmpOrPjaxPath.join(&self.resourceOutputRelativeUrl).context(format!("Invalid resourceOutputRelativeUrl '{}'", self.resourceOutputRelativeUrl))?;
 		if let Some(version) = version

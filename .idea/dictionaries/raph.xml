@@ -52,6 +52,7 @@
       <w>memmove</w>
       <w>memset</w>
       <w>minification</w>
+      <w>minified</w>
       <w>minifying</w>
       <w>mktemp</w>
       <w>mlogpool</w>
@@ -97,7 +98,9 @@
       <w>shmem</w>
       <w>sigmask</w>
       <w>sigs</w>
+      <w>sitemap</w>
       <w>sockaddr</w>
+      <w>srcset</w>
       <w>strdup</w>
       <w>svgcleaner</w>
       <w>svgdom</w>

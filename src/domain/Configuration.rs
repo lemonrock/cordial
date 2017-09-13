@@ -127,8 +127,6 @@ impl Configuration
 		
 		let mut configuration: Configuration = deserializeHjson(configurationHjson)?;
 		
-		let deploymentDate = SystemTime::now();
-		
 		configuration.resource_template = Some(resource_template);
 		configuration.inputFolderPath = inputFolderPath.to_path_buf();
 		configuration.outputFolderPath = outputFolderPath.to_path_buf();

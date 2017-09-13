@@ -173,7 +173,7 @@ impl CommonResponses for Response
 		.with_header(LastModified(lastModified));
 		
 		{
-			let mut responseHeaders = response.headers_mut();
+			let responseHeaders = response.headers_mut();
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
@@ -181,6 +181,7 @@ impl CommonResponses for Response
 				{
 					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
 					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
+					_ => (),
 				}
 			}
 		}
@@ -226,7 +227,7 @@ impl CommonResponses for Response
 		
 		if isInResponseToIfRange
 		{
-			let mut responseHeaders = response.headers_mut();
+			let responseHeaders = response.headers_mut();
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
@@ -234,12 +235,13 @@ impl CommonResponses for Response
 				{
 					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
 					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
+					_ => (),
 				}
 			}
 		}
 		else
 		{
-			let mut responseHeaders = response.headers_mut();
+			let responseHeaders = response.headers_mut();
 			
 			responseHeaders.set(AcceptRanges(vec![RangeUnit::Bytes]));
 			
@@ -254,9 +256,7 @@ impl CommonResponses for Response
 			}
 		}
 		
-		response.with_body(contentFragment.to_vec());
-		
-		response
+		response.with_body(contentFragment.to_vec())
 	}
 	
 	#[inline(always)]
@@ -274,7 +274,7 @@ impl CommonResponses for Response
 		
 		if isInResponseToIfRange
 		{
-			let mut responseHeaders = response.headers_mut();
+			let responseHeaders = response.headers_mut();
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
@@ -282,12 +282,13 @@ impl CommonResponses for Response
 				{
 					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
 					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
+					_ => (),
 				}
 			}
 		}
 		else
 		{
-			let mut responseHeaders = response.headers_mut();
+			let responseHeaders = response.headers_mut();
 			
 			responseHeaders.set(AcceptRanges(vec![RangeUnit::Bytes]));
 			
@@ -302,9 +303,7 @@ impl CommonResponses for Response
 			}
 		}
 		
-		response.with_body(body);
-		
-		response
+		response.with_body(body)
 	}
 	
 	#[inline(always)]

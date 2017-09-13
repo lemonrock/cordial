@@ -56,11 +56,10 @@ impl StaticResponse
 		
 		if let Some(ifMatch) = ifMatch
 		{
-			use self::IfMatch::*;
 			let isTrueCondition = match *ifMatch
 			{
-				Any => true,
-				Items(ref entityTags) =>
+				IfMatch::Any => true,
+				IfMatch::Items(ref entityTags) =>
 				{
 					let mut result = false;
 					for providedEntityTag in entityTags
@@ -93,13 +92,12 @@ impl StaticResponse
 			}
 		}
 		
-		if let Some(ifNoneMatch) = ifMatch
+		if let Some(ifNoneMatch) = ifNoneMatch
 		{
-			use self::IfMatch::*;
 			let isTrueCondition = match *ifNoneMatch
 			{
-				Any => false,
-				Items(ref entityTags) =>
+				IfNoneMatch::Any => false,
+				IfNoneMatch::Items(ref entityTags) =>
 				{
 					let mut result = true;
 					for providedEntityTag in entityTags
@@ -283,7 +281,7 @@ impl StaticResponse
 								rangeOverlapChecks.insert(fromInclusive, toInclusive);
 								
 								let mut headers = Headers::with_capacity(2);
-								headers.set(&self.contentType.clone());
+								headers.set(self.contentType.clone());
 								headers.set(ContentRange(ContentRangeSpec::Bytes
 								{
 									range: Some((fromInclusive as u64, toInclusive as u64)),

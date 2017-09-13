@@ -53,7 +53,7 @@ impl StaticResponseVersions
 				}
 			},
 			
-			SingleVersion { ref versionedUrl, ref currentResponse, currentVersionAsQuery, currentLastModified } =>
+			SingleVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery, currentLastModified } =>
 			{
 				if query.is_none()
 				{
@@ -61,7 +61,7 @@ impl StaticResponseVersions
 				}
 				
 				let unwrapped = query.unwrap();
-				if unwrapped == currentVersionAsQuery
+				if unwrapped.as_ref() == currentVersionAsQuery.as_str()
 				{
 					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, currentLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
@@ -71,14 +71,14 @@ impl StaticResponseVersions
 				}
 			}
 			
-			HasPrevisionVersion { ref versionedUrl, ref currentResponse, currentVersionAsQuery, previousVersionAsQuery, ref previousResponse, currentLastModified, previousLastModified } =>
+			HasPrevisionVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery, ref previousVersionAsQuery, ref previousResponse, currentLastModified, previousLastModified } =>
 			{
 				let unwrapped = query.unwrap();
-				if unwrapped == currentVersionAsQuery
+				if unwrapped.as_ref() == currentVersionAsQuery.as_str()
 				{
 					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, currentLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
-				else if unwrapped == previousVersionAsQuery
+				else if unwrapped.as_ref() == previousVersionAsQuery.as_str()
 				{
 					previousResponse.staticResponse(isHead, isPjax, preferredEncoding, previousLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}

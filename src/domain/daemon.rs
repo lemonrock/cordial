@@ -46,8 +46,6 @@ impl daemon
 					fatal(format!("Could not make --output {:?} writable because '{}'", outputFolderPath, error), 2);
 				}
 				
-				let cacheFolderPath = outputFolderPath.createSubFolder("cache").context(outputFolderPath.clone())?;
-				
 				let httpSocket = httpSocket.stdNetTcpListener().context(outputFolderPath.clone())?;
 				let httpsSocket = httpsSocket.stdNetTcpListener().context(outputFolderPath.clone())?;
 				Self::removeAllCapabilitiesOnLinux();

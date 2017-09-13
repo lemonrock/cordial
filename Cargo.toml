@@ -34,11 +34,12 @@ clap = "2.26.0"
 daemonize = "0.2.3"
 futures = "0.1.15"
 handlebars = "0.29"
+hyper = "0.11.2"
 hyper-rustls = "0.11.0"
 image = "0.15.0"
 log = "0.3"
 maplit = "0.1.4"
-mime_multipart = "0.5.1"
+mime_multipart = { git = "https://github.com/iseurie/mime-multipart", rev = "f5ae9f72747b6f0188f49972acc9cfe733b2742c" }
 mktemp = "0.3.1"
 net2 = "0.2.31"
 num_cpus = "1.6.2"
@@ -72,10 +73,8 @@ nix = "0.9.0"
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dependencies]
 dpdk-unix = "0.0.1"
 
-[dependencies.hyper]
-#version = "0.11.2"
-git = "https://github.com/lemonrock/hyper"
-branch = "cow"
+[patch.crates-io]
+hyper = { git = "https://github.com/lemonrock/hyper", branch = "cow" }
 
 [dependencies.ordermap]
 version = "0.2.11"

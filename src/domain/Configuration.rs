@@ -13,7 +13,7 @@ pub(crate) struct Configuration
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
-	#[serde(default, skip_deserializing)] deploymentDate: SystemTime,
+	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] deploymentVersion: String,
 }
 
@@ -133,8 +133,7 @@ impl Configuration
 		configuration.inputFolderPath = inputFolderPath.to_path_buf();
 		configuration.outputFolderPath = outputFolderPath.to_path_buf();
 		configuration.environment = environment.to_owned();
-		configuration.deploymentDate = deploymentDate;
-		configuration.deploymentVersion = Self::deploymentVersion(deploymentDate);
+		configuration.deploymentVersion = Self::deploymentVersion(configuration.deploymentDate);
 		
 		Ok(configuration)
 	}
@@ -281,4 +280,9 @@ impl Configuration
 		true
 	}
 	
+	#[inline(always)]
+	fn deploymentDate_default() -> SystemTime
+	{
+		SystemTime::now()
+	}
 }

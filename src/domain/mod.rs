@@ -34,7 +34,6 @@ use ::serde::de::Visitor;
 use ::serde_hjson::Map as HjsonMap;
 use ::serde_hjson::Value as HjsonValue;
 use ::std::ascii::AsciiExt;
-use ::std::borrow::Cow;
 use ::std::collections::BTreeMap;
 use ::std::collections::HashMap;
 use ::std::collections::HashSet;

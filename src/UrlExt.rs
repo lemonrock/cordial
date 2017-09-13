@@ -11,7 +11,7 @@ pub(crate) trait UrlExt: Sized
 	fn fileNamePercentDecodedUntrusted<'a>(&'a self) -> Cow<'a, str>;
 	
 	#[inline(always)]
-	fn pushReplacementFileName(mut self, replacementFileName: &str) -> Self;
+	fn pushReplacementFileName(self, replacementFileName: &str) -> Self;
 }
 
 impl UrlExt for Url
@@ -26,8 +26,8 @@ impl UrlExt for Url
 			{
 				None => match self.host_str()
 				{
-					None => return Cow::Borrowed(format!("file{}", indexExtension)),
-					Some(host) => return Cow::Borrowed(format!("{}{}", host, indexExtension)),
+					None => return Cow::Owned(format!("file{}", indexExtension)),
+					Some(host) => return Cow::Owned(format!("{}{}", host, indexExtension)),
 				},
 				Some(pathSegments) => for pathSegment in pathSegments
 				{
@@ -44,23 +44,23 @@ impl UrlExt for Url
 			{
 				None => match self.host_str()
 				{
-					None => return Cow::Borrowed(format!("file{}", indexExtension)),
-					Some(host) => return Cow::Borrowed(format!("{}{}", host, indexExtension)),
+					None => return Cow::Owned(format!("file{}", indexExtension)),
+					Some(host) => return Cow::Owned(format!("{}{}", host, indexExtension)),
 				},
 				Some(previous) => if previous.is_empty()
 				{
-					return Cow::Borrowed(format!("file{}", indexExtension))
+					return Cow::Owned(format!("file{}", indexExtension))
 				}
 				else
 				{
-					let withoutFileExtension = percent_encoding::percent_decode(previous.as_bytes()).decode_utf8_lossy();
-					return Cow::Borrowed(format!("{}{}", withoutFileExtension, indexExtension))
+					let withoutFileExtension = percent_decode(previous.as_bytes()).decode_utf8_lossy();
+					return Cow::Owned(format!("{}{}", withoutFileExtension, indexExtension))
 				}
 			}
 		}
 		else
 		{
-			percent_encoding::percent_decode(percentEncodedFileName.as_bytes()).decode_utf8_lossy()
+			percent_decode(percentEncodedFileName.as_bytes()).decode_utf8_lossy()
 		}
 	}
 	
@@ -68,19 +68,18 @@ impl UrlExt for Url
 	fn fileNamePercentDecodedUntrusted<'a>(&'a self) -> Cow<'a, str>
 	{
 		let mut fileName = None;
+		
+		match self.path_segments()
 		{
-			match self.path_segments()
+			None => return Cow::Borrowed(""),
+			Some(pathSegments) => for pathSegment in pathSegments
 			{
-				None => "",
-				Some(pathSegments) => for pathSegment in pathSegments
-				{
-					fileName = Some(pathSegment);
-				}
+				fileName = Some(pathSegment);
 			}
 		}
 		
 		let percentEncodedFileName = fileName.expect("Bug in url crate");
-		percent_encoding::percent_decode(percentEncodedFileName.as_bytes()).decode_utf8_lossy()
+		percent_decode(percentEncodedFileName.as_bytes()).decode_utf8_lossy()
 	}
 	
 	#[inline(always)]

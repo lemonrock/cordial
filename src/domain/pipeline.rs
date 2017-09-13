@@ -279,12 +279,10 @@ impl pipeline
 			{
 				canBeCompressed = false;
 				
-				let headerGenerator = |url, canBeCompressed|
+				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, canBeCompressed, input_format, jpeg_quality, transformations, img_srcset, |url, canBeCompressed|
 				{
 					Self::generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
-				};
-				
-				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, headerGenerator, canBeCompressed, input_format, jpeg_quality, transformations, img_srcset)?;
+				})?;
 				*primary_image_dimensions = dimensions;
 				*image_source_set = imageSourceSet;
 				Ok(result)
@@ -323,7 +321,7 @@ impl pipeline
 	}
 	
 	// Primary body; secondary bodies by file-name-variant
-	fn raster_image<F: Fn(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, headerGenerator: F, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry]) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> Fn(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
 		

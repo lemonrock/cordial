@@ -23,6 +23,7 @@ use ::hyper::header::IfNoneMatch;
 use ::hyper::header::IfRange;
 use ::hyper::header::IfUnmodifiedSince;
 use ::hyper::header::Range;
+use ::hyper::header::RangeUnit;
 use ::hyper::server::Response;
 use ::mime_multipart::Node;
 use ::mime_multipart::Part;

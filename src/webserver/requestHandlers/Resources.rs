@@ -80,7 +80,7 @@ impl Resources
 							currentResponse,
 							currentVersionAsQuery: currentVersionAsQuery.to_owned(),
 							currentLastModified,
-							previousResponse,
+							previousResponse: previousResponse.clone(),
 							previousVersionAsQuery: previousVersionAsQuery.to_owned(),
 							previousLastModified,
 						}
@@ -115,15 +115,15 @@ impl Resources
 		
 		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)
 		{
-			None => None,
+			None => (None, None),
 			Some(trie) => match trie.get(path)
 			{
 				None => (None,  None),
 				Some(staticResponseVersions) => match staticResponseVersions
 				{
-					&Unversioned { ref currentLastModified, ref currentResponse, .. } => (Some((*lastModified, currentResponse)), None),
-					&SingleVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*lastModified, currentResponse)), Some(currentVersionAsQuery)),
-					&HasPrevisionVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*lastModified, currentResponse)), Some(currentVersionAsQuery)),
+					&Unversioned { ref currentLastModified, ref currentResponse, .. } => (Some((*currentLastModified, currentResponse)), None),
+					&SingleVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*currentLastModified, currentResponse)), Some(currentVersionAsQuery)),
+					&HasPrevisionVersion { ref currentLastModified, ref currentResponse, ref currentVersionAsQuery, .. } => (Some((*currentLastModified, currentResponse)), Some(currentVersionAsQuery)),
 				}
 			}
 		}
@@ -135,7 +135,7 @@ impl Resources
 		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)
 		{
 			None => Response::not_found(isHead),
-			Some(trie) => match trie.get(&path)
+			Some(trie) => match trie.get(path.as_ref())
 			{
 				None => Response::not_found(isHead),
 				Some(staticResponseVersions) =>
@@ -143,7 +143,7 @@ impl Resources
 					let isPjax = requestHeaders.get_raw("X-PJAX").is_some();
 					let preferredEncoding = PreferredEncoding::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
 					
-					staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>())
+					staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>(), requestHeaders.get::<IfRange>(), requestHeaders.get::<Range>())
 				}
 			}
 		}

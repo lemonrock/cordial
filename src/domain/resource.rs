@@ -101,7 +101,7 @@ impl resource
 				url.set_query(Some(&format!("v={}", newResponse.entityTag())))
 			}
 			
-			newResources.addResource(url, deploymentDate, newResponse, oldResources.clone());
+			newResources.addResource(url, newResponse, oldResources.clone());
 		}
 		
 		Ok(())

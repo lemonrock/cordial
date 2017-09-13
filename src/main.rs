@@ -77,8 +77,8 @@ use ::std::process::Stdio;
 use ::std::process::exit;
 use ::stderr_logging::StandardErrorAnsiLog;
 use ::quick_error::ResultExt;
-use ::url::Url;
 use ::url::percent_encoding::percent_decode;
+use ::url::Url;
 
 
 pub(crate) mod domain;
@@ -90,6 +90,7 @@ include!("ArgMatchesExt.rs");
 include!("CordialError.rs");
 include!("fatal.rs");
 include!("PathExt.rs");
+include!("UrlExt.rs");
 
 
 fn main()

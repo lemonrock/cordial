@@ -50,18 +50,19 @@ impl StaticResponse
 	}
 	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str, lastModified: HttpDate, ifMatch: Option<IfMatch>, ifUnmodifiedSince: Option<IfUnmodifiedSince>, ifNoneMatch: Option<IfNoneMatch>, ifModifiedSince: Option<IfModifiedSince>, ifRange: Option<IfRange>, range: Option<Range>) -> Response
+	fn staticResponse(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		// Order of evaluation: https://tools.ietf.org/html/rfc7232#section-6
 		
 		if let Some(ifMatch) = ifMatch
 		{
 			use self::IfMatch::*;
-			let isTrueCondition = match ifMatch
+			let isTrueCondition = match *ifMatch
 			{
 				Any => true,
 				Items(ref entityTags) =>
 				{
+					let mut result = false;
 					for providedEntityTag in entityTags
 					{
 						// Must use strong comparison function
@@ -71,10 +72,11 @@ impl StaticResponse
 						}
 						if providedEntityTag.tag() == entityTag
 						{
-							break true;
+							result = true;
+							break;
 						}
 					}
-					false
+					result
 				}
 			};
 			if !isTrueCondition
@@ -85,7 +87,7 @@ impl StaticResponse
 		
 		if let Some(ifUnmodifiedSince) = ifUnmodifiedSince
 		{
-			if lastModified > ifUnmodifiedSince
+			if lastModified > ifUnmodifiedSince.0
 			{
 				return Response::precondition_failed(isHead, entityTag, lastModified);
 			}
@@ -94,20 +96,22 @@ impl StaticResponse
 		if let Some(ifNoneMatch) = ifMatch
 		{
 			use self::IfMatch::*;
-			let isTrueCondition = match ifNoneMatch
+			let isTrueCondition = match *ifNoneMatch
 			{
 				Any => false,
 				Items(ref entityTags) =>
 				{
+					let mut result = true;
 					for providedEntityTag in entityTags
 					{
 						// Must use weak comparison function
 						if providedEntityTag.tag() == entityTag
 						{
-							break false;
+							result = false;
+							break;
 						}
 					}
-					true
+					result
 				}
 			};
 			if !isTrueCondition
@@ -120,7 +124,7 @@ impl StaticResponse
 		// Only relevant for HEAD & GET
 		if let Some(ifModifiedSince) = ifModifiedSince
 		{
-			if lastModified <= ifModifiedSince
+			if lastModified <= ifModifiedSince.0
 			{
 				return Response::not_modified(entityTag, lastModified, &self.headers);
 			}
@@ -131,17 +135,16 @@ impl StaticResponse
 		{
 			if let Some(ifRange) = ifRange
 			{
-				use self::IfRange::*;
-				let isTrueCondition = match ifRange
+				let isTrueCondition = match *ifRange
 				{
 					// Only strong comparisons are allowed; a weak comparison should result in a Bad Request, but we are lenient
-					IfRange::EntityTag(ref providedEntityTag) => if entityTag.weak
+					IfRange::EntityTag(ref providedEntityTag) => if providedEntityTag.weak
 					{
 						false
 					}
 					else
 					{
-						providedEntityTag == entityTag
+						providedEntityTag.tag() == entityTag
 					},
 					IfRange::Date(date) => date == lastModified,
 				};
@@ -151,17 +154,17 @@ impl StaticResponse
 					// A missing Range header when If-Range is present should result in a Bad Request, but we are lenient
 					if let Some(range) = range
 					{
-						return self.respondToRangeRequest(range);
+						return self.respondToRangeRequest(range, entityTag, lastModified);
 					}
 				}
 			}
 			
 			if let Some(range) = range
 			{
-				return self.respondToRangeRequest(range);
+				return self.respondToRangeRequest(range, entityTag, lastModified);
 			}
 		}
-				
+		
 		let mut response = Response::common_headers(self.statusCode.clone(), self.contentType.clone());
 		
 		let body =
@@ -222,11 +225,11 @@ impl StaticResponse
 	}
 	
 	#[inline(always)]
-	fn respondToRangeRequest(&self, range: Range) -> Response
+	fn respondToRangeRequest(&self, range: &Range, entityTag: &str, lastModified: HttpDate) -> Response
 	{
-		match range
+		match *range
 		{
-			Unregistered(..) => return self.range_not_satisfiable(),
+			Range::Unregistered(..) => return self.range_not_satisfiable(),
 			Range::Bytes(ref byteRanges) =>
 			{
 				if byteRanges.is_empty()
@@ -242,13 +245,13 @@ impl StaticResponse
 						Some((fromInclusive, toExclusive)) =>
 						{
 							let contentFragment = &self.uncompressedBody[fromInclusive .. toExclusive];
-							return Response::single_part_partial_content(true, &self.contentType, entityTag, lastModified, &self.headers, self.body.len(), fromInclusive, toExclusive, contentFragment);
+							return Response::single_part_partial_content(true, &self.contentType, entityTag, lastModified, &self.headers, self.uncompressedBody.len(), fromInclusive, toExclusive, contentFragment);
 						}
 					}
 				}
 				else if byteRanges.len() < 6
 				{
-					let mut rangeOverlapChecks = BTreeMap::new();
+					let mut rangeOverlapChecks: BTreeMap<usize, usize> = BTreeMap::new();
 					let mut multipartParts = Vec::with_capacity(byteRanges.len());
 					let mut approximateCapacityForBody = 0;
 					
@@ -262,9 +265,9 @@ impl StaticResponse
 								let toInclusive = toExclusive - 1;
 								
 								// Do we overlap with lower range?
-								if let Some((previousFromInclusive, previousToInclusive)) = rangeOverlapChecks.range(0 .. fromInclusive).next_back()
+								if let Some((_previousFromInclusive, previousToInclusive)) = rangeOverlapChecks.range(0 .. fromInclusive).next_back()
 								{
-									if previousToInclusive >= toInclusive
+									if *previousToInclusive >= toInclusive
 									{
 										return self.range_not_satisfiable();
 									}
@@ -283,17 +286,17 @@ impl StaticResponse
 								headers.set(&self.contentType.clone());
 								headers.set(ContentRange(ContentRangeSpec::Bytes
 								{
-									range: Some(fromInclusive as u64, toInclusive as u64),
-									instance_length: Some(fromInclusive - toInclusive),
+									range: Some((fromInclusive as u64, toInclusive as u64)),
+									instance_length: Some((fromInclusive - toInclusive) as u64),
 								}));
-								multipartParts.push(Node::Part
+								multipartParts.push(Node::Part(Part
 								{
 									headers,
-									body: self.uncompressedBody[fromInclusive .. toExclusive].clone(),
-								});
+									body: self.uncompressedBody[fromInclusive .. toExclusive].to_vec(),
+								}));
 								
 								const CostOfARange: usize = 256;
-								approximateCapacityForBody += (toExclusive - fromInclusive + CostOfARange);
+								approximateCapacityForBody += toExclusive - fromInclusive + CostOfARange;
 							}
 						}
 					}
@@ -302,7 +305,7 @@ impl StaticResponse
 					let mimeMultipartBoundary = generate_boundary();
 					write_multipart(&mut responseBody, &mimeMultipartBoundary, &multipartParts).expect("Should not fail");
 					
-					return Response::multi_part_partial_content(false, entityTag, lastModified, &self.headers, responseBody, boundary);
+					return Response::multi_part_partial_content(false, entityTag, lastModified, &self.headers, responseBody, mimeMultipartBoundary);
 				}
 				else
 				{
@@ -319,7 +322,7 @@ impl StaticResponse
 	fn bodyByteRange<'a>(&'a self, byteRangeSpec: &ByteRangeSpec) -> Option<(usize, usize)>
 	{
 		let contentLength = self.uncompressedBody.len() as u64;
-		let range = match *byteRangeSpec
+		match *byteRangeSpec
 		{
 			ByteRangeSpec::FromTo(fromInclusive, toInclusive) =>
 			{
@@ -354,7 +357,7 @@ impl StaticResponse
 					}
 				}
 				
-				(fromInclusive as usize, toExclusive as usize)
+				Some((fromInclusive as usize, toExclusive as usize))
 			},
 			ByteRangeSpec::AllFrom(fromInclusive) =>
 			{
@@ -371,7 +374,7 @@ impl StaticResponse
 					}
 				}
 				
-				(fromInclusive as usize, contentLength as usize)
+				Some((fromInclusive as usize, contentLength as usize))
 			},
 			ByteRangeSpec::Last(length) =>
 			{
@@ -390,21 +393,19 @@ impl StaticResponse
 				
 				if length >= contentLength
 				{
-					(0, contentLength)
-					&self.uncompressedBody
+					Some((0usize, contentLength as usize))
 				}
 				else
 				{
-					((contentLength - length) as usize, contentLength as usize)
+					Some(((contentLength - length) as usize, contentLength as usize))
 				}
 			}
-		};
-		Some(range)
+		}
 	}
 	
 	#[inline(always)]
 	fn range_not_satisfiable(&self) -> Response
 	{
-		Response::range_not_satisfiable(self.uncompressedBody.len())
+		Response::range_not_satisfiable(self.uncompressedBody.len() as u64)
 	}
 }

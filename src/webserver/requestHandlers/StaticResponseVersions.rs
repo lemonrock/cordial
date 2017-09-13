@@ -35,17 +35,17 @@ pub(crate) enum StaticResponseVersions
 impl StaticResponseVersions
 {
 	#[inline(always)]
-	fn staticResponse<'a>(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<Cow<'a, str>>, ifMatch: Option<IfMatch>, ifUnmodifiedSince: Option<IfUnmodifiedSince>, ifNoneMatch: Option<IfNoneMatch>, ifModifiedSince: Option<IfModifiedSince>, ifRange: Option<IfRange>, range: Option<Range>) -> Response
+	fn staticResponse<'a>(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<Cow<'a, str>>, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		use self::StaticResponseVersions::*;
 		
 		match *self
 		{
-			Unversioned { ref url, ref currentResponse } =>
+			Unversioned { ref url, ref currentResponse, currentLastModified } =>
 			{
 				if query.is_none()
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, currentLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{
@@ -53,7 +53,7 @@ impl StaticResponseVersions
 				}
 			},
 			
-			SingleVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery } =>
+			SingleVersion { ref versionedUrl, ref currentResponse, currentVersionAsQuery, currentLastModified } =>
 			{
 				if query.is_none()
 				{
@@ -63,7 +63,7 @@ impl StaticResponseVersions
 				let unwrapped = query.unwrap();
 				if unwrapped == currentVersionAsQuery
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, currentLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{
@@ -71,16 +71,16 @@ impl StaticResponseVersions
 				}
 			}
 			
-			HasPrevisionVersion { ref versionedUrl, ref currentResponse, ref currentVersionAsQuery, ref previousVersionAsQuery, ref previousResponse } =>
+			HasPrevisionVersion { ref versionedUrl, ref currentResponse, currentVersionAsQuery, previousVersionAsQuery, ref previousResponse, currentLastModified, previousLastModified } =>
 			{
 				let unwrapped = query.unwrap();
 				if unwrapped == currentVersionAsQuery
 				{
-					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					currentResponse.staticResponse(isHead, isPjax, preferredEncoding, currentLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else if unwrapped == previousVersionAsQuery
 				{
-					previousResponse.staticResponse(isHead, isPjax, preferredEncoding, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+					previousResponse.staticResponse(isHead, isPjax, preferredEncoding, previousLastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 				}
 				else
 				{

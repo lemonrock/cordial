@@ -111,7 +111,7 @@ impl<'a> ImageSourceSet<'a>
 			}
 			else
 			{
-				Self::widthUrl(width, &self.primaryUnversionedUrl)
+				Self::widthUrl(width, &self.primaryUnversionedUrl, fileExtension)
 			};
 			
 			let body = self.optimize(image)?;
@@ -121,7 +121,7 @@ impl<'a> ImageSourceSet<'a>
 		Ok(urls)
 	}
 	
-	fn widthUrl(width: u32, &url: Url, fileExtension: &'static str) -> Url
+	fn widthUrl(width: u32, url: &Url, fileExtension: &'static str) -> Url
 	{
 		let fileName = url.fileNameOrIndexNamePercentDecodedUntrusted(fileExtension);
 		

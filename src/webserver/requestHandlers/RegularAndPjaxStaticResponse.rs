@@ -8,13 +8,12 @@ pub(crate) struct RegularAndPjaxStaticResponse
 	regular: StaticResponse,
 	pjax: Option<StaticResponse>,
 	entityTag: String,
-	lastModified: HttpDate,
 }
 
 impl RegularAndPjaxStaticResponse
 {
 	#[inline(always)]
-	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>, lastModified: HttpDate) -> Self
+	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
 	{
 		let entityTag = regular.entityTag();
 		
@@ -22,7 +21,7 @@ impl RegularAndPjaxStaticResponse
 		{
 			regular,
 			pjax,
-			entityTag
+			entityTag,
 		}
 	}
 	
@@ -33,15 +32,15 @@ impl RegularAndPjaxStaticResponse
 	}
 	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, ifMatch: Option<IfMatch>, ifUnmodifiedSince: Option<IfUnmodifiedSince>, ifNoneMatch: Option<IfNoneMatch>, ifModifiedSince: Option<IfModifiedSince>, ifRange: Option<IfRange>, range: Option<Range>) -> Response
+	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		if isPjax && self.pjax.is_some()
 		{
-			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag, self.lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 		}
 		else
 		{
-			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag, self.lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
 		}
 	}
 }

@@ -167,7 +167,7 @@ impl CommonResponses for Response
 	fn not_modified(entityTag: &str, lastModified: HttpDate, headers: &[(String, String)]) -> Self
 	{
 		let mut response = Response::new()
-		.with_status(statusCode)
+		.with_status(StatusCode::NotModified)
 		.with_header(Date(SystemTime::now().into()))
 		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
 		.with_header(LastModified(lastModified));
@@ -177,10 +177,10 @@ impl CommonResponses for Response
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
-				match headerName.to_ascii_lowercase()
+				match headerName.to_ascii_lowercase().as_str()
 				{
-					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
-					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
 				}
 			}
 		}
@@ -220,7 +220,7 @@ impl CommonResponses for Response
 		.with_header(contentType.clone())
 		.with_header(ContentRange(ContentRangeSpec::Bytes
 		{
-			range: Some(fromInclusive as u64, (toExclusive - 1) as u64),
+			range: Some((fromInclusive as u64, (toExclusive - 1) as u64)),
 			instance_length: Some(fullBodyLength as u64),
 		}));
 		
@@ -230,10 +230,10 @@ impl CommonResponses for Response
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
-				match headerName.to_ascii_lowercase()
+				match headerName.to_ascii_lowercase().as_str()
 				{
-					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
-					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
 				}
 			}
 		}
@@ -245,16 +245,16 @@ impl CommonResponses for Response
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
-				match headerName.to_ascii_lowercase()
+				match headerName.to_ascii_lowercase().as_str()
 				{
-					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
-					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
-					_ => responseHeaders.append_raw(headerName, headerValue),
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
+					_ => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
 				}
 			}
 		}
 		
-		response.with_body(body);
+		response.with_body(contentFragment.to_vec());
 		
 		response
 	}
@@ -278,10 +278,10 @@ impl CommonResponses for Response
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
-				match headerName.to_ascii_lowercase()
+				match headerName.to_ascii_lowercase().as_str()
 				{
-					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
-					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
 				}
 			}
 		}
@@ -293,11 +293,11 @@ impl CommonResponses for Response
 			
 			for &(ref headerName, ref headerValue) in headers.iter()
 			{
-				match headerName.to_ascii_lowercase()
+				match headerName.to_ascii_lowercase().as_str()
 				{
-					"cache-control" | "vary" => responseHeaders.append_raw(headerName, headerValue),
-					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName, headerValue),
-					_ => responseHeaders.append_raw(headerName, headerValue),
+					"cache-control" | "vary" => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
+					"content-location" | "date" | "etag" | "expires" => responseHeaders.set_raw(headerName.to_owned(), headerValue.to_owned()),
+					_ => responseHeaders.append_raw(headerName.to_owned(), headerValue.to_owned()),
 				}
 			}
 		}

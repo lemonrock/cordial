@@ -22,6 +22,15 @@ pub(crate) trait PathExt
 	
 	fn appendExtension<T: AsRef<OsStr>>(&self, extension: T) -> PathBuf;
 	
+	fn hasCompressedFileExtension(&self) -> Result<bool, CordialError>;
+	
+	fn guessMimeTypeWithCharacterSet(&self) -> Result<Mime, CordialError>;
+	
+	#[inline(always)]
+	fn appendCharacterSetToMimeType(&self, mimeWithoutCharacterSet: &'static str) -> Result<Mime, CordialError>;
+	
+	fn detectCharacterSetUpperCase(&self) -> io::Result<String>;
+	
 	fn fileContentsAsBytes(&self) -> io::Result<Vec<u8>>;
 	
 	fn fileContentsAsBytesIfExtant(&self) -> io::Result<Option<Vec<u8>>>;
@@ -151,6 +160,85 @@ impl PathExt for Path
 		self.with_extension(fileExtension)
 	}
 	
+	//noinspection SpellCheckingInspection
+	fn hasCompressedFileExtension(&self) -> Result<bool, CordialError>
+	{
+		match self.extension()
+		{
+			None => Err(CordialError::InvalidFile(self.to_path_buf(), "No file extension".to_owned())),
+			Some(extension) => match extension.to_str()
+			{
+				None => Err(CordialError::InvalidFile(self.to_path_buf(), "File extension is not UTF-8".to_owned())),
+				Some(extension) => Ok(CompressedFileExtensions.contains(extension)),
+			}
+		}
+	}
+	
+	fn guessMimeTypeWithCharacterSet(&self) -> Result<Mime, CordialError>
+	{
+		// ::mime::APPLICATION_OCTET_STREAM
+		let mimeWithoutCharacterSetString = match self.extension()
+		{
+			None => "text/html",
+			Some(extension) => match extension.to_str()
+			{
+				// Non-UTF-8 file extension
+				None => "application/octet-stream",
+				Some(extension) =>
+				{
+					if extension.is_empty()
+					{
+						"text/html"
+					}
+					else
+					{
+						match ::mime_guess::get_mime_type_str(extension)
+						{
+							None => "application/octet-stream",
+							Some(value) => value,
+						}
+					}
+				}
+			}
+		};
+		
+		let mimeWithoutCharacterSet: Mime = mimeWithoutCharacterSetString.parse().unwrap();
+		match mimeWithoutCharacterSet.suffix()
+		{
+			Some(mime::XML) => self.appendCharacterSetToMimeType(mimeWithoutCharacterSetString),
+			_ =>
+			{
+				match mimeWithoutCharacterSet.subtype()
+				{
+					mime::XML => self.appendCharacterSetToMimeType(mimeWithoutCharacterSetString),
+					mime::JSON => self.appendCharacterSetToMimeType(mimeWithoutCharacterSetString),
+					mime::JAVASCRIPT => self.appendCharacterSetToMimeType(mimeWithoutCharacterSetString),
+					_ => match mimeWithoutCharacterSet.type_()
+					{
+						mime::TEXT => self.appendCharacterSetToMimeType(mimeWithoutCharacterSetString),
+						_ => Ok(mimeWithoutCharacterSet),
+					}
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
+	fn appendCharacterSetToMimeType(&self, mimeWithoutCharacterSet: &'static str) -> Result<Mime, CordialError>
+	{
+		let characterSet = self.detectCharacterSetUpperCase().context(self)?;
+		
+		let mime = if characterSet.as_str() == "US-ASCII"
+		{
+			format!("{}; charset=utf-8", mimeWithoutCharacterSet).parse().unwrap()
+		}
+		else
+		{
+			format!("{}; charset={}", mimeWithoutCharacterSet, characterSet.to_ascii_lowercase()).parse().unwrap()
+		};
+		Ok(mime)
+	}
+	
 	fn configurationFilePath(&self) -> PathBuf
 	{
 		// Is there a configuration file?
@@ -159,6 +247,22 @@ impl PathExt for Path
 		configurationFileName.push(originalFileName);
 		configurationFileName.push(".toml");
 		self.with_file_name(configurationFileName)
+	}
+	
+	fn detectCharacterSetUpperCase(&self) -> io::Result<String>
+	{
+		use ::chardet::*;
+		
+		let metadata = self.metadata()?;
+		let numberOfBytesToReadToHaveAHighConfidence = min(metadata.len() as usize, 4096);
+		
+		let mut bufferReader = self.fileContentsAsBufReader(numberOfBytesToReadToHaveAHighConfidence)?;
+		let bytes = bufferReader.fill_buf()?;
+		// Unpleasant API requires copy
+		let (characterSetUpperCase, _confidence, _languageEmptyIfNoLanguageRelevant) = detect(&bytes.to_vec());
+		//let encodingCrateCharacterSet = charset2encoding(&characterSetUpperCase);
+		
+		Ok(characterSetUpperCase)
 	}
 	
 	fn fileContentsAsBytes(&self) -> io::Result<Vec<u8>>
@@ -411,3 +515,124 @@ impl PathExt for Path
 		}
 	}
 }
+
+// List derived from Wikipedia https://en.wikipedia.org/wiki/List_of_archive_formats , September 14, 2017
+// - Includes obsolete, obscure and proprietary formats
+// - With long range rzip (lrz) and brotli (br, bro)
+// - With as many tarball suffixes as I could find.. (including gtar)
+// - With common compressed image formats
+// - With common compressed font formats (woff, woff2)
+static CompressedFileExtensions: PhfSet<&'static str> = phf_set!
+{
+	"7z",
+	"ace",
+	"afa",
+	"alz",
+	"apk",
+	"arc",
+	"arj",
+	"b1",
+	"ba",
+	"bh",
+	"br",
+	"bro",
+	"bz",
+	"bz2",
+	"cab",
+	"car",
+	"cfs",
+	"cpt",
+	"dar",
+	"dd",
+	"dgc",
+	"dmg",
+	"ear",
+	"F",
+	"gca",
+	
+	"gif",
+	"gtar",
+	
+	"gz",
+	"ha",
+	"hki",
+	"ice",
+	"jar",
+	
+	"jpe",
+	"jpeg",
+	"jpg",
+	
+	"kgb",
+	"lha",
+	"lrz",
+	"lz",
+	"lzh",
+	"lzma",
+	"lzo",
+	"lzx",
+	"pak",
+	
+	"png",
+	
+	"partimg",
+	"paq6",
+	"paq7",
+	"paq8",
+	"pea",
+	"pim",
+	"pit",
+	"qda",
+	"rar",
+	"rk",
+	"rz",
+	"s7z",
+	"sda",
+	"sea",
+	"sen",
+	"sfark",
+	"sfx",
+	"shk",
+	"sit",
+	"sitx",
+	"sqx",
+	"sz",
+	
+	"svgz",
+	
+	"tgz",
+	"tb2",
+	"tbz",
+	"tbz2",
+	"tlz",
+	"txz",
+	"tZ",
+	
+	"uc",
+	"uc0",
+	"uc2",
+	"uca",
+	"ucn",
+	"ue2",
+	"uha",
+	"ur2",
+	"war",
+	
+	"webm",
+	"webp",
+	"woff",
+	"woff2",
+	
+	"wim",
+	"xar",
+	"xp3",
+	"xz",
+	"yz1",
+	"Z",
+	"z",
+	"zip",
+	"zipx",
+	"zoo",
+	"zpaq",
+	"zz",
+};

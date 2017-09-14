@@ -5,12 +5,15 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![feature(plugin)]
 #![feature(unboxed_closures)]
+#![plugin(phf_macros)]
 #![recursion_limit="128"]
 
 
 extern crate base64;
 extern crate brotli2;
+extern crate chardet;
 extern crate clap;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
@@ -22,12 +25,14 @@ extern crate image;
 #[macro_use] extern crate quick_error;
 #[macro_use] extern crate maplit;
 extern crate mktemp;
+extern crate mime_guess;
 extern crate mime_multipart;
 extern crate net2;
 #[cfg(unix)] extern crate nix;
 extern crate num_cpus;
 extern crate ordermap;
 extern crate oxipng;
+extern crate phf;
 extern crate radix_trie;
 extern crate ring;
 extern crate rustls;
@@ -53,9 +58,14 @@ use self::domain::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
+use ::hyper::mime;
+use ::hyper::mime::Mime;
+use ::phf::Set as PhfSet;
 use ::rustls::Certificate;
 use ::rustls::PrivateKey;
 use ::std::borrow::Cow;
+use ::std::ascii::AsciiExt;
+use ::std::cmp::min;
 use ::std::ffi::OsStr;
 use ::std::ffi::OsString;
 use ::std::fs;
@@ -65,6 +75,7 @@ use ::std::fs::remove_dir;
 use ::std::fs::remove_file;
 use ::std::fs::set_permissions;
 use ::std::io;
+use ::std::io::BufRead;
 use ::std::io::BufReader;
 use ::std::io::BufWriter;
 use ::std::io::Read;

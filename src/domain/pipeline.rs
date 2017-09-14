@@ -6,6 +6,16 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) enum pipeline
 {
+	raw
+	{
+		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
+		#[serde(default)] language_aware: bool,
+		can_be_compressed: Option<bool>, // default is to use filename
+		mime_type: Option<String>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
+	},
+	
 	md
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
@@ -23,6 +33,7 @@ pub(crate) enum pipeline
 		}
 		*/
 	},
+	
 	raster_image
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -47,22 +58,25 @@ pub(crate) enum pipeline
 		#[serde(default, skip_deserializing)] primary_image_dimensions: (u32, u32),
 		#[serde(default, skip_deserializing)] image_source_set: Vec<(Url, u32)>,
 	},
+	
 	sass
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
+		#[serde(default = "pipeline::precision_default")] precision: u8,
 	},
+	
 	scss
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default = "pipeline::cssDefaultPrecision")] precision: u8,
+		#[serde(default = "pipeline::precision_default")] precision: u8,
 	},
+	
 	svg
 	{
 		#[serde(default = "pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -90,35 +104,6 @@ pub(crate) enum pipeline
 
 impl pipeline
 {
-	fn cssDefaultPrecision() -> u8
-	{
-		5
-	}
-	
-	#[inline(always)]
-	fn max_age_in_seconds_none_default() -> u32
-	{
-		0
-	}
-	
-	#[inline(always)]
-	fn max_age_in_seconds_long_default() -> u32
-	{
-		31536000
-	}
-	
-	#[inline(always)]
-	fn is_downloadable_false_default() -> bool
-	{
-		false
-	}
-	
-	#[inline(always)]
-	fn is_versioned_true_default() -> bool
-	{
-		true
-	}
-	
 	#[inline(always)]
 	pub(crate) fn processingPriority(&self) -> ProcessingPriority
 	{
@@ -126,6 +111,7 @@ impl pipeline
 		use self::ProcessingPriority::*;
 		match *self
 		{
+			raw { .. } => NoDependenciesEgImage,
 			md { .. } => LinksToSubResourcesEgHtmlPage,
 			raster_image { .. } => NoDependenciesEgImage,
 			sass { .. } => DependsOnOthersEgStylesheet,
@@ -243,6 +229,7 @@ impl pipeline
 		use self::pipeline::*;
 		match *self
 		{
+			raw { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			md { .. } => (false, false),
 			raster_image { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			sass { is_versioned, language_aware, .. } => (language_aware, is_versioned),
@@ -259,6 +246,35 @@ impl pipeline
 		use self::pipeline::*;
 		match self
 		{
+			&mut raw { max_age_in_seconds, is_downloadable, can_be_compressed, ref mime_type, .. } =>
+			{
+				canBeCompressed = if can_be_compressed.is_none()
+				{
+					!inputContentFilePath.hasCompressedFileExtension()?
+				}
+				else
+				{
+					can_be_compressed.unwrap()
+				};
+				
+				let mimeType = if mime_type.is_none()
+				{
+					inputContentFilePath.guessMimeTypeWithCharacterSet()?
+				}
+				else
+				{
+					match mime_type.as_ref().unwrap().parse()
+					{
+						Err(error) => return Err(CordialError::Configuration(format!("Could not parse mime type '{:?}' because {:?} for {:?}", mime_type, error, inputContentFilePath))),
+						Ok(mime) => mime,
+					}
+				};
+				
+				let headers = Self::generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
+				Ok(vec![(unversionedCanonicalUrl, ContentType(mimeType), headers, body, None, canBeCompressed)])
+			}
+			
 			&mut md { max_age_in_seconds: _, .. } =>
 			{
 //				let mut result = Vec::with_capacity(2);
@@ -315,12 +331,12 @@ impl pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(unversionedCanonicalUrl, ContentType(Mime::from_str("image/svg+xml").unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
 			}
 		}
 	}
 	
-	// Primary body; secondary bodies by file-name-variant
+	#[inline(always)]
 	fn raster_image<F: for<'r> Fn(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
@@ -339,6 +355,7 @@ impl pipeline
 		Ok((primaryImageDimensions, processedImageSourceSet, urls))
 	}
 	
+	#[inline(always)]
 	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, inputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
@@ -484,5 +501,35 @@ impl pipeline
 		
 		headers.shrink_to_fit();
 		Ok(headers)
+	}
+	
+	#[inline(always)]
+	fn precision_default() -> u8
+	{
+		5
+	}
+	
+	#[inline(always)]
+	fn max_age_in_seconds_none_default() -> u32
+	{
+		0
+	}
+	
+	#[inline(always)]
+	fn max_age_in_seconds_long_default() -> u32
+	{
+		31536000
+	}
+	
+	#[inline(always)]
+	fn is_downloadable_false_default() -> bool
+	{
+		false
+	}
+	
+	#[inline(always)]
+	fn is_versioned_true_default() -> bool
+	{
+		true
 	}
 }

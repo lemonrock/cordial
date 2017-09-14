@@ -11,6 +11,9 @@ trait CommonResponses: Sized
 	fn static_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, contentType: ContentType, body: I) -> Self;
 	
 	#[inline(always)]
+	fn static_txt_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self;
+	
+	#[inline(always)]
 	fn static_html_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self;
 	
 	#[inline(always)]
@@ -111,6 +114,12 @@ impl CommonResponses for Response
 	}
 	
 	#[inline(always)]
+	fn static_txt_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self
+	{
+		Self::static_response(isHead, statusCode, ContentType::plaintext(), body)
+	}
+	
+	#[inline(always)]
 	fn static_html_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self
 	{
 		Self::static_response(isHead, statusCode, ContentType::html(), body)
@@ -119,7 +128,7 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn options(permittedMethods: Vec<Method>) -> Self
 	{
-		Self::static_html_response(false, StatusCode::Ok, "<!doctype html><title>Options</title><p>Options.")
+		Self::static_txt_response(false, StatusCode::Ok, "")
 		.with_header(commonCacheControlHeader(60))
 		.with_header(Allow(permittedMethods))
 	}
@@ -127,7 +136,7 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn method_not_allowed(permittedMethods: Vec<Method>) -> Self
 	{
-		Self::static_html_response(false, StatusCode::MethodNotAllowed, "<!doctype html><title>Method not allowed</title><p>Method not allowed.")
+		Self::static_txt_response(false, StatusCode::MethodNotAllowed, "")
 		.with_header(commonCacheControlHeader(60))
 		.with_header(Allow(permittedMethods))
 	}
@@ -135,14 +144,14 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn misdirected_request(isHead: bool) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::MisdirectedRequest, "<!doctype html><title>Misdirected request</title><p>Misdirected request.")
+		Self::static_txt_response(isHead, StatusCode::MisdirectedRequest, "")
 		.with_header(commonCacheControlHeader(60))
 	}
 	
 	#[inline(always)]
 	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::MovedPermanently, format!("<!doctype html><title>Moved permanently</title><p>The document has permanently moved <a href='{}'>here</a>.", url))
+		Self::static_txt_response(isHead, StatusCode::MovedPermanently, "")
 		.with_header(commonCacheControlHeader(31536000))
 		.with_header(Location::new(url.as_ref().to_owned()))
 	}
@@ -150,7 +159,7 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn old_temporary_redirect(isHead: bool, url: &Url) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::Found, format!("<!doctype html><title>Moved permanently</title><p>The document has temporarily moved <a href='{}'>here</a>.", url))
+		Self::static_txt_response(isHead, StatusCode::Found, "")
 		.with_header(commonCacheControlHeader(60))
 		.with_header(Location::new(url.as_ref().to_owned()))
 	}
@@ -158,7 +167,7 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn precondition_failed(isHead: bool, entityTag: &str, lastModified: HttpDate) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::PreconditionFailed, "<!doctype html><title>Precondition failed</title><p>Precondition failed.".to_owned())
+		Self::static_txt_response(isHead, StatusCode::PreconditionFailed, "")
 		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
 		.with_header(LastModified(lastModified))
 	}
@@ -259,10 +268,11 @@ impl CommonResponses for Response
 		response.with_body(contentFragment.to_vec())
 	}
 	
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	fn multi_part_partial_content(isInResponseToIfRange: bool, entityTag: &str, lastModified: HttpDate, headers: &[(String, String)], body: Vec<u8>, boundary: Vec<u8>) -> Self
 	{
-		let mimeType = Mime::from_str(&format!("multipart/byteranges; boundary={}", unsafe { String::from_utf8_unchecked(boundary) })).expect("Should be valid");
+		let mimeType = format!("multipart/byteranges; boundary={}", unsafe { String::from_utf8_unchecked(boundary) }).parse().unwrap();
 		
 		let mut response = Response::new()
 		.with_status(StatusCode::PartialContent)
@@ -306,28 +316,29 @@ impl CommonResponses for Response
 		response.with_body(body)
 	}
 	
+	// Bad Request gets displayed to the end user
 	#[inline(always)]
 	fn bad_request<I: Into<Cow<'static, str>>>(isHead: bool, body: I) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::BadRequest, body)
+		Self::static_txt_response(isHead, StatusCode::BadRequest, body)
 	}
 	
 	#[inline(always)]
 	fn invalid_request_uri(isHead: bool) -> Self
 	{
-		Self::bad_request(isHead, "<!doctype html><title>Bad Request</title><p>Invalid Request-URI.")
+		Self::bad_request(isHead, "")
 	}
 	
 	#[inline(always)]
 	fn http11_missing_host_header(isHead: bool) -> Self
 	{
-		Self::bad_request(isHead, "<!doctype html><title>Bad Request</title><p>Missing HTTP/1.1 or later Host header.")
+		Self::bad_request(isHead, "")
 	}
 	
 	#[inline(always)]
 	fn unsupported_http_version(isHead: bool) -> Self
 	{
-		Self::static_html_response(isHead, StatusCode::HttpVersionNotSupported, "<!doctype html><title>HTTP Version Not Supported</title><p>Only HTTP/1.1 and H2 over TLS are supported.")
+		Self::static_txt_response(isHead, StatusCode::HttpVersionNotSupported, "Only HTTP/1.1 and H2 over TLS are supported")
 	}
 	
 	#[inline(always)]

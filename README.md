@@ -85,28 +85,32 @@ The license for this project is AGPL-3.0.
 
 
 ## TODO
-
+* Markdown / Handlebars / HTML minify / purifycss
+* Spellchecking
 * Errors
+	* 400 Bad Request - display a page very similar to 404 Not Found
 	* 404 not found
-	* 503 Service Unavailable (for maintenance)
-	* Various 30x pages - probably should not have any content at all
-	* A default error page (to say sorry)
+	* Review error message pages
 * Web server
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
-	* Range requests
-	* If-Modified-Since
 * combined pipelines, ie one pipeline feeds into another
 	* eg [svgbob](https://crates.io/crates/svgbob) - ASCII to SVG
+	* eg <https://crates.io/crates/mon-artist> - ASCII to SVG
+	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG
+	* eg [comic](https://crates.io/crates/comic)
+	* eg [qrcode](https://crates.io/crates/qrcode)
+	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
 * Formats
 	* HTML
 		* extract PJAX automatically with CSS selectors
+		* Explore using [spongedown](https://ivanceras.github.io/spongedown/) because it allows creating charts and emoji faces; builds on [comrak](https://crates.io/crates/comrak), a commonmark and GitHub Flavoured Markdown renderer
 	* XML
 		* Minify
 		* Sitemap
 			* one per host name, or one per language
 		* RSS
-		* <https://crates.io/crates/quick-xml>
+		* <https://crates.io/crates/quick-xml> or <https://rahulg.github.io/treexml-rs/treexml/index.html>
 	* GIF
 		* engiffen
 	* Images
@@ -117,9 +121,8 @@ The license for this project is AGPL-3.0.
 	* Raw
 	* CSS
 		* Simple minifications
-		* Consider embedding images into the stylesheet as data-uris
-			* Causes a circa 33% increase in uncompressed file size, but
-			* Brotli / Gzip compression brings it back down; in some cases, slightly better than the original PNG...
+		* Embedding images into the stylesheet as data-uris
+			* But nothing like cssembed for rust...
 	* CSS extensions
 		* something akin to css-embed for
 			* images (particularly when used as sprites)
@@ -127,6 +130,7 @@ The license for this project is AGPL-3.0.
 				* webfont creation (may be problematic for AMP)
 		* https://github.com/purifycss/purifycss
 	* Favicon
+		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
 	* [kuchiki](https://crates.io/crates/kuchiki) or [scraper](https://crates.io/crates/scraper) for manipulating HTML & XML with CSS selectors or [select](https://crates.io/crates/select)
 * Modify zopfli crate to allow specifying options
@@ -136,71 +140,4 @@ The license for this project is AGPL-3.0.
 * SEO
 
 ### Ideas
-* Caching
-	* Allow specification of Cache-Control max-age, private for js, css, jpg, etc
-	* Allow specification of Cache-Control no-cache for / and /file (HTML) pages
-	* Create ETag values for all resources
-	* Unique version URLs for all non-HTML resources (ie sub-resources)
-* Versioning if cached assets (eg CSS)
-	* Use the ETag for the version number
-	* However, such an approach requires ordering of asset creation, so that PNGs, CSS, etc are created before a referencing HTML page
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly
-
-### Notes
-
-#### Test program for hyper URI parsing
-
-```rust
-extern crate hyper;
-
-use hyper::Uri;
-use std::str::FromStr;
-
-fn main()
-{
-    // an asterisk-only URI can be distinguished by having a path of just '*'
-    printUri("*");
-    printUri("http://stormmq.com/*");
-    printUri("http://stormmq.com*");
-    
-    printUri("http://stormmq.com");
-    printUri("http://stormmq.com/");
-    printUri("http://stormmq.com/about/");
-    printUri("HTTP://stormmq.com/about/");
-    printUri("http://stormmq.com/has%20a space in it/");
-    printUri("/path/to/resource");
-    
-    // A path that begins with a double-slash is invalid
-    printUri("//stormmq.com/no/scheme");
-    
-    
-    
-    printUri("/path/to/resource?query=10&other=15");
-    
-    // fragments are dropped
-    printUri("/path/to/resource?query=10&other=15#fragment");
-}
-
-fn printUri(uri: &str)
-{
-    let uri = Uri::from_str(uri).expect("ok");
-    
-    println!("uri {}", uri);
-    
-    println!("absolute {}", uri.is_absolute());
-    
-    println!("scheme (case-insensitive) {:?}", uri.scheme());
-    
-    println!("authority {:?}", uri.authority());
-    
-    println!("authority/host {:?}", uri.host());
-    
-    println!("authority/port {:?}", uri.port());
-    
-    println!("path {}", uri.path());
-    
-    println!("query {:?}", uri.query());
-    
-    println!();
-}
-```

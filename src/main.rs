@@ -58,6 +58,7 @@ use self::domain::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
+use ::handlebars::Handlebars;
 use ::hyper::mime;
 use ::hyper::mime::Mime;
 use ::phf::Set as PhfSet;

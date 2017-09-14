@@ -33,7 +33,7 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, iso_639_1_alpha_2_language_code: &str, language: &language, newResources: &mut Resources, oldResources: Arc<Resources>, configuration: &Configuration) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, iso_639_1_alpha_2_language_code: &str, language: &language, newResources: &mut Resources, oldResources: Arc<Resources>, configuration: &Configuration, handlebars: &Handlebars) -> Result<(), CordialError>
 	{
 		let (isForPrimaryLanguageOnly, isVersioned) = self.pipeline.is();
 		
@@ -63,7 +63,7 @@ impl resource
 		
 		let unversionedCanonicalUrl = self.unversionedUrl(language)?;
 		
-		let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, &self.headers, languageData, configuration)?;
+		let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration)?;
 		for (mut url, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 		{
 			let hasPjax = pjax.is_some();

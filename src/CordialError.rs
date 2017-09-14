@@ -23,6 +23,14 @@ quick_error!
 			context(path: &'a PathBuf, cause: ::std::io::Error) -> (path.clone(), cause)
 		}
 		
+		CouldNotRegisterHandlebarsTemplate(path: PathBuf, cause: ::handlebars::TemplateFileError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Handlebars template file register error with {:?} was '{}'", path, cause)
+			context(path: &'a Path, cause: ::handlebars::TemplateFileError) -> (path.to_path_buf(), cause)
+		}
+		
 		CouldNotCompressData(compressionAlgorithmName: &'static str, cause: ::std::io::Error)
 		{
 			cause(cause)

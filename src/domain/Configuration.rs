@@ -77,9 +77,31 @@ impl Configuration
 	#[inline(always)]
 	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResources: Arc<Resources>) -> Result<HttpsStaticRequestHandler, CordialError>
 	{
+		let handlebars = self.registerHandlebarsTemplates()?;
+		
 		let resourcesByProcessingPriority = self.discoverResources()?;
-		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames)?;
+		
+		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames, &handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
+	}
+	
+	#[inline(always)]
+	fn registerHandlebarsTemplates(&self) -> Result<Handlebars, CordialError>
+	{
+		let mut handlebars = Handlebars::new();
+		
+		// Register any default templates here
+		
+		// Register any helpers here
+		
+		// Register any decorators here
+		
+		let handlebarsTemplatesFolderPath = self.inputFolderPath.join("templates");
+		if handlebarsTemplatesFolderPath.exists() && handlebarsTemplatesFolderPath.is_dir()
+		{
+			handlebarsTemplatesFolderPath.registerAllHandlebarsTemplates(&handlebarsTemplatesFolderPath, &mut handlebars)?;
+		}
+		Ok(handlebars)
 	}
 	
 	#[inline(always)]
@@ -89,7 +111,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>) -> Result<Resources, CordialError>
+	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &Handlebars) -> Result<Resources, CordialError>
 	{
 		let mut newResources = Resources::new(self.deploymentDate, &ourHostNames);
 		
@@ -99,7 +121,7 @@ impl Configuration
 			{
 				for resource in resources.iter_mut()
 				{
-					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self)?
+					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self, handlebars)?
 				}
 			}
 			Ok(())

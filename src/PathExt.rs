@@ -31,6 +31,8 @@ pub(crate) trait PathExt
 	
 	fn detectCharacterSetUpperCase(&self) -> io::Result<String>;
 	
+	fn registerAllHandlebarsTemplates(&self, prefix: &Path, handlebars: &mut Handlebars) -> Result<(), CordialError>;
+	
 	fn fileContentsAsBytes(&self) -> io::Result<Vec<u8>>;
 	
 	fn fileContentsAsBytesIfExtant(&self) -> io::Result<Option<Vec<u8>>>;
@@ -38,6 +40,8 @@ pub(crate) trait PathExt
 	fn fileContentsAsString(&self) -> io::Result<String>;
 	
 	fn fileContentsAsBufReader(&self, bufferSize: usize) -> io::Result<BufReader<File>>;
+	
+	fn fileContentsAsHandlebarsTemplate(&self, prefix: &Path, handlebars: &mut Handlebars) -> Result<(), CordialError>;
 	
 	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>;
 	
@@ -265,6 +269,35 @@ impl PathExt for Path
 		Ok(characterSetUpperCase)
 	}
 	
+	fn registerAllHandlebarsTemplates(&self, prefix: &Path, handlebars: &mut Handlebars) -> Result<(), CordialError>
+	{
+		for entry in self.read_dir().context(self)?
+		{
+			let entry = entry.context(self)?;
+			let path = entry.path();
+			
+			let metadata = entry.metadata().context(&path)?;
+			if metadata.is_dir()
+			{
+				path.registerAllHandlebarsTemplates(prefix, handlebars)?
+			}
+			else if metadata.is_file()
+			{
+				if let Some(osStrExtension) = path.extension()
+				{
+					if let Some(utf8Extension) = osStrExtension.to_str()
+					{
+						if utf8Extension == "hbs" || utf8Extension == "handlebars"
+						{
+							path.fileContentsAsHandlebarsTemplate(prefix, handlebars)?
+						}
+					}
+				}
+			}
+		}
+		Ok(())
+	}
+	
 	fn fileContentsAsBytes(&self) -> io::Result<Vec<u8>>
 	{
 		let metadata = self.metadata()?;
@@ -302,6 +335,20 @@ impl PathExt for Path
 	{
 		let file = File::open(self)?;
 		Ok(BufReader::with_capacity(bufferSize, file))
+	}
+	
+	fn fileContentsAsHandlebarsTemplate(&self, prefix: &Path, handlebars: &mut Handlebars) -> Result<(), CordialError>
+	{
+		let relativeEntryPath = self.strip_prefix(prefix).unwrap();
+		match relativeEntryPath.to_str()
+		{
+			None => Err(CordialError::InvalidFile(self.to_path_buf(), "File path is not encoded in UTF-8".to_owned())),
+			Some(name) =>
+			{
+				handlebars.unregister_template(name);
+				Ok(handlebars.register_template_file(name, self).context(self)?)
+			}
+		}
 	}
 	
 	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>

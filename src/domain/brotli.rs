@@ -6,7 +6,19 @@
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct brotli
 {
-	compressionMode: BrotliCompressionMode,
+	#[serde(default)] compression_mode: BrotliCompressionMode,
+}
+
+impl Default for gzip
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			compression_mode: BrotliCompressionMode::default(),
+		}
+	}
 }
 
 impl brotli
@@ -14,7 +26,7 @@ impl brotli
 	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
 		let mut compressionParameters = ::brotli2::CompressParams::new();
-		compressionParameters.mode(self.compressionMode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);
+		compressionParameters.mode(self.compression_mode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);
 		
 		let mut writer = Vec::with_capacity(inputData.len());
 		{

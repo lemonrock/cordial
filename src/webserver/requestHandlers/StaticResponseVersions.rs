@@ -43,6 +43,35 @@ pub(crate) enum StaticResponseVersions
 impl StaticResponseVersions
 {
 	#[inline(always)]
+	fn lastModified(&self) -> HttpDate
+	{
+		use self::StaticResponseVersions::*;
+		
+		match *self
+		{
+			Unversioned { currentLastModified, .. } =>
+			{
+				currentLastModified
+			}
+			
+			SingleVersion { currentLastModified, .. } =>
+			{
+				currentLastModified
+			}
+			
+			HasPrevisionVersion { currentLastModified, .. } =>
+			{
+				currentLastModified
+			}
+			
+			Discontinued { previousLastModified, .. } =>
+			{
+				previousLastModified
+			}
+		}
+	}
+	
+	#[inline(always)]
 	fn staticResponse<'a>(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<Cow<'a, str>>, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		use self::StaticResponseVersions::*;

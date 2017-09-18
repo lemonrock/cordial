@@ -2,35 +2,45 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct compression
+pub(crate) struct LengthTrackingWriter<'a>
 {
-	#[serde(default)] gzip: gzip,
-	#[serde(default)] brotli: brotli,
+	bytes: Vec<u8>,
+	bytesWritten: &'a mut usize,
 }
 
-impl Default for compression
+impl<'a> Write for LengthTrackingWriter<'a>
 {
 	#[inline(always)]
-	fn default() -> Self
+	fn write(&mut self, buf: &[u8]) -> io::Result<usize>
 	{
-		Self
+		let result = self.bytes.write(buf);
+		match result
 		{
-			gzip: gzip::default(),
-			brotli: brotli::default(),
+			Err(error) => Err(error),
+			Ok(bytesWritten) =>
+			{
+				*self.bytesWritten += bytesWritten;
+				Ok(bytesWritten)
+			}
 		}
+	}
+	
+	#[inline(always)]
+	fn flush(&mut self) -> io::Result<()>
+	{
+		self.bytes.flush()
 	}
 }
 
-impl compression
+impl<'a> LengthTrackingWriter<'a>
 {
 	#[inline(always)]
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
+	fn new(bytesWritten: &'a mut usize) -> Self
 	{
-		let gzipCompressed = self.gzip.compress(&inputData)?;
-		let brotliCompressed = self.brotli.compress(&inputData)?;
-		
-		Ok((gzipCompressed, brotliCompressed))
+		Self
+		{
+			bytes: Vec::with_capacity(64 * 1024),
+			bytesWritten
+		}
 	}
 }

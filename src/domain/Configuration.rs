@@ -10,6 +10,8 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	localization: localization,
+	#[serde(default)] robots: RobotsTxt,
+	#[serde(default)] sitemap: SiteMap,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
@@ -81,7 +83,7 @@ impl Configuration
 		
 		let resourcesByProcessingPriority = self.discoverResources()?;
 		
-		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames, &handlebars)?;
+		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames, &mut handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
 	}
 	
@@ -111,9 +113,11 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &Handlebars) -> Result<Resources, CordialError>
+	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
 	{
-		let mut newResources = Resources::new(self.deploymentDate, &ourHostNames);
+		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
+		
+		let mut siteMapWebPages = Vec::with_capacity(4096);
 		
 		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
 		{
@@ -121,15 +125,40 @@ impl Configuration
 			{
 				for resource in resources.iter_mut()
 				{
-					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self, handlebars)?
+					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self, handlebars, &mut siteMapWebPages)?
 				}
 			}
 			Ok(())
 		})?;
 		
+		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, siteMapWebPages)?;
+		
 		newResources.addAnythingThatIsDiscontinued(oldResources);
 		
 		Ok(newResources)
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, resources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: Vec<SiteMapWebPage>) -> Result<(), CordialError>
+	{
+		let mut robotsTxtByHostName = BTreeMap::new();
+		
+		self.localization.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+		{
+			let mut siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
+			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, &siteMapWebPages[..])?;
+			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url.to_owned());
+			
+			Ok(())
+		})?;
+		
+		let primaryHostName = &self.primaryLanguage()?.host;
+		
+		for (hostName, siteMapIndexUrls) in serverHostNamesToListOfRelativeUrls.iter()
+		{
+			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.2, primaryHostName, handlebars, self, resources, oldResources).context(self.inputFolderPath)?;
+		}
 	}
 	
 	#[inline(always)]

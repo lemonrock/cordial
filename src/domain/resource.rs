@@ -33,7 +33,7 @@ impl resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, iso_639_1_alpha_2_language_code: &str, language: &language, newResources: &mut Resources, oldResources: Arc<Resources>, configuration: &Configuration, handlebars: &Handlebars) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, iso_639_1_alpha_2_language_code: &str, language: &language, newResources: &mut Resources, oldResources: Arc<Resources>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<(), CordialError>
 	{
 		let (isForPrimaryLanguageOnly, isVersioned) = self.pipeline.is();
 		
@@ -63,7 +63,7 @@ impl resource
 		
 		let unversionedCanonicalUrl = self.unversionedUrl(language)?;
 		
-		let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration)?;
+		let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration, siteMapWebPages)?;
 		for (mut url, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 		{
 			let hasPjax = pjax.is_some();
@@ -89,11 +89,11 @@ impl resource
 					None
 				};
 				
-				RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
+				RegularAndPjaxStaticResponse::both(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
 			}
 			else
 			{
-				RegularAndPjaxStaticResponse::new(StaticResponse::new(StatusCode::Ok, contentType, regularHeaders, regularBody, regularCompressed), None)
+				RegularAndPjaxStaticResponse::regular(StaticResponse::new(StatusCode::Ok, contentType, regularHeaders, regularBody, regularCompressed))
 			};
 			
 			if isVersioned

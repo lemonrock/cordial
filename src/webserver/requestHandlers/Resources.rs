@@ -35,7 +35,7 @@ impl Resources
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addResource(&mut self, url: Url, currentResponse: RegularAndPjaxStaticResponse, oldResources: Arc<Resources>)
+	pub(crate) fn addResource(&mut self, url: Url, currentResponse: RegularAndPjaxStaticResponse, oldResources: Arc<Resources>) -> HttpDate
 	{
 		let hostName = url.host_str().unwrap();
 		let path = url.path().to_owned();
@@ -98,8 +98,12 @@ impl Resources
 			}
 		};
 		
+		let lastModified = staticResponseVersions.lastModified();
+		
 		let radixTrie = self.resourcesByHostNameAndPathAndQueryString.get_mut(hostName).unwrap();
 		radixTrie.insert(path, staticResponseVersions);
+		
+		lastModified
 	}
 	
 	#[inline(always)]

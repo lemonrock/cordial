@@ -108,6 +108,7 @@
       <w>toml</w>
       <w>uncanonicalized</w>
       <w>unextended</w>
+      <w>unprefixed</w>
       <w>unsharpen</w>
       <w>unsubscribes</w>
       <w>unversioned</w>
@@ -115,7 +116,9 @@
       <w>werror</w>
       <w>whitelist</w>
       <w>wrlock</w>
+      <w>xmltree</w>
       <w>xrcd</w>
+      <w>yandex</w>
       <w>zopfli</w>
     </words>
   </dictionary>

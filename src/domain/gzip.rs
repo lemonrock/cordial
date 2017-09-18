@@ -10,6 +10,19 @@ pub(crate) struct gzip
 	#[serde(default = "gzip::maximum_block_splits_default")] maximum_block_splits: u8,
 }
 
+impl Default for gzip
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			iterations: Self::iterations_default(),
+			maximum_block_splits: Self::maximum_block_splits_default(),
+		}
+	}
+}
+
 impl gzip
 {
 	#[inline(always)]

@@ -122,6 +122,14 @@ quick_error!
 			from()
 		}
 		
+		CouldNotWriteXml(cause: ::xml::writer::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not write XML because: {}", cause)
+			from()
+		}
+		
 		Other(cause: Box<::std::error::Error>)
 		{
 			cause(&**cause)

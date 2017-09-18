@@ -4,33 +4,41 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct compression
+pub(crate) enum SiteMapChangeFrequency
 {
-	#[serde(default)] gzip: gzip,
-	#[serde(default)] brotli: brotli,
+	always,
+	hourly,
+	daily,
+	weekly,
+	monthly,
+	yearly,
+	never,
 }
 
-impl Default for compression
+impl Default for SiteMapChangeFrequency
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		Self
-		{
-			gzip: gzip::default(),
-			brotli: brotli::default(),
-		}
+		ChangeFrequency::weekly
 	}
 }
 
-impl compression
+impl SiteMapChangeFrequency
 {
 	#[inline(always)]
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
+	fn as_str(&self) -> &'static str
 	{
-		let gzipCompressed = self.gzip.compress(&inputData)?;
-		let brotliCompressed = self.brotli.compress(&inputData)?;
-		
-		Ok((gzipCompressed, brotliCompressed))
+		use self::SiteMapChangeFrequency::*;
+		match *self
+		{
+			always => "always",
+			hourly => "hourly",
+			daily => "daily",
+			weekly => "weekly",
+			monthly => "monthly",
+			yearly => "yearly",
+			never => "never",
+		}
 	}
 }

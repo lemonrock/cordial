@@ -13,7 +13,13 @@ pub(crate) struct RegularAndPjaxStaticResponse
 impl RegularAndPjaxStaticResponse
 {
 	#[inline(always)]
-	pub(crate) fn new(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
+	pub(crate) fn regular(regular: StaticResponse) -> Self
+	{
+		Self::both(regular, None)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn both(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
 	{
 		let entityTag = regular.entityTag();
 		

@@ -66,6 +66,7 @@ pub(crate) enum pipeline
 		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::precision_default")] precision: u8,
+		#[serde(default)] is_template: bool,
 	},
 	
 	scss
@@ -75,6 +76,7 @@ pub(crate) enum pipeline
 		#[serde(default = "pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default = "pipeline::precision_default")] precision: u8,
+		#[serde(default)] is_template: bool,
 	},
 	
 	svg
@@ -239,7 +241,7 @@ impl pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, configuration: &Configuration) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let mut canBeCompressed = true;
 		
@@ -270,7 +272,7 @@ impl pipeline
 					}
 				};
 				
-				let headers = Self::generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
 				Ok(vec![(unversionedCanonicalUrl, ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
@@ -279,14 +281,16 @@ impl pipeline
 			{
 //				let mut result = Vec::with_capacity(2);
 //
-//				let regularHeaders = Self::generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
-//				let pjaxHeaders = Self::generateHeaders(headerTemplates, languageData, HtmlVariant::PJAX, configuration, canBeCompressed, max_age_in_seconds, false)?;
+//				let regularHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
+//				let pjaxHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::PJAX, configuration, canBeCompressed, max_age_in_seconds, false)?;
 //				//result.push((unversionedUrl, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), canBeCompressed));
 //
-//				let ampHeaders = Self::generateHeaders(headerTemplates, languageData, HtmlVariant::AMP, deploymentVersion, localization, canBeCompressed, max_age_in_seconds, false)?;
+//				let ampHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::AMP, deploymentVersion, localization, canBeCompressed, max_age_in_seconds, false)?;
 //				// have to adjust unversionedUrl URL for amp
 //
-//
+//				Add to WebPageSiteMaps; detect videos and images  (see https://developers.google.com/webmasters/videosearch/sitemaps)
+				// Supporting video: https://www.html5rocks.com/en/tutorials/video/basics/
+
 //				Ok(result)
 				panic!("Implement me");
 			}
@@ -297,32 +301,32 @@ impl pipeline
 				
 				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, canBeCompressed, input_format, jpeg_quality, transformations, img_srcset, |url, canBeCompressed|
 				{
-					Self::generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
+					generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
 				})?;
 				*primary_image_dimensions = dimensions;
 				*image_source_set = imageSourceSet;
 				Ok(result)
 			},
 			
-			&mut sass { max_age_in_seconds, is_downloadable, precision, .. } =>
+			&mut sass { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
 			{
-				let headers = Self::generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, inputFolderPath, true)?;
 				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
-			&mut scss { max_age_in_seconds, is_downloadable, precision, .. } =>
+			&mut scss { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
 			{
-				let headers = Self::generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
-				let body = Self::sass_or_scss(inputContentFilePath, precision, inputFolderPath, false)?;
+				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, false)?;
 				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut svg { max_age_in_seconds, is_downloadable, do_not_optimize, .. } =>
 			{
-				let headers = Self::generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let body = if do_not_optimize
 				{
 					inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?
@@ -356,7 +360,7 @@ impl pipeline
 	}
 	
 	#[inline(always)]
-	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, inputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
+	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, preProcessWithHandlebars: bool, inputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
 		{
@@ -389,118 +393,25 @@ impl pipeline
 			include_paths: findImportPaths(inputFolderPath)?,
 		};
 		
-		match ::sass_rs::compile_file(inputContentFilePath, options)
+		
+		let content = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+		let sassInput = if preProcessWithHandlebars
+		{
+			handlebars.register_escape_fn(::handlerbars::no_escape);
+			let sassInput = handlebars.template_render(&sassInput, &json)?;
+			handlebars.unregister_escape_fn();
+			sassInput
+		}
+		else
+		{
+			content
+		};
+		
+		match ::sass_rs::compile_string(content, options)
 		{
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css.as_bytes().to_owned()),
 		}
-	}
-	
-	#[inline(always)]
-	fn generateHeaders(handlebars: &Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, htmlVariant: HtmlVariant, configuration: &Configuration, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
-	{
-		let localization = &configuration.localization;
-		let deploymentVersion = &configuration.deploymentVersion;
-		
-		let mut headers = Vec::with_capacity(headerTemplates.len() * 2);
-		
-		let isPjax = htmlVariant == HtmlVariant::PJAX;
-		
-		let vary = if isPjax
-		{
-			headers.push(("X-PJAX-Version".to_owned(), format!("{}", deploymentVersion)));
-			
-			if canBeCompressed
-			{
-				Some("content-encoding, x-pjax")
-			}
-			else
-			{
-				Some("x-pjax")
-			}
-		}
-		else
-		{
-			if canBeCompressed
-			{
-				Some("content-encoding")
-			}
-			else
-			{
-				None
-			}
-		};
-		if let Some(vary) = vary
-		{
-			headers.push(("Vary".to_owned(), vary.to_owned()));
-		}
-		
-		if maximumAge == 0
-		{
-			headers.push(("Cache-Control".to_owned(), "no-cache".to_owned()))
-		}
-		else
-		{
-			headers.push(("Cache-Control".to_owned(), format!("max-age={}; no-transform; immutable", maximumAge)))
-		}
-		
-		let fileNameUtf8 = url.fileNameOrIndexNamePercentDecodedUntrusted(".html").to_owned();
-		let variant = if isDownloadable
-		{
-			"attachment"
-		}
-		else
-		{
-			"inline"
-		};
-		headers.push(("Content-Disposition".to_owned(), format!("{}; filename*=utf-8''{}", variant, utf8_percent_encode(&fileNameUtf8, USERINFO_ENCODE_SET))));
-		
-		let (ourLanguage, otherLanguages) = match languageData
-		{
-			None => (None, None),
-			Some((iso_639_1_alpha_2_language_code, language)) =>
-			{
-				headers.push(("Content-Language".to_owned(), iso_639_1_alpha_2_language_code.to_owned()));
-				
-				let mut ourLanguage = HashMap::with_capacity(2);
-				ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
-				ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
-				(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
-			}
-		};
-		
-		for (headerName, headerTemplate) in headerTemplates.iter()
-		{
-			let json = &json!
-			({
-				"environment": &configuration.environment,
-				"html_variant": htmlVariant,
-				"variant_path_with_trailing_slash": htmlVariant.pathWithTrailingSlash(),
-				"our_language": ourLanguage,
-				"localization": localization,
-				"other_languages": otherLanguages,
-				"can_be_compressed": canBeCompressed,
-				"deployment_date": configuration.deploymentDate,
-				"deployment_version": deploymentVersion,
-				"current_headers": &headers,
-				
-				"header": headerName,
-			});
-			
-			let headerValue = handlebars.template_render(headerTemplate, &json)?;
-			if !headerName.is_ascii()
-			{
-				return Err(CordialError::Configuration(format!("Non-ASCII header name '{}' for {}", headerName, url)))
-			}
-			if !headerValue.is_ascii()
-			{
-				return Err(CordialError::Configuration(format!("Non-ASCII header value '{}' for header name '{}' for {}", headerValue, headerName, url)))
-			}
-			headers.push((headerName.to_owned(), headerValue));
-		}
-		
-		headers.shrink_to_fit();
-		Ok(headers)
 	}
 	
 	#[inline(always)]

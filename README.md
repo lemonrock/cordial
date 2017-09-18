@@ -75,7 +75,7 @@ It also does a lot more to create a great experience for your users:-
 * URL path segments containing `/` (technically possible because of percent-encoding) are not supported; this can be supported if required but the work is substantial and there is no simple, visually meaningful way (ie look at this file; that must be this URL) to map these to file system resources
 * It is impossible to have both an index and a leaf resource for an URL end path segment (eg '' for `https://example.com/about/` and 'about' for `https://example.com/about`). In practice this is rarely an issue. [cordial] supports automatic redirects for one to the other (one can specify which way).
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
-
+* `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 
 ## Licensing
 
@@ -85,6 +85,10 @@ The license for this project is AGPL-3.0.
 
 
 ## TODO
+* Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
+* Sitemaps
+	* Sitemap indices
+	* Link headers for language-specifc images
 * Markdown / Handlebars / HTML minify / purifycss
 * Spellchecking
 * Errors
@@ -141,3 +145,4 @@ The license for this project is AGPL-3.0.
 
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly
+* UX ideas <https://www.nomensa.com/blog/2010/7-tips-for-multi-lingual-website-accessibility>

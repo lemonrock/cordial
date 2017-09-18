@@ -4,33 +4,49 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct compression
+pub(crate) enum SiteMapPriority
 {
-	#[serde(default)] gzip: gzip,
-	#[serde(default)] brotli: brotli,
+	Zero,
+	One,
+	Two,
+	Three,
+	Four,
+	Five,
+	Six,
+	Seven,
+	Eight,
+	Nine,
+	Ten,
 }
 
-impl Default for compression
+impl Default for SiteMapPriority
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		Self
-		{
-			gzip: gzip::default(),
-			brotli: brotli::default(),
-		}
+		SiteMapPriority::Five
 	}
 }
 
-impl compression
+impl SiteMapPriority
 {
 	#[inline(always)]
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
+	pub(crate) fn as_str(&self) -> &'static str
 	{
-		let gzipCompressed = self.gzip.compress(&inputData)?;
-		let brotliCompressed = self.brotli.compress(&inputData)?;
-		
-		Ok((gzipCompressed, brotliCompressed))
+		use self::SiteMapPriority::*;
+		match *self
+		{
+			Zero => "0.0",
+			One => "0.1",
+			Two => "0.2",
+			Three => "0.3",
+			Four => "0.4",
+			Five => "0.5",
+			Six => "0.6",
+			Seven => "0.7",
+			Eight => "0.8",
+			Nine => "0.9",
+			Ten => "1.0",
+		}
 	}
 }

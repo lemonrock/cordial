@@ -50,6 +50,7 @@ extern crate tokio_rustls;
 extern crate tokio_signal;
 extern crate url;
 extern crate url_serde;
+extern crate xml;
 extern crate zero85;
 extern crate zopfli;
 
@@ -96,6 +97,7 @@ use ::url::Url;
 pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod webserver;
+pub(crate) mod xml;
 
 
 include!("ArgMatchesExt.rs");

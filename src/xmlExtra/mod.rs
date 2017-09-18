@@ -2,16 +2,17 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+use ::std::borrow::Cow;
+use ::std::io;
 use ::std::io::Write;
+use ::xml::attribute::Attribute;
 use ::xml::common::XmlVersion;
 use ::xml::name::Name;
 use ::xml::namespace::Namespace;
-use ::xml::namespace::NS_NO_PREFIX;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::Error as EmitterError;
+use ::xml::writer::EventWriter;
 use ::xml::writer::events::XmlEvent;
 
 
+include!("EventWriterExt.rs");
 include!("LengthTrackingWriter.rs");
-include!("XmlWriterExt.rs");
 include!("XmlWriterResult.rs");

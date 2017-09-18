@@ -14,6 +14,7 @@
 extern crate base64;
 extern crate brotli2;
 extern crate chardet;
+extern crate chrono;
 extern crate clap;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
@@ -97,7 +98,7 @@ use ::url::Url;
 pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod webserver;
-pub(crate) mod xml;
+pub(crate) mod xmlExtra;
 
 
 include!("ArgMatchesExt.rs");

@@ -35,12 +35,18 @@ impl<'a> Write for LengthTrackingWriter<'a>
 impl<'a> LengthTrackingWriter<'a>
 {
 	#[inline(always)]
-	fn new(bytesWritten: &'a mut usize) -> Self
+	pub(crate) fn new(bytesWritten: &'a mut usize) -> Self
 	{
 		Self
 		{
 			bytes: Vec::with_capacity(64 * 1024),
 			bytesWritten
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn bytes(self) -> Vec<u8>
+	{
+		self.bytes
 	}
 }

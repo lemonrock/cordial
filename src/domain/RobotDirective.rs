@@ -14,17 +14,19 @@ impl RobotDirective
 	#[inline(always)]
 	pub(crate) fn withBaseUrl(&self, relative_root_url: &str) -> String
 	{
+		use self::RobotDirective::*;
+		
 		match *self
 		{
-			Allow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Allow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded),
-			Disallow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Disallow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded),
+			Allow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Allow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relative_root_url),
+			Disallow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Disallow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relative_root_url),
 		}
 	}
 	
 	#[inline(always)]
 	fn formatUrl(name: &str, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded: &String, relative_root_url: &str) -> String
 	{
-		if asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded.to_str() == "*"
+		if asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded.as_str() == "*"
 		{
 			"*".to_owned()
 		}

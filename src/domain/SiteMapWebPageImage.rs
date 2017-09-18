@@ -15,7 +15,7 @@ pub(crate) struct SiteMapWebPageImage
 impl SiteMapWebPageImage
 {
 	#[inline(always)]
-	fn writeImageElement<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>], iso_639_1_alpha_2_language_code: &str, url: &Url) -> XmlWriterResult
+	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
 	{
 		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, ||
 		{
@@ -26,7 +26,7 @@ impl SiteMapWebPageImage
 				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "geo_location", geographicLocation)?;
 			}
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "title", &self.title)?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.as_ref())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.as_ref())
 		})
 	}
 }

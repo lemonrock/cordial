@@ -114,7 +114,7 @@ The license for this project is AGPL-3.0.
 		* Sitemap
 			* one per host name, or one per language
 		* RSS
-		* <https://crates.io/crates/quick-xml> or <https://rahulg.github.io/treexml-rs/treexml/index.html>
+		* <https://crates.io/crates/quick-xmlExtra> or <https://rahulg.github.io/treexml-rs/treexml/index.html>
 	* GIF
 		* engiffen
 	* Images

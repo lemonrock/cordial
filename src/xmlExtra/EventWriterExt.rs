@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-trait XmlWriterExt
+pub(crate) trait EventWriterExt
 {
 	#[inline(always)]
 	fn writeBasicXmlDocumentPreamble(&mut self) -> XmlWriterResult;
@@ -32,7 +32,7 @@ trait XmlWriterExt
 	fn writeWithinElement<'a, F: FnMut() -> XmlWriterResult>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>], children: F) -> XmlWriterResult;
 }
 
-impl<W: Write> XmlWriterExt for XmlWriter<W>
+impl<W: Write> EventWriterExt for EventWriter<W>
 {
 	#[inline(always)]
 	fn writeBasicXmlDocumentPreamble(&mut self) -> XmlWriterResult
@@ -42,7 +42,7 @@ impl<W: Write> XmlWriterExt for XmlWriter<W>
 			version: XmlVersion::Version10,
 			encoding: Some("UTF-8"),
 			standalone: None,
-		})?
+		})
 	}
 	
 	#[inline(always)]
@@ -74,42 +74,42 @@ impl<W: Write> XmlWriterExt for XmlWriter<W>
 	#[inline(always)]
 	fn writeEmptyElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: Name<'a>) -> XmlWriterResult
 	{
-		eventWriter.writeSimpleStartElement(name, namespace, attributes)?;
-		eventWriter.writeEndElement(name)
+		self.writeSimpleStartElement(name, namespace, attributes)?;
+		self.writeEndElement(name)
 	}
 	
 	#[inline(always)]
 	fn writeTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: Name<'a>, text: &str) -> XmlWriterResult
 	{
-		eventWriter.writeSimpleStartElement(name, namespace, attributes)?;
+		self.writeSimpleStartElement(name, namespace, attributes)?;
 		{
 			if !text.is_empty()
 			{
-				eventWriter.writeText(text)?;
+				self.writeText(text)?;
 			}
 		}
-		eventWriter.writeEndElement(name)
+		self.writeEndElement(name)
 	}
 	
 	#[inline(always)]
 	fn writeUnprefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, text: &str) -> XmlWriterResult
 	{
-		self.writeTextElement(Name::local(name), namespace, emptyAttributes, text)
+		self.writeTextElement(namespace, attributes, Name::local(name), text)
 	}
 	
 	#[inline(always)]
 	fn writePrefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, text: &str) -> XmlWriterResult
 	{
-		self.writeTextElement(Name::prefixed(name, prefix), namespace, emptyAttributes, text)
+		self.writeTextElement(namespace, attributes, Name::prefixed(name, prefix), text)
 	}
 	
 	#[inline(always)]
 	fn writeWithinElement<'a, F: FnMut() -> XmlWriterResult>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>], children: F) -> XmlWriterResult
 	{
-		eventWriter.writeSimpleStartElement(name, namespace, emptyAttributes)?;
+		self.writeSimpleStartElement(name, namespace, attributes)?;
 		{
 			children()?;
 		}
-		eventWriter.writeEndElement(name)
+		self.writeEndElement(name)
 	}
 }

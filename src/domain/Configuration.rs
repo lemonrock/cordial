@@ -153,12 +153,14 @@ impl Configuration
 			Ok(())
 		})?;
 		
-		let primaryHostName = &self.primaryLanguage()?.host;
+		let primaryHostName = &self.localization.primaryLanguage()?.host;
 		
-		for (hostName, siteMapIndexUrls) in serverHostNamesToListOfRelativeUrls.iter()
+		for (hostName, siteMapIndexUrlsAndListOfLanguageUrls) in robotsTxtByHostName.iter()
 		{
-			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.2, primaryHostName, handlebars, self, resources, oldResources).context(self.inputFolderPath)?;
+			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, resources, oldResources)?;
 		}
+		
+		Ok(())
 	}
 	
 	#[inline(always)]

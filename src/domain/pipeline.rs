@@ -90,9 +90,9 @@ pub(crate) enum pipeline
 		// By language code. Used in alt tag
 		descriptions: HashMap<String, ImageAbstract>,
 	}
-//	sitemap, // xml
+//	sitemap, // xmlExtra
 //	robots,
-//	rss, // xml
+//	rss, // xmlExtra
 //	json,
 //	// js,
 //	gif (animations only),
@@ -312,7 +312,7 @@ impl pipeline
 			{
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
-				let body = Self::sass_or_scss(inputContentFilePath, precision, inputFolderPath, true)?;
+				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, true)?;
 				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
@@ -320,7 +320,7 @@ impl pipeline
 			{
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
-				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, false)?;
+				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, false)?;
 				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
@@ -335,7 +335,7 @@ impl pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(unversionedCanonicalUrl, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, ContentType("image/svg+xmlExtra".parse().unwrap()), headers, body, None, canBeCompressed)])
 			}
 		}
 	}
@@ -360,7 +360,7 @@ impl pipeline
 	}
 	
 	#[inline(always)]
-	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, preProcessWithHandlebars: bool, inputFolderPath: &Path, isSass: bool) -> Result<Vec<u8>, CordialError>
+	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, preProcessWithHandlebars: bool, inputFolderPath: &Path, handlebars: &mut Handlebars, isSass: bool) -> Result<Vec<u8>, CordialError>
 	{
 		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
 		{
@@ -397,8 +397,8 @@ impl pipeline
 		let content = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
 		let sassInput = if preProcessWithHandlebars
 		{
-			handlebars.register_escape_fn(::handlerbars::no_escape);
-			let sassInput = handlebars.template_render(&sassInput, &json)?;
+			handlebars.register_escape_fn(::handlebars::no_escape);
+			let sassInput = handlebars.template_render(&content, &json!({}))?;
 			handlebars.unregister_escape_fn();
 			sassInput
 		}
@@ -407,7 +407,7 @@ impl pipeline
 			content
 		};
 		
-		match ::sass_rs::compile_string(content, options)
+		match ::sass_rs::compile_string(&content, options)
 		{
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css.as_bytes().to_owned()),

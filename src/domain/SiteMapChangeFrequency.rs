@@ -20,7 +20,7 @@ impl Default for SiteMapChangeFrequency
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ChangeFrequency::weekly
+		SiteMapChangeFrequency::weekly
 	}
 }
 

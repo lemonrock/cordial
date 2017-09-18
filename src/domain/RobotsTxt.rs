@@ -32,17 +32,17 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	fn write(&self, hostName: &str, relative_root_urls: &BTreeSet<String>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> io::Result<()>
+	fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<String>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
-		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName)?;
+		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName).context(PathBuf::from("robots.txt"))?;
 		
-		let robotsTxtUrl = Url::parse(format!("https://{}/robots.txt", hostName)).unwrap();
-		let headers = generateHeaders(handlebars, self.headers, None, HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &robotsTxtUrl);
+		let robotsTxtUrl = Url::parse(&format!("https://{}/robots.txt", hostName)).unwrap();
+		let headers = generateHeaders(handlebars, &self.headers, None, HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &robotsTxtUrl).unwrap();
 		
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
-		let response = StaticResponse::new(StatusCode::ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));
-		resources.addResource(robotsTxtUrl, url, RegularAndPjaxStaticResponse::regular(response), oldResources);
+		let response = StaticResponse::new(StatusCode::Ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));
+		resources.addResource(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResources.clone());
 		
 		Ok(())
 	}
@@ -70,6 +70,8 @@ impl RobotsTxt
 			writer.write_all(primaryHostName.as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
+		
+		Ok(())
 	}
 	
 	#[inline(always)]

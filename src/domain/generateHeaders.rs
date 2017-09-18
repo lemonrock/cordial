@@ -75,7 +75,7 @@ pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &Has
 		}
 	};
 	
-	handlebars.register_escape_fn(::handlerbars::no_escape);
+	handlebars.register_escape_fn(::handlebars::no_escape);
 	{
 		for (headerName, headerTemplate) in headerTemplates.iter()
 		{

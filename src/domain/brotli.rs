@@ -9,7 +9,7 @@ pub(crate) struct brotli
 	#[serde(default)] compression_mode: BrotliCompressionMode,
 }
 
-impl Default for gzip
+impl Default for brotli
 {
 	#[inline(always)]
 	fn default() -> Self

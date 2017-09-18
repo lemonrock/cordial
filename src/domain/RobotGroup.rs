@@ -7,7 +7,7 @@ pub(crate) struct RobotGroup
 {
 	#[serde(default = "RobotGroup::user_agents_default")] user_agents: HashSet<String>,
 	#[serde(default)] crawl_delay: u64,
-	#[serde(default = "RobotGroup:directives_default")] directives: Vec<RobotDirective>,
+	#[serde(default = "RobotGroup::directives_default")] directives: Vec<RobotDirective>,
 }
 
 impl Default for RobotGroup
@@ -17,8 +17,9 @@ impl Default for RobotGroup
 	{
 		Self
 		{
-			user_agents: user_agents_default(),
-			directives: directives_default(),
+			user_agents: Self::user_agents_default(),
+			crawl_delay: 0,
+			directives: Self::directives_default(),
 		}
 	}
 }
@@ -31,18 +32,18 @@ impl RobotGroup
 		for userAgent in self.user_agents.iter()
 		{
 			writer.write_all(b"User-Agent: ")?;
-			writer.write_all(userAgent.to_bytes())?;
+			writer.write_all(userAgent.as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
 		if self.crawl_delay != 0
 		{
 			writer.write_all(b"Crawl-Delay: ")?;
-			writer.write_all(format!("{}", self.crawl_delay).to_bytes())?;
+			writer.write_all(format!("{}", self.crawl_delay).as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
 		for directive in self.directives.iter()
 		{
-			writer.write_all(directive.withBaseUrl(relative_root_url).to_bytes())?;
+			writer.write_all(directive.withBaseUrl(relative_root_url).as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
 		writer.write_all(b"\n")?;
@@ -61,6 +62,6 @@ impl RobotGroup
 	#[inline(always)]
 	fn directives_default() -> Vec<RobotDirective>
 	{
-		vec![RobotDirective::Allow("*".to_owned()), RobotDirective::Disallow("/*?")]
+		vec![RobotDirective::Allow("*".to_owned()), RobotDirective::Disallow("/*?".to_owned())]
 	}
 }

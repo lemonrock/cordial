@@ -27,7 +27,7 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a, W: Write>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &[SiteMapWebPage]) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &[SiteMapWebPage]) -> Result<(), CordialError>
 	{
 		let primary_iso_639_1_alpha_2_language_code = languageData.0;
 		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;
@@ -46,6 +46,7 @@ impl SiteMap
 		
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;
+		let mut index = 0;
 		while keepLooping
 		{
 			const MaximumNumberOfUrlsInASiteMapIndex: usize = 50_000;
@@ -58,7 +59,7 @@ impl SiteMap
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 			
 			let mut count = 0;
-			eventWriter.writeWithinElement(Name::local("sitemapindex", &namespace, &emptyAttributes, ||
+			eventWriter.writeWithinElement(Name::local("sitemapindex"), &namespace, &emptyAttributes, ||
 			{
 				while count <= MaximumNumberOfUrlsInASiteMapIndex && bytesWritten < SafeMaximumSiteMapIndexFileSizeInBytes
 				{
@@ -73,29 +74,31 @@ impl SiteMap
 						{
 							eventWriter.writeWithinElement(Name::local("sitemap"), &namespace, &emptyAttributes, ||
 							{
-								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
+								eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "loc", url.as_ref())?;
 								
 								let lastModifiedHttpDate = resources.addResource(url, currentResponse, oldResources.clone());
-								let lastModifiedTimeStamp = DateTime::from(SystemTime::from(lastModifiedHttpDate)).to_rfc3339();
+								let lastModifiedTimeStamp: DateTime<Utc> = DateTime::from(SystemTime::from(lastModifiedHttpDate));
 								
-								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", lastModifiedTimeStamp)?;
+								eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
 							})?;
 						}
 					}
 				}
 				Ok(())
-			}))?;
+			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap-index.{}.{}.xml", urlAndResponse.len(), primary_iso_639_1_alpha_2_language_code)).context("Trying to join sitemap-index file name")?;
-			let headers = generateHeaders(handlebars, self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
-			let siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes;
+			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap-index.{}.{}.xmlExtra", index, primary_iso_639_1_alpha_2_language_code)).unwrap();
+			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
+			let siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			let siteMapIndexBodyCompressed = self.compression.compress(&siteMapIndexBodyUncompressed)?;
 			
-			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
-			let staticResponse = StaticResponse::new(StatusCode:Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
+			let xmlMimeType = "application/xmlExtra; charset=utf-8".parse().unwrap();
+			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
 			
 			siteMapIndexUrls.insert(unversionedCanonicalUrl.clone());
 			resources.addResource(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResources.clone());
+			
+			index += 1;
 		}
 		
 		Ok(())
@@ -103,7 +106,7 @@ impl SiteMap
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeSiteMapFiles<'a, W: Write>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
+	fn writeSiteMapFiles<'a>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
 		let primary_iso_639_1_alpha_2_language_code = languageData.0;
 		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;
@@ -130,45 +133,45 @@ impl SiteMap
 			const SafeMaximumSiteMapFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
 			
 			let mut bytesWritten = 0;
-			let eventWriter = Self::createEventWriter(&mut bytesWritten);
+			let mut eventWriter = Self::createEventWriter(&mut bytesWritten);
 			
-			let webPagesForThisSiteMapFile = webPages[startingIndex .. ];
+			let webPagesForThisSiteMapFile = &webPages[startingIndex .. ];
 			let mut count = 0;
 			
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 			
-			eventWriter.writeWithinElement(Name::local("urlset", &namespace, &emptyAttributes, ||
+			eventWriter.writeWithinElement(Name::local("urlset"), &namespace, &emptyAttributes, ||
 			{
-				for webPage in webPagesForThisSiteMapFile
+				for webPage in webPagesForThisSiteMapFile.iter()
 				{
 					startingIndex += 1;
 					
-					if wasOutput = webPage.writeSiteMapXmlElement(primary_iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)
+					if webPage.writeXml(primary_iso_639_1_alpha_2_language_code, &mut eventWriter, &namespace, &emptyAttributes)?
 					{
 						count += 1;
-					}
-					
-					if count == MaximumNumberOfUrlsInASiteMap
-					{
-						return Ok(())
-					}
-					
-					if bytesWritten >= SafeMaximumSiteMapFileSizeInBytes
-					{
-						return Ok(())
+						
+						if count == MaximumNumberOfUrlsInASiteMap
+						{
+							return Ok(())
+						}
+						
+						if bytesWritten >= SafeMaximumSiteMapFileSizeInBytes
+						{
+							return Ok(())
+						}
 					}
 				}
 				
 				Ok(())
-			}))?;
+			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap.{}.{}.xml", urlAndResponse.len(), primary_iso_639_1_alpha_2_language_code)).context("Trying to join sitemap file name")?;
-			let headers = generateHeaders(handlebars, self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
-			let siteMapBodyUncompressed = eventWriter.into_inner().bytes;
+			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap.{}.{}.xmlExtra", urlAndResponse.len(), primary_iso_639_1_alpha_2_language_code)).unwrap();
+			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
+			let siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			let siteMapBodyCompressed = self.compression.compress(&siteMapBodyUncompressed)?;
 			
-			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
-			let staticResponse = StaticResponse::new(StatusCode:Ok, ContentType(xmlMimeType), headers, siteMapBodyUncompressed, Some(siteMapBodyCompressed));
+			let xmlMimeType = "application/xmlExtra; charset=utf-8".parse().unwrap();
+			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapBodyUncompressed, Some(siteMapBodyCompressed));
 			
 			urlAndResponse.push((unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse)));
 		}
@@ -191,7 +194,7 @@ impl SiteMap
 			keep_element_names_stack: true,
 			autopad_comments: false,
 		};
-		let mut eventWriter = configuration.create_writer(LengthTrackingWriter::new(length));
+		configuration.create_writer(LengthTrackingWriter::new(length))
 	}
 	
 	#[inline(always)]

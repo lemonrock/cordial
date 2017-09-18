@@ -29,7 +29,7 @@ impl SiteMapWebPage
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeUrlElement<'a, W: Write>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
 	{
 		let locationUrl = self.urlsByIsoLanguageCode.get(primary_iso_639_1_alpha_2_language_code);
 		if locationUrl.is_none()
@@ -39,8 +39,8 @@ impl SiteMapWebPage
 		
 		eventWriter.writeWithinElement(Name::local("url"), namespace, emptyAttributes, ||
 		{
-			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", locationUrl.as_ref())?;
-			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", self.lastModified.to_rfc3339())?;
+			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", locationUrl.unwrap().as_ref())?;
+			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &self.lastModified.to_rfc3339())?;
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "changefreq", self.changeFrequency.as_str())?;
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "priority", self.priority.as_str())?;
 			
@@ -51,8 +51,10 @@ impl SiteMapWebPage
 			
 			for image in self.images.iter()
 			{
-				image.writeImageElement(eventWriter, namespace, emptyAttributes)?;
+				image.writeXml(eventWriter, namespace, emptyAttributes)?;
 			}
+			
+			Ok(())
 		});
 		
 		Ok(true)
@@ -62,11 +64,11 @@ impl SiteMapWebPage
 	#[inline(always)]
 	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>], iso_639_1_alpha_2_language_code: &str, url: &Url) -> XmlWriterResult
 	{
-		eventWriter.writeEmptyElement(Name::prefixed("link", "xhtml"), namespace,
-			&[
-				Attribute::new(Name::local("rel"), "alternate"),
-				Attribute::new(Name::local("hreflang"), iso_639_1_alpha_2_language_code),
-				Attribute::new(Name::local("href"), url.as_ref()),
-			])
+		eventWriter.writeEmptyElement(namespace,
+		&[
+			Attribute::new(Name::local("rel"), "alternate"),
+			Attribute::new(Name::local("hreflang"), iso_639_1_alpha_2_language_code),
+			Attribute::new(Name::local("href"), url.as_ref()),
+		], Name::prefixed("link", "xhtml"))
 	}
 }

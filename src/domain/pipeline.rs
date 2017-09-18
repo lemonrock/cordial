@@ -241,7 +241,7 @@ impl pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let mut canBeCompressed = true;
 		
@@ -341,7 +341,7 @@ impl pipeline
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> Fn(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
 		
@@ -407,7 +407,7 @@ impl pipeline
 			content
 		};
 		
-		match ::sass_rs::compile_string(&content, options)
+		match ::sass_rs::compile_string(&sassInput, options)
 		{
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css.as_bytes().to_owned()),

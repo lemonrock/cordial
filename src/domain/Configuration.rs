@@ -79,7 +79,7 @@ impl Configuration
 	#[inline(always)]
 	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResources: Arc<Resources>) -> Result<HttpsStaticRequestHandler, CordialError>
 	{
-		let handlebars = self.registerHandlebarsTemplates()?;
+		let mut handlebars = self.registerHandlebarsTemplates()?;
 		
 		let resourcesByProcessingPriority = self.discoverResources()?;
 		

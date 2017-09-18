@@ -46,7 +46,7 @@ impl SiteMapWebPage
 			
 			for (iso_639_1_alpha_2_language_code, url) in self.urlsByIsoLanguageCode.iter()
 			{
-				Self::writeXhtmlTranslationElement(eventWriter, namespace, emptyAttributes, iso_639_1_alpha_2_language_code, url);
+				Self::writeXhtmlTranslationElement(eventWriter, namespace, iso_639_1_alpha_2_language_code, url);
 			}
 			
 			for image in self.images.iter()
@@ -62,7 +62,7 @@ impl SiteMapWebPage
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>], iso_639_1_alpha_2_language_code: &str, url: &Url) -> XmlWriterResult
+	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, iso_639_1_alpha_2_language_code: &str, url: &Url) -> XmlWriterResult
 	{
 		eventWriter.writeEmptyElement(namespace,
 		&[

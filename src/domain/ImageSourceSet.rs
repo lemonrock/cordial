@@ -90,7 +90,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: Fn(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{

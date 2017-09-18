@@ -104,7 +104,7 @@ impl<W: Write> EventWriterExt for EventWriter<W>
 	}
 	
 	#[inline(always)]
-	fn writeWithinElement<'a, F: FnMut() -> XmlWriterResult>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>], children: F) -> XmlWriterResult
+	fn writeWithinElement<'a, F: FnMut() -> XmlWriterResult>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>], mut children: F) -> XmlWriterResult
 	{
 		self.writeSimpleStartElement(name, namespace, attributes)?;
 		{

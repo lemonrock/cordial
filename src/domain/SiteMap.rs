@@ -42,7 +42,7 @@ impl SiteMap
 		
 		let emptyAttributes = [];
 		
-		let siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages)?;
+		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages)?;
 		
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;
@@ -54,7 +54,7 @@ impl SiteMap
 			const SafeMaximumSiteMapIndexFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
 			
 			let mut bytesWritten = 0;
-			let eventWriter = Self::createEventWriter(&mut bytesWritten);
+			let mut eventWriter = Self::createEventWriter(&mut bytesWritten);
 			
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 			
@@ -72,14 +72,16 @@ impl SiteMap
 						}
 						Some((url, currentResponse)) =>
 						{
-							eventWriter.writeWithinElement(Name::local("sitemap"), &namespace, &emptyAttributes, ||
+							let namespace = &namespace;
+							let emptyAttributes = &emptyAttributes;
+							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move ||
 							{
-								eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "loc", url.as_ref())?;
+								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
 								
 								let lastModifiedHttpDate = resources.addResource(url, currentResponse, oldResources.clone());
 								let lastModifiedTimeStamp: DateTime<Utc> = DateTime::from(SystemTime::from(lastModifiedHttpDate));
 								
-								eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
+								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
 							})?;
 						}
 					}

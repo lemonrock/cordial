@@ -53,15 +53,15 @@ impl SiteMap
 			const MaximumSiteMapFileSizeInBytes: usize = 52_428_800;
 			const SafeMaximumSiteMapIndexFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
 			
-			let mut bytesWritten = 0;
-			let mut eventWriter = Self::createEventWriter(&mut bytesWritten);
+			let bytesWritten = Cell::new(0);
+			let mut eventWriter = Self::createEventWriter(&bytesWritten);
 			
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 			
 			let mut count = 0;
-			eventWriter.writeWithinElement(Name::local("sitemapindex"), &namespace, &emptyAttributes, ||
+			eventWriter.writeWithinElement(Name::local("sitemapindex"), &namespace, &emptyAttributes, |eventWriter|
 			{
-				while count <= MaximumNumberOfUrlsInASiteMapIndex && bytesWritten < SafeMaximumSiteMapIndexFileSizeInBytes
+				while count <= MaximumNumberOfUrlsInASiteMapIndex && bytesWritten.get() < SafeMaximumSiteMapIndexFileSizeInBytes
 				{
 					match siteMaps.next()
 					{
@@ -74,7 +74,8 @@ impl SiteMap
 						{
 							let namespace = &namespace;
 							let emptyAttributes = &emptyAttributes;
-							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move ||
+							let resources = &mut *resources;
+							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move |eventWriter|
 							{
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
 								
@@ -83,6 +84,7 @@ impl SiteMap
 								
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
 							})?;
+							count += 1;
 						}
 					}
 				}
@@ -134,21 +136,21 @@ impl SiteMap
 			const MaximumSiteMapFileSizeInBytes: usize = 52_428_800;
 			const SafeMaximumSiteMapFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
 			
-			let mut bytesWritten = 0;
-			let mut eventWriter = Self::createEventWriter(&mut bytesWritten);
+			let bytesWritten = Cell::new(0);
+			let mut eventWriter = Self::createEventWriter(&bytesWritten);
 			
 			let webPagesForThisSiteMapFile = &webPages[startingIndex .. ];
 			let mut count = 0;
 			
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 			
-			eventWriter.writeWithinElement(Name::local("urlset"), &namespace, &emptyAttributes, ||
+			eventWriter.writeWithinElement(Name::local("urlset"), &namespace, &emptyAttributes, |eventWriter|
 			{
 				for webPage in webPagesForThisSiteMapFile.iter()
 				{
 					startingIndex += 1;
 					
-					if webPage.writeXml(primary_iso_639_1_alpha_2_language_code, &mut eventWriter, &namespace, &emptyAttributes)?
+					if webPage.writeXml(primary_iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)?
 					{
 						count += 1;
 						
@@ -157,7 +159,7 @@ impl SiteMap
 							return Ok(())
 						}
 						
-						if bytesWritten >= SafeMaximumSiteMapFileSizeInBytes
+						if bytesWritten.get() >= SafeMaximumSiteMapFileSizeInBytes
 						{
 							return Ok(())
 						}
@@ -182,7 +184,7 @@ impl SiteMap
 	}
 	
 	#[inline(always)]
-	fn createEventWriter<'a>(length: &'a mut usize) -> EventWriter<LengthTrackingWriter<'a>>
+	fn createEventWriter<'a>(bytesWritten: &'a Cell<usize>) -> EventWriter<LengthTrackingWriter<'a>>
 	{
 		let configuration = EmitterConfig
 		{
@@ -196,7 +198,7 @@ impl SiteMap
 			keep_element_names_stack: true,
 			autopad_comments: false,
 		};
-		configuration.create_writer(LengthTrackingWriter::new(length))
+		configuration.create_writer(LengthTrackingWriter::new(bytesWritten))
 	}
 	
 	#[inline(always)]

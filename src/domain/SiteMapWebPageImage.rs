@@ -17,7 +17,7 @@ impl SiteMapWebPageImage
 	#[inline(always)]
 	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
 	{
-		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, ||
+		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, |eventWriter|
 		{
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "loc", self.url.as_ref())?;
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "caption", &self.caption)?;

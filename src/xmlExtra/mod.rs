@@ -3,6 +3,7 @@
 
 
 use ::std::borrow::Cow;
+use ::std::cell::Cell;
 use ::std::io;
 use ::std::io::Write;
 use ::xml::attribute::Attribute;

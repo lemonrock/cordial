@@ -37,7 +37,7 @@ impl SiteMapWebPage
 			return Ok(false);
 		}
 		
-		eventWriter.writeWithinElement(Name::local("url"), namespace, emptyAttributes, ||
+		eventWriter.writeWithinElement(Name::local("url"), namespace, emptyAttributes, |eventWriter|
 		{
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", locationUrl.unwrap().as_ref())?;
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &self.lastModified.to_rfc3339())?;
@@ -46,7 +46,7 @@ impl SiteMapWebPage
 			
 			for (iso_639_1_alpha_2_language_code, url) in self.urlsByIsoLanguageCode.iter()
 			{
-				Self::writeXhtmlTranslationElement(eventWriter, namespace, iso_639_1_alpha_2_language_code, url);
+				Self::writeXhtmlTranslationElement(eventWriter, namespace, iso_639_1_alpha_2_language_code, url)?;
 			}
 			
 			for image in self.images.iter()
@@ -55,7 +55,7 @@ impl SiteMapWebPage
 			}
 			
 			Ok(())
-		});
+		})?;
 		
 		Ok(true)
 	}

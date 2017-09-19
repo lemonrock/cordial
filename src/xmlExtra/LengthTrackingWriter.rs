@@ -5,7 +5,7 @@
 pub(crate) struct LengthTrackingWriter<'a>
 {
 	bytes: Vec<u8>,
-	bytesWritten: &'a mut usize,
+	bytesWritten: &'a Cell<usize>,
 }
 
 impl<'a> Write for LengthTrackingWriter<'a>
@@ -19,7 +19,7 @@ impl<'a> Write for LengthTrackingWriter<'a>
 			Err(error) => Err(error),
 			Ok(bytesWritten) =>
 			{
-				*self.bytesWritten += bytesWritten;
+				self.bytesWritten.set(self.bytesWritten.get() + bytesWritten);
 				Ok(bytesWritten)
 			}
 		}
@@ -35,7 +35,7 @@ impl<'a> Write for LengthTrackingWriter<'a>
 impl<'a> LengthTrackingWriter<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(bytesWritten: &'a mut usize) -> Self
+	pub(crate) fn new(bytesWritten: &'a Cell<usize>) -> Self
 	{
 		Self
 		{

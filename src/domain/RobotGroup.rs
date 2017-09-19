@@ -27,7 +27,7 @@ impl Default for RobotGroup
 impl RobotGroup
 {
 	#[inline(always)]
-	pub(crate) fn writeTo<W: Write>(&self, writer: &mut W, relative_root_url: &str) -> io::Result<()>
+	pub(crate) fn writeTo<W: Write>(&self, writer: &mut W, relative_root_url: &Cow<'static, str>) -> io::Result<()>
 	{
 		for userAgent in self.user_agents.iter()
 		{

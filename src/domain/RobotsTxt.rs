@@ -32,7 +32,7 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<String>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
+	fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
 		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName).context(PathBuf::from("robots.txt"))?;
@@ -48,7 +48,7 @@ impl RobotsTxt
 	}
 	
 	#[inline(always)]
-	fn writeTo<W: Write>(&self, writer: &mut W, relative_root_urls: &BTreeSet<String>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str) -> io::Result<()>
+	fn writeTo<W: Write>(&self, writer: &mut W, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str) -> io::Result<()>
 	{
 		for relative_root_url in relative_root_urls.iter()
 		{

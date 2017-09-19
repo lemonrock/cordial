@@ -148,7 +148,7 @@ impl Configuration
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
 			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, &siteMapWebPages[..])?;
-			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url.to_owned());
+			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url());
 			
 			Ok(())
 		})?;

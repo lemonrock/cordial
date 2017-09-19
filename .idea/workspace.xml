@@ -2,22 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="11525810-34c9-4f05-888c-296ba0c58e5d" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/brotli.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/compression.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/daemon.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/gzip.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/language.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/localization.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/pipeline.rs" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/domain/resource.rs" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/CordialError.rs" afterPath="$PROJECT_DIR$/src/CordialError.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/Configuration.rs" afterPath="$PROJECT_DIR$/src/domain/Configuration.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/DiscoverResources.rs" afterPath="$PROJECT_DIR$/src/domain/DiscoverResources.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/InputImageFormat.rs" afterPath="$PROJECT_DIR$/src/domain/InputImageFormat.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RobotGroup.rs" afterPath="$PROJECT_DIR$/src/domain/RobotGroup.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RobotsTxt.rs" afterPath="$PROJECT_DIR$/src/domain/RobotsTxt.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/SiteMap.rs" afterPath="$PROJECT_DIR$/src/domain/SiteMap.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/generateHeaders.rs" afterPath="$PROJECT_DIR$/src/domain/generateHeaders.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/mod.rs" afterPath="$PROJECT_DIR$/src/domain/mod.rs" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -28,41 +15,18 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="Pipeline.rs" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/domain/Pipeline.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="195">
-              <caret line="12" column="72" lean-forward="false" selection-start-line="12" selection-start-column="72" selection-end-line="12" selection-end-column="72" />
-              <folding>
-                <element signature="e#4742#5751#0" expanded="false" />
-                <element signature="e#5885#6777#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="RobotsTxt.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/RobotsTxt.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="309">
-              <caret line="24" column="26" lean-forward="false" selection-start-line="24" selection-start-column="26" selection-end-line="24" selection-end-column="26" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Language.rs" pinned="false" current-in-tab="false">
+      <file leaf-file-name="Language.rs" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/domain/Language.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="216">
-              <caret line="11" column="81" lean-forward="false" selection-start-line="11" selection-start-column="81" selection-end-line="11" selection-end-column="81" />
+            <state relative-caret-position="761">
+              <caret line="70" column="5" lean-forward="false" selection-start-line="70" selection-start-column="5" selection-end-line="70" selection-end-column="5" />
               <folding>
-                <element signature="e#1147#1148#0" expanded="true" />
-                <element signature="e#1163#1164#0" expanded="true" />
-                <element signature="e#1852#1853#0" expanded="true" />
-                <element signature="e#1880#1881#0" expanded="true" />
-                <element signature="e#1946#1947#0" expanded="true" />
-                <element signature="e#1966#1967#0" expanded="true" />
+                <element signature="e#1159#1160#0" expanded="true" />
+                <element signature="e#1185#1186#0" expanded="true" />
+                <element signature="e#1390#1391#0" expanded="true" />
+                <element signature="e#1406#1407#0" expanded="true" />
+                <element signature="e#2191#2192#0" expanded="true" />
+                <element signature="e#2219#2220#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -71,72 +35,31 @@
       <file leaf-file-name="Configuration.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/domain/Configuration.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="301">
-              <caret line="115" column="99" lean-forward="false" selection-start-line="115" selection-start-column="99" selection-end-line="115" selection-end-column="99" />
+            <state relative-caret-position="327">
+              <caret line="150" column="87" lean-forward="false" selection-start-line="150" selection-start-column="87" selection-end-line="150" selection-end-column="87" />
               <folding>
                 <element signature="e#2833#3364#0" expanded="false" />
-                <element signature="e#4804#4805#0" expanded="true" />
-                <element signature="e#4896#4897#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="SiteMap.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/SiteMap.rs">
+      <file leaf-file-name="RobotsTxt.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/RobotsTxt.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="309">
-              <caret line="21" column="26" lean-forward="false" selection-start-line="21" selection-start-column="26" selection-end-line="21" selection-end-column="26" />
+            <state relative-caret-position="399">
+              <caret line="50" column="95" lean-forward="false" selection-start-line="50" selection-start-column="95" selection-end-line="50" selection-end-column="95" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Resource.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/Resource.rs">
+      <file leaf-file-name="RobotGroup.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/RobotGroup.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="9" column="22" lean-forward="false" selection-start-line="9" selection-start-column="22" selection-end-line="9" selection-end-column="22" />
-              <folding>
-                <element signature="e#4352#5401#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="CordialError.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/CordialError.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="309">
-              <caret line="143" column="65" lean-forward="false" selection-start-line="143" selection-start-column="65" selection-end-line="143" selection-end-column="65" />
+            <state relative-caret-position="189">
+              <caret line="29" column="79" lean-forward="false" selection-start-line="29" selection-start-column="79" selection-end-line="29" selection-end-column="79" />
               <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Localization.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/Localization.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="309">
-              <caret line="44" column="99" lean-forward="false" selection-start-line="44" selection-start-column="99" selection-end-line="44" selection-end-column="99" />
-              <folding>
-                <element signature="e#1914#1915#0" expanded="true" />
-                <element signature="e#2072#2073#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="DiscoverResources.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/DiscoverResources.rs">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="162">
-              <caret line="8" column="49" lean-forward="false" selection-start-line="8" selection-start-column="49" selection-end-line="8" selection-end-column="49" />
-              <folding>
-                <element signature="e#1323#1324#0" expanded="true" />
-                <element signature="e#1417#1418#0" expanded="true" />
-                <element signature="e#1517#2341#0" expanded="false" />
-              </folding>
             </state>
           </provider>
         </entry>
@@ -248,7 +171,6 @@
         <option value="$PROJECT_DIR$/src/main.rs" />
         <option value="$PROJECT_DIR$/src/domain/brotli.rs" />
         <option value="$PROJECT_DIR$/src/domain/RobotDirective.rs" />
-        <option value="$PROJECT_DIR$/src/domain/RobotGroup.rs" />
         <option value="$PROJECT_DIR$/src/domain/pipeline.rs" />
         <option value="$PROJECT_DIR$/src/domain/ImageSourceSet.rs" />
         <option value="$PROJECT_DIR$/src/domain/SiteMapWebPageImage.rs" />
@@ -264,14 +186,15 @@
         <option value="$PROJECT_DIR$/src/domain/localization.rs" />
         <option value="$PROJECT_DIR$/src/domain/resource.rs" />
         <option value="$PROJECT_DIR$/src/domain/InputImageFormat.rs" />
-        <option value="$PROJECT_DIR$/src/domain/Language.rs" />
         <option value="$PROJECT_DIR$/src/CordialError.rs" />
         <option value="$PROJECT_DIR$/src/domain/Localization.rs" />
         <option value="$PROJECT_DIR$/src/domain/DiscoverResources.rs" />
         <option value="$PROJECT_DIR$/src/domain/SiteMap.rs" />
-        <option value="$PROJECT_DIR$/src/domain/RobotsTxt.rs" />
-        <option value="$PROJECT_DIR$/src/domain/Configuration.rs" />
         <option value="$PROJECT_DIR$/src/domain/Pipeline.rs" />
+        <option value="$PROJECT_DIR$/src/domain/Configuration.rs" />
+        <option value="$PROJECT_DIR$/src/domain/RobotsTxt.rs" />
+        <option value="$PROJECT_DIR$/src/domain/RobotGroup.rs" />
+        <option value="$PROJECT_DIR$/src/domain/Language.rs" />
       </list>
     </option>
   </component>
@@ -816,14 +739,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/RobotGroup.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="409">
-          <caret line="45" column="70" lean-forward="false" selection-start-line="45" selection-start-column="70" selection-end-line="45" selection-end-column="70" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/domain/generateHeaders.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1422">
@@ -949,37 +864,11 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Language.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="216">
-          <caret line="11" column="81" lean-forward="false" selection-start-line="11" selection-start-column="81" selection-end-line="11" selection-end-column="81" />
-          <folding>
-            <element signature="e#1147#1148#0" expanded="true" />
-            <element signature="e#1163#1164#0" expanded="true" />
-            <element signature="e#1852#1853#0" expanded="true" />
-            <element signature="e#1880#1881#0" expanded="true" />
-            <element signature="e#1946#1947#0" expanded="true" />
-            <element signature="e#1966#1967#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/CordialError.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="309">
           <caret line="143" column="65" lean-forward="false" selection-start-line="143" selection-start-column="65" selection-end-line="143" selection-end-column="65" />
           <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Localization.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="309">
-          <caret line="44" column="99" lean-forward="false" selection-start-line="44" selection-start-column="99" selection-end-line="44" selection-end-column="99" />
-          <folding>
-            <element signature="e#1914#1915#0" expanded="true" />
-            <element signature="e#2072#2073#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1003,33 +892,65 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/RobotsTxt.rs">
+    <entry file="file://$PROJECT_DIR$/src/domain/Pipeline.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="60">
+          <caret line="12" column="72" lean-forward="false" selection-start-line="12" selection-start-column="72" selection-end-line="12" selection-end-column="72" />
+          <folding>
+            <element signature="e#4742#5751#0" expanded="false" />
+            <element signature="e#5885#6777#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/Localization.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="309">
-          <caret line="24" column="26" lean-forward="false" selection-start-line="24" selection-start-column="26" selection-end-line="24" selection-end-column="26" />
-          <folding />
+          <caret line="44" column="99" lean-forward="false" selection-start-line="44" selection-start-column="99" selection-end-line="44" selection-end-column="99" />
+          <folding>
+            <element signature="e#1914#1915#0" expanded="true" />
+            <element signature="e#2072#2073#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/domain/Configuration.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="301">
-          <caret line="115" column="99" lean-forward="false" selection-start-line="115" selection-start-column="99" selection-end-line="115" selection-end-column="99" />
+        <state relative-caret-position="327">
+          <caret line="150" column="87" lean-forward="false" selection-start-line="150" selection-start-column="87" selection-end-line="150" selection-end-column="87" />
           <folding>
             <element signature="e#2833#3364#0" expanded="false" />
-            <element signature="e#4804#4805#0" expanded="true" />
-            <element signature="e#4896#4897#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Pipeline.rs">
+    <entry file="file://$PROJECT_DIR$/src/domain/RobotsTxt.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="195">
-          <caret line="12" column="72" lean-forward="false" selection-start-line="12" selection-start-column="72" selection-end-line="12" selection-end-column="72" />
+        <state relative-caret-position="399">
+          <caret line="50" column="95" lean-forward="false" selection-start-line="50" selection-start-column="95" selection-end-line="50" selection-end-column="95" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/RobotGroup.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="189">
+          <caret line="29" column="79" lean-forward="false" selection-start-line="29" selection-start-column="79" selection-end-line="29" selection-end-column="79" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/Language.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="761">
+          <caret line="70" column="5" lean-forward="false" selection-start-line="70" selection-start-column="5" selection-end-line="70" selection-end-column="5" />
           <folding>
-            <element signature="e#4742#5751#0" expanded="false" />
-            <element signature="e#5885#6777#0" expanded="false" />
+            <element signature="e#1159#1160#0" expanded="true" />
+            <element signature="e#1185#1186#0" expanded="true" />
+            <element signature="e#1390#1391#0" expanded="true" />
+            <element signature="e#1406#1407#0" expanded="true" />
+            <element signature="e#2191#2192#0" expanded="true" />
+            <element signature="e#2219#2220#0" expanded="true" />
           </folding>
         </state>
       </provider>

@@ -141,7 +141,7 @@ quick_error!
 
 impl CordialError
 {
-	pub(crate) fn couldNotFindResourceContentFile<R>(resource: &resource, primaryLanguage: &language, language: Option<&language>) -> Result<R, CordialError>
+	pub(crate) fn couldNotFindResourceContentFile<R>(resource: &Resource, primaryLanguage: &Language, language: Option<&Language>) -> Result<R, CordialError>
 	{
 		let resourceName = resource.name();
 		let reason = match language

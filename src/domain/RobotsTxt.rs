@@ -8,7 +8,7 @@ pub(crate) struct RobotsTxt
 {
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default = "RobotsTxt::max_age_in_seconds_default")] max_age_in_seconds: u32,
-	#[serde(default)] compression: compression,
+	#[serde(default)] compression: Compression,
 	#[serde(default)] groups: Vec<RobotGroup>,
 	#[serde(default)] generate_yandex_primary_host: bool,
 }
@@ -22,7 +22,7 @@ impl Default for RobotsTxt
 		{
 			headers: HashMap::default(),
 			max_age_in_seconds: 60,
-			compression: compression::default(),
+			compression: Compression::default(),
 			groups: vec![RobotGroup::default()],
 			generate_yandex_primary_host: true,
 		}

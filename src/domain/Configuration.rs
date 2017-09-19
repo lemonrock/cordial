@@ -5,11 +5,11 @@
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct Configuration
 {
-	#[serde(default)] daemon: daemon,
+	#[serde(default)] daemon: Daemon,
 	#[serde(default = "Configuration::maximum_number_of_tls_sessions_default")] maximum_number_of_tls_sessions: u32,
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
-	localization: localization,
+	localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] sitemap: SiteMap,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
@@ -107,13 +107,13 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn discoverResources(&self) -> Result<BTreeMap<ProcessingPriority, Vec<resource>>, CordialError>
+	fn discoverResources(&self) -> Result<BTreeMap<ProcessingPriority, Vec<Resource>>, CordialError>
 	{
 		DiscoverResources::discoverResourcesByProcessingPriority(&self, &self.inputFolderPath)
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
+	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<Resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
 	{
 		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
 		
@@ -204,7 +204,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
+	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &Language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
 		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}

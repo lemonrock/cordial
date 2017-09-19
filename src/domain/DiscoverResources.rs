@@ -6,12 +6,12 @@ pub(crate) struct DiscoverResources
 {
 	prefix: PathBuf,
 	resourceTemplates: ResourceTemplates,
-	resources: BTreeMap<ProcessingPriority, Vec<resource>>
+	resources: BTreeMap<ProcessingPriority, Vec<Resource>>
 }
 
 impl DiscoverResources
 {
-	pub(crate) fn discoverResourcesByProcessingPriority(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<ProcessingPriority, Vec<resource>>, CordialError>
+	pub(crate) fn discoverResourcesByProcessingPriority(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<ProcessingPriority, Vec<Resource>>, CordialError>
 	{
 		let prefix = inputFolderPath.join("root");
 		let mut this = Self
@@ -26,7 +26,7 @@ impl DiscoverResources
 	}
 	
 	#[inline(always)]
-	fn insertResource(&mut self, resource: resource)
+	fn insertResource(&mut self, resource: Resource)
 	{
 		self.resources.get_mut(&resource.pipeline.processingPriority()).unwrap().push(resource);
 	}
@@ -70,7 +70,7 @@ impl DiscoverResources
 	{
 		let rootResourceFilePath = inputFolderPath.join("root.resource.hjson");
 		let configurationHjson = loadHjsonIfExtantAndMerge(&rootResourceFilePath, self.resourceTemplates.resourceTemplate.clone())?;
-		let mut resource: resource = deserializeHjson(configurationHjson)?;
+		let mut resource: Resource = deserializeHjson(configurationHjson)?;
 		resource.finishInitialization(Vec::new(), "root", inputFolderPath.to_path_buf());
 		self.insertResource(resource);
 		Ok(())
@@ -102,7 +102,7 @@ impl DiscoverResources
 				loadHjsonIfExtantAndMerge(filePath, parentHjsonConfiguration.clone())?
 			};
 			
-			let mut resource: resource = deserializeHjson(hjsonConfiguration)?;
+			let mut resource: Resource = deserializeHjson(hjsonConfiguration)?;
 			
 			resource.finishInitialization(parentHierarchy.clone(), resourceInputName, filePath.parent().unwrap().to_path_buf());
 			

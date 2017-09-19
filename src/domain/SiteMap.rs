@@ -7,7 +7,7 @@ pub(crate) struct SiteMap
 {
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default = "SiteMap::max_age_in_seconds_default")] max_age_in_seconds: u32,
-	#[serde(default)] compression: compression,
+	#[serde(default)] compression: Compression,
 }
 
 impl Default for SiteMap
@@ -19,7 +19,7 @@ impl Default for SiteMap
 		{
 			headers: HashMap::default(),
 			max_age_in_seconds: 60,
-			compression: compression::default(),
+			compression: Compression::default(),
 		}
 	}
 }
@@ -27,7 +27,7 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &[SiteMapWebPage]) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &[SiteMapWebPage]) -> Result<(), CordialError>
 	{
 		let primary_iso_639_1_alpha_2_language_code = languageData.0;
 		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;
@@ -110,7 +110,7 @@ impl SiteMap
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeSiteMapFiles<'a>(&'a self, languageData: (&str, &language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
+	fn writeSiteMapFiles<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
 		let primary_iso_639_1_alpha_2_language_code = languageData.0;
 		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;

@@ -18,6 +18,15 @@ pub(crate) enum InputImageFormat
 	TGA
 }
 
+impl Default for InputImageFormat
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		InputImageFormat::PNG
+	}
+}
+
 impl InputImageFormat
 {
 	#[inline(always)]
@@ -27,7 +36,7 @@ impl InputImageFormat
 		match *self
 		{
 			PNG => vec![".png"],
-			JPEG => vec![".jpeg", ".jpg"],
+			JPEG => vec![".jpeg", ".jpg", ".jpe"],
 			GIF => vec![".gif"],
 			BMP => vec![".bmp"],
 			ICO => vec![".ico"],

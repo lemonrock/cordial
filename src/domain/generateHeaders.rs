@@ -3,7 +3,7 @@
 
 
 #[inline(always)]
-pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &language)>, htmlVariant: HtmlVariant, configuration: &Configuration, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
+pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, htmlVariant: HtmlVariant, configuration: &Configuration, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
 {
 	let localization = &configuration.localization;
 	let deploymentVersion = &configuration.deploymentVersion;

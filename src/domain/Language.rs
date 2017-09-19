@@ -12,23 +12,6 @@ pub(crate) struct Language
 	#[serde(default)] relative_root_url: RelativeRootUrl,
 }
 
-#[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum RelativeRootUrl
-{
-	host,
-	iso,
-}
-
-impl Default for RelativeRootUrl
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		RelativeRootUrl::iso
-	}
-}
-
 impl Language
 {
 	#[inline(always)]

@@ -90,6 +90,7 @@ include!("Language.rs");
 include!("Localization.rs");
 include!("Pipeline.rs");
 include!("ProcessingPriority.rs");
+include!("RelativeRootUrl.rs");
 include!("Resource.rs");
 include!("RobotDirective.rs");
 include!("RobotGroup.rs");

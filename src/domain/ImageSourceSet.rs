@@ -90,7 +90,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -119,20 +119,36 @@ impl<'a> ImageSourceSet<'a>
 			let body = self.optimize(image)?;
 			let headers = headerGenerator(&url, canBeCompressed)?;
 			
-			use self::UrlTag::*;
+			let height = image.height();
+			let jsonValue = Rc::new
+			(
+				json!
+				({
+					"width": width,
+					"height": height,
+				})
+			);
 			
-			let mut urlTags = hashset!(width_image(width), height_image(height), width_height_image(width, height));
+			use self::UrlTag::*;
+			let mut urlTags = hashmap!
+			{
+				width_image(width) => jsonValue.clone(),
+				height_image(height) => jsonValue.clone(),
+				width_height_image(width, height) => jsonValue.clone()
+			};
+			
 			if isPrimary
 			{
-				urlTags.insert(default);
+				urlTags.insert(default, jsonValue.clone());
+				urlTags.insert(primary_image, jsonValue.clone());
 			}
 			if index == 0
 			{
-				urlTags.insert(smallest);
+				urlTags.insert(smallest_image, jsonValue.clone());
 			}
 			if index == finalIndex
 			{
-				urlTags.insert(largest);
+				urlTags.insert(largest_image, jsonValue.clone());
 			}
 			urls.push((url, urlTags, contentType.clone(), headers, body, None, canBeCompressed));
 			index += 1;

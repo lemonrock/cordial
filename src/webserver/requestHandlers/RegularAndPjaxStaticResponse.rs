@@ -46,8 +46,8 @@ impl RegularAndPjaxStaticResponse
 	#[inline(always)]
 	pub(crate) fn toDataUri(&self) -> Url
 	{
-		let dataUriString = format!("data:{};base64,{}", resource.contentMimeType(), base64Encode(&regular.uncompressedBody, STANDARD));
-		Url.parse(dataUriString).unwrap()
+		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.regular.uncompressedBody, STANDARD));
+		Url::parse(&dataUriString).unwrap()
 	}
 	
 	#[inline(always)]

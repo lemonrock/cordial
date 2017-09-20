@@ -6,7 +6,7 @@
 pub(crate) struct RssItemLanguageVariant
 {
 	pub(crate) webPageDescription: String, // eg HTML <meta name="description">, used for RSS title
-	pub(crate) webPageSynopsisMarkdown: CommonMarkAndGitHubFlavouredMarkdown, // A short paragraph synopsis of the web page, can contain embedded HTML; probably best as markdown
+	pub(crate) webPageUsefulContentHtml: String,
 	pub(crate) languageSpecificUrl: Url,
 	pub(crate) primaryImage: RssImage,
 }

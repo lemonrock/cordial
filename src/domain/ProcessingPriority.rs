@@ -14,5 +14,5 @@ pub enum ProcessingPriority
 
 impl ProcessingPriority
 {
-	pub const All: [ProcessingPriority; 4] = [NoDependenciesEgImage, DependsOnOthersEgStylesheet, LinksToSubResourcesEgHtmlPage, IndexesEgSiteMap];
+	pub const All: [ProcessingPriority; 4] = [ProcessingPriority::NoDependenciesEgImage, ProcessingPriority::DependsOnOthersEgStylesheet, ProcessingPriority::LinksToSubResourcesEgHtmlPage, ProcessingPriority::IndexesEgSiteMap];
 }

@@ -84,7 +84,7 @@ impl Configuration
 		
 		let resources = self.discoverResources()?;
 		
-		let newResources = self.renderResources(resources, &oldResources, &ourHostNames, &mut handlebars)?;
+		let newResources = self.renderResources(&mut resources, &oldResources, &ourHostNames, &mut handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
 	}
 	
@@ -114,7 +114,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resources: BTreeMap<String, Resource>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
+	fn renderResources(&self, resources: &mut BTreeMap<String, Resource>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
 	{
 		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
 		
@@ -123,7 +123,7 @@ impl Configuration
 		
 		for processingPriority in ProcessingPriority::All
 		{
-			for resource in newResources.values()
+			for resource in resources.values()
 			{
 				if resource.hasProcessingPriority(processingPriority)
 				{
@@ -132,9 +132,9 @@ impl Configuration
 			}
 		}
 		
-		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, siteMapWebPages)?;
+		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, &siteMapWebPages)?;
 		
-		self.renderRssFeeds(rssItems)?;
+		self.renderRssFeeds(resources, oldResources, handlebars, &rssItems, &resources)?;
 		
 		newResources.addAnythingThatIsDiscontinued(oldResources);
 		
@@ -143,14 +143,14 @@ impl Configuration
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, resources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: Vec<SiteMapWebPage>) -> Result<(), CordialError>
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, resources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
 		self.localization.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, &siteMapWebPages[..])?;
+			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
 			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url(iso_639_1_alpha_2_language_code));
 			
 			Ok(())
@@ -167,9 +167,15 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderRssFeeds(&self, rssItems: HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
+	fn renderRssFeeds(&self, newResources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, rssItems: &HashMap<String, Vec<RssItem>>, resources: &BTreeMap<String, Resource>) -> Result<(), CordialError>
 	{
-		self.rss.
+		let primary_iso_639_1_alpha_2_language_code = &self.localization.primary_iso_639_1_alpha_2_language_code;
+		
+		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, isPrimaryLanguage|
+		{
+			let languageData = (iso_639_1_alpha_2_language_code, language);
+			self.rss.renderResource(languageData, handlebars, self, newResources, oldResources, items.get(iso_639_1_alpha_2_language_code), primary_iso_639_1_alpha_2_language_code, resources)
+		})
 	}
 	
 	#[inline(always)]

@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ResourceReference
 {
 	absolute(Url),
@@ -14,7 +14,7 @@ impl ResourceReference
 {
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>
+	pub(crate) fn url<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<&'a Url>
 	{
 		use self::ResourceReference::*;
 		match *self
@@ -32,7 +32,61 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						match resource.url(newResources, urlTag)
+						resource.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
+					}
+				}
+			}
+		}
+	}
+	
+	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
+	#[inline(always)]
+	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a Url, Rc<JsonValue>)>
+	{
+		use self::ResourceReference::*;
+		match *self
+		{
+			absolute(ref url) => url,
+			internal(ref resourceOutputRelativeUrl, urlTag) =>
+			{
+				match resources.get(resourceOutputRelativeUrl)
+				{
+					None => None,
+					Some(resource) =>
+					{
+						let urlTag = match urlTag
+						{
+							None => UrlTag::default,
+							Some(urlTag) => urlTag,
+						};
+						resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
+					}
+				}
+			}
+		}
+	}
+	
+	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
+	#[inline(always)]
+	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>
+	{
+		use self::ResourceReference::*;
+		match *self
+		{
+			absolute(ref url) => url,
+			internal(ref resourceOutputRelativeUrl, urlTag) =>
+			{
+				match resources.get(resourceOutputRelativeUrl)
+				{
+					None => None,
+					Some(resource) =>
+					{
+						let urlTag = match urlTag
+						{
+							None => UrlTag::default,
+							Some(urlTag) => urlTag,
+						};
+						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag, newResources)
 						{
 							None => None,
 							Some((url, response)) => Some(url, Some(response))

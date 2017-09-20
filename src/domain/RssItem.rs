@@ -14,21 +14,23 @@ pub(crate) struct RssItem
 impl RssItem
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>], markdownOptions: &ComrakOptions) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
 	{
 		let rssItemLanguageVariant = match self.rssItemLanguageVariants.get(iso_639_1_alpha_2_language_code)
 		{
 			None => return Ok(()),
-			Some(rssItemLanguageVariant) => rssItemLanguageVariants,
+			Some(rssItemLanguageVariants) => rssItemLanguageVariants,
 		};
 		
-		let synopsisHtml = markdown_to_html(&rssItemLanguageVariant.webPageSynopsisMarkdown, markdownOptions);
-		
+		let versionAttributes =
+		[
+			Attribute::new(Name::local("version"), "2.0"),
+		];
 		eventWriter.writeWithinElement(Name::local("item"), &namespace, &versionAttributes, |eventWriter|
 		{
 			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("title"), &rssItemLanguageVariant.webPageDescription)?;
 			
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("description"), &synopsisHtml)?;
+			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("description"), &rssItemLanguageVariant.webPageUsefulContentHtml)?;
 			
 			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", rssItemLanguageVariant.languageSpecificUrl.as_ref())?;
 			
@@ -40,14 +42,14 @@ impl RssItem
 			
 			for category in self.categories.iter()
 			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "category", category.to_str())?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "category", category)?;
 			}
 			
 			let publicationDateTime: DateTime<Utc> = DateTime::from(self.publicationDate);
-			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubData", publicationDateTime.to_rfc2822())?;
+			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubData", &publicationDateTime.to_rfc2822())?;
 			
 			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "author", &self.author.to_string())?;
-			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, "dc", "creator", &self.author.full_name())?;
+			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, "dc", "creator", &self.author.full_name)?;
 			
 			
 			let enclosureAttributes =
@@ -80,10 +82,8 @@ impl RssItem
 					Attribute::new(Name::local("height"), &format!("{}", rssItemLanguageVariant.primaryImage.height)),
 					Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
 				];
-				eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))?;
-			})?;
-			
-			Ok(())
+				eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
+			})
 		})
 	}
 }

@@ -36,39 +36,39 @@ impl RssFeedlyChannel
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> XmlWriterResult
 	{
-		if let Some(url, _response) = self.png_cover_image.urlAndResponse(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), UrlTag::default, resources, newResources)
+		if let Some(url) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
 		{
 			let attributes =
-				[
-					Attribute::new(Name::local("image"), url),
-				];
+			[
+				Attribute::new(Name::local("image"), url.as_str()),
+			];
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(url, _response) = self.svg_icon.urlAndResponse(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), UrlTag::default, resources, newResources)
+		if let Some(url) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url)?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
 		}
 		
-		if let Some(url, _response) = self.svg_logo.urlAndResponse(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), UrlTag::default, resources, newResources)
+		if let Some(url) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url)?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
 		}
 		
-		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", self.accentColor)?;
+		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", &self.accent_color)?;
 		
 		let attributes =
-			[
-				Attribute::new(Name::local("layout"), "card"),
-				Attribute::new(Name::local("target"), "browser"),
-			];
+		[
+			Attribute::new(Name::local("layout"), "card"),
+			Attribute::new(Name::local("target"), "browser"),
+		];
 		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))?;
 		
 		let attributes =
-			[
-				Attribute::new(Name::local("id"), GOOGLE_UA_xxx),
-				Attribute::new(Name::local("engine"), "GoogleAnalytics"),
-			];
+		[
+			Attribute::new(Name::local("id"), GOOGLE_UA_xxx),
+			Attribute::new(Name::local("engine"), "GoogleAnalytics"),
+		];
 		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))
 		
 		//add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
@@ -77,19 +77,19 @@ impl RssFeedlyChannel
 	#[inline(always)]
 	fn png_cover_image_default() -> ResourceReference
 	{
-		ResourceReference::internal("/cover.png", Some(UrlTag::largest_image))
+		ResourceReference::internal("/cover.png".to_owned(), Some(UrlTag::largest_image))
 	}
 	
 	#[inline(always)]
 	fn svg_icon_default() -> ResourceReference
 	{
-		ResourceReference::internal("/favicon.svg", Some(UrlTag::default))
+		ResourceReference::internal("/favicon.svg".to_owned(), Some(UrlTag::default))
 	}
 	
 	#[inline(always)]
 	fn svg_logo_default() -> ResourceReference
 	{
-		ResourceReference::internal("/organization-logo.svg", Some(UrlTag::default))
+		ResourceReference::internal("/organization-logo.svg".to_owned(), Some(UrlTag::default))
 	}
 	
 	#[inline(always)]

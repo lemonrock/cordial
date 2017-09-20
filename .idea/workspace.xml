@@ -2,37 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="11525810-34c9-4f05-888c-296ba0c58e5d" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/CommonMarkAndGitHubFlavouredMarkdown.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/EMailAddress.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/FullName.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/ResourceReference.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/RssChannel.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/RssImage.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/RssItem.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/domain/UrlTag.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/dictionaries/raph.xml" afterPath="$PROJECT_DIR$/.idea/dictionaries/raph.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Cargo.toml" afterPath="$PROJECT_DIR$/Cargo.toml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/CordialError.rs" afterPath="$PROJECT_DIR$/src/CordialError.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/Configuration.rs" afterPath="$PROJECT_DIR$/src/domain/Configuration.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/DiscoverResources.rs" afterPath="$PROJECT_DIR$/src/domain/DiscoverResources.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/ImageSourceSet.rs" afterPath="$PROJECT_DIR$/src/domain/ImageSourceSet.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/Language.rs" afterPath="$PROJECT_DIR$/src/domain/Language.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/Pipeline.rs" afterPath="$PROJECT_DIR$/src/domain/Pipeline.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/ProcessingPriority.rs" afterPath="$PROJECT_DIR$/src/domain/ProcessingPriority.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/Resource.rs" afterPath="$PROJECT_DIR$/src/domain/Resource.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/ResourceReference.rs" afterPath="$PROJECT_DIR$/src/domain/ResourceReference.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RssChannel.rs" afterPath="$PROJECT_DIR$/src/domain/RssChannel.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs" afterPath="$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RssItem.rs" afterPath="$PROJECT_DIR$/src/domain/RssItem.rs" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs" afterPath="$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/SiteMap.rs" afterPath="$PROJECT_DIR$/src/domain/SiteMap.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/SiteMapWebPage.rs" afterPath="$PROJECT_DIR$/src/domain/SiteMapWebPage.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/domain/mod.rs" afterPath="$PROJECT_DIR$/src/domain/mod.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main.rs" afterPath="$PROJECT_DIR$/src/main.rs" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/webserver/requestHandlers/RegularAndPjaxStaticResponse.rs" afterPath="$PROJECT_DIR$/src/webserver/requestHandlers/RegularAndPjaxStaticResponse.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/webserver/requestHandlers/Resources.rs" afterPath="$PROJECT_DIR$/src/webserver/requestHandlers/Resources.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/webserver/requestHandlers/StaticResponseVersions.rs" afterPath="$PROJECT_DIR$/src/webserver/requestHandlers/StaticResponseVersions.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/webserver/requestHandlers/mod.rs" afterPath="$PROJECT_DIR$/src/webserver/requestHandlers/mod.rs" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs" afterPath="$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -43,42 +26,22 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="RssChannel.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/domain/RssChannel.rs">
+      <file leaf-file-name="ImageSourceSet.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/ImageSourceSet.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="486">
-              <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
-              <folding>
-                <element signature="e#8661#9064#0" expanded="false" />
-                <element signature="e#9118#9119#0" expanded="true" />
-                <element signature="e#9141#9142#0" expanded="true" />
-                <element signature="e#9219#9220#0" expanded="true" />
-                <element signature="e#9246#9247#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="699">
+              <caret line="122" column="25" lean-forward="false" selection-start-line="122" selection-start-column="16" selection-end-line="122" selection-end-column="25" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="RssFeedlyChannel.rs" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs">
+      <file leaf-file-name="mod.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/mod.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="432">
-              <caret line="23" column="48" lean-forward="true" selection-start-line="23" selection-start-column="48" selection-end-line="23" selection-end-column="48" />
-              <folding>
-                <element signature="e#1622#4356#0" expanded="false" />
-                <element signature="e#3764#3765#0" expanded="true" />
-                <element signature="e#3840#3841#0" expanded="true" />
-                <element signature="e#3908#3909#0" expanded="true" />
-                <element signature="e#3980#3981#0" expanded="true" />
-                <element signature="e#4048#4049#0" expanded="true" />
-                <element signature="e#4130#4131#0" expanded="true" />
-                <element signature="e#4191#4192#0" expanded="true" />
-                <element signature="e#4216#4217#0" expanded="true" />
-                <element signature="e#4270#4271#0" expanded="true" />
-                <element signature="e#4280#4281#0" expanded="true" />
-                <element signature="e#4343#4344#0" expanded="true" />
-                <element signature="e#4353#4354#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="469">
+              <caret line="39" column="37" lean-forward="false" selection-start-line="39" selection-start-column="30" selection-end-line="39" selection-end-column="37" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -86,19 +49,42 @@
       <file leaf-file-name="ResourceReference.rs" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/domain/ResourceReference.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="306">
-              <caret line="16" column="185" lean-forward="true" selection-start-line="16" selection-start-column="176" selection-end-line="16" selection-end-column="206" />
+            <state relative-caret-position="690">
+              <caret line="43" column="28" lean-forward="false" selection-start-line="43" selection-start-column="18" selection-end-line="43" selection-end-column="33" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="EventWriterExt.rs" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs">
+      <file leaf-file-name="RssChannel.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/RssChannel.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="582">
-              <caret line="95" column="17" lean-forward="false" selection-start-line="95" selection-start-column="7" selection-end-line="95" selection-end-column="24" />
+            <state relative-caret-position="459">
+              <caret line="57" column="10" lean-forward="false" selection-start-line="57" selection-start-column="10" selection-end-line="57" selection-end-column="10" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="RssFeedlyChannel.rs" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="506">
+              <caret line="52" column="20" lean-forward="false" selection-start-line="52" selection-start-column="20" selection-end-line="52" selection-end-column="20" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Resource.rs" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/domain/Resource.rs">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="851">
+              <caret line="55" column="33" lean-forward="false" selection-start-line="55" selection-start-column="18" selection-end-line="55" selection-end-column="33" />
+              <folding>
+                <element signature="e#4183#4548#0" expanded="false" />
+                <element signature="e#8198#9247#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -115,9 +101,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>::empty(</find>
-      <find>deploymentVersion</find>
-      <find>deploymentVersion, deploymentDate, localization</find>
       <find>percent</find>
       <find>\nuse \:\:url\:\:percent_encoding\:\:percent_decode\;</find>
       <find>.path()</find>
@@ -145,6 +128,9 @@
       <find>discoverResourcesByProcessingPriority</find>
       <find>newBTreeMap</find>
       <find>base64</find>
+      <find>CouldNotParseMimeType</find>
+      <find>stylesheets</find>
+      <find>urlAndResponse</find>
     </findStrings>
     <replaceStrings>
       <replace>copyOverFoldersAndFiles</replace>
@@ -169,8 +155,8 @@
       <replace>&amp;Language</replace>
       <replace>self::Pipeline</replace>
       <replace>gener</replace>
-      <replace>Pipeline::</replace>
       <replace>discover</replace>
+      <replace>Pipeline::</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -208,7 +194,6 @@
         <option value="$PROJECT_DIR$/src/domain/RelativeRootUrl.rs" />
         <option value="$PROJECT_DIR$/src/domain/SiteMapWebPage.rs" />
         <option value="$PROJECT_DIR$/src/domain/Language.rs" />
-        <option value="$PROJECT_DIR$/src/domain/SiteMap.rs" />
         <option value="$PROJECT_DIR$/Cargo.toml" />
         <option value="$PROJECT_DIR$/src/main.rs" />
         <option value="$PROJECT_DIR$/src/domain/CommonMarkAndGitHubFlavouredMarkdown.rs" />
@@ -216,25 +201,26 @@
         <option value="$PROJECT_DIR$/src/domain/FullName.rs" />
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/src/domain/RssImage.rs" />
-        <option value="$PROJECT_DIR$/src/domain/RssItem.rs" />
-        <option value="$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs" />
         <option value="$PROJECT_DIR$/src/domain/UrlTag.rs" />
-        <option value="$PROJECT_DIR$/src/domain/ImageSourceSet.rs" />
-        <option value="$PROJECT_DIR$/src/domain/Pipeline.rs" />
         <option value="$PROJECT_DIR$/src/domain/DiscoverResources.rs" />
-        <option value="$PROJECT_DIR$/src/domain/ProcessingPriority.rs" />
-        <option value="$PROJECT_DIR$/src/domain/Configuration.rs" />
         <option value="$PROJECT_DIR$/src/webserver/requestHandlers/StaticResponseVersions.rs" />
         <option value="$PROJECT_DIR$/src/webserver/requestHandlers/Resources.rs" />
-        <option value="$PROJECT_DIR$/src/CordialError.rs" />
         <option value="$PROJECT_DIR$/src/webserver/requestHandlers/mod.rs" />
+        <option value="$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs" />
+        <option value="$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs" />
+        <option value="$PROJECT_DIR$/src/domain/SiteMap.rs" />
+        <option value="$PROJECT_DIR$/src/domain/ProcessingPriority.rs" />
+        <option value="$PROJECT_DIR$/src/domain/Configuration.rs" />
+        <option value="$PROJECT_DIR$/src/CordialError.rs" />
         <option value="$PROJECT_DIR$/src/webserver/requestHandlers/RegularAndPjaxStaticResponse.rs" />
+        <option value="$PROJECT_DIR$/src/domain/RssItem.rs" />
+        <option value="$PROJECT_DIR$/src/domain/Pipeline.rs" />
+        <option value="$PROJECT_DIR$/src/domain/mod.rs" />
+        <option value="$PROJECT_DIR$/src/domain/ImageSourceSet.rs" />
         <option value="$PROJECT_DIR$/src/domain/Resource.rs" />
         <option value="$PROJECT_DIR$/src/domain/ResourceReference.rs" />
-        <option value="$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs" />
         <option value="$PROJECT_DIR$/src/domain/RssChannel.rs" />
         <option value="$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs" />
-        <option value="$PROJECT_DIR$/src/domain/mod.rs" />
       </list>
     </option>
   </component>
@@ -318,6 +304,12 @@
               <item name="cordial" type="462c0819:PsiDirectoryNode" />
               <item name="src" type="462c0819:PsiDirectoryNode" />
               <item name="domain" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="cordial" type="b2602c69:ProjectViewProjectNode" />
+              <item name="cordial" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+              <item name="hjson" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="cordial" type="b2602c69:ProjectViewProjectNode" />
@@ -478,7 +470,7 @@
       <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2513369" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.361631" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.47058824" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32954547" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -525,14 +517,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/tmp/TEST/src/main.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="438">
-          <caret line="79" column="12" lean-forward="true" selection-start-line="79" selection-start-column="12" selection-end-line="79" selection-end-column="12" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/domain/BrotliCompressionMode.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="198">
@@ -743,17 +727,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Localization.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="10" column="13" lean-forward="false" selection-start-line="10" selection-start-column="4" selection-end-line="10" selection-end-column="13" />
-          <folding>
-            <element signature="e#1206#1207#0" expanded="false" />
-            <element signature="e#1227#1228#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -777,30 +750,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
           <caret line="3" column="0" lean-forward="true" selection-start-line="3" selection-start-column="0" selection-end-line="5" selection-end-column="42" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="144">
-          <caret line="7" column="49" lean-forward="false" selection-start-line="7" selection-start-column="49" selection-end-line="7" selection-end-column="49" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/ImageSourceSet.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="990">
-          <caret line="130" column="39" lean-forward="false" selection-start-line="130" selection-start-column="39" selection-end-line="130" selection-end-column="39" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/SiteMap.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="638">
-          <caret line="82" column="111" lean-forward="true" selection-start-line="82" selection-start-column="111" selection-end-line="82" selection-end-column="111" />
           <folding />
         </state>
       </provider>
@@ -833,29 +782,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/ProcessingPriority.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="14" column="23" lean-forward="false" selection-start-line="14" selection-start-column="5" selection-end-line="14" selection-end-column="23" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Pipeline.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="540">
-          <caret line="133" column="28" lean-forward="false" selection-start-line="133" selection-start-column="18" selection-end-line="133" selection-end-column="36" />
-          <folding>
-            <element signature="n#!!block;n#Pipeline#0" expanded="false" />
-            <element signature="e#5489#6498#0" expanded="false" />
-            <element signature="e#6632#7524#0" expanded="false" />
-            <element signature="e#8559#13330#0" expanded="false" />
-            <element signature="e#13855#14569#0" expanded="false" />
-            <element signature="e#14785#16276#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/webserver/requestHandlers/StaticResponseVersions.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="885">
@@ -880,21 +806,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Configuration.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="482">
-          <caret line="211" column="43" lean-forward="true" selection-start-line="210" selection-start-column="60" selection-end-line="211" selection-end-column="43" />
-          <folding>
-            <element signature="e#2869#3400#0" expanded="false" />
-            <element signature="e#4783#4784#0" expanded="true" />
-            <element signature="e#4846#4847#0" expanded="true" />
-            <element signature="e#6087#7104#0" expanded="false" />
-            <element signature="e#7222#7223#0" expanded="true" />
-            <element signature="e#7237#7238#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/webserver/requestHandlers/mod.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="126">
@@ -913,52 +824,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/webserver/requestHandlers/RegularAndPjaxStaticResponse.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="738">
-          <caret line="46" column="27" lean-forward="false" selection-start-line="46" selection-start-column="18" selection-end-line="46" selection-end-column="27" />
-          <folding>
-            <element signature="e#1251#1252#0" expanded="true" />
-            <element signature="e#1284#1285#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/Resource.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="891">
-          <caret line="61" column="24" lean-forward="false" selection-start-line="61" selection-start-column="24" selection-end-line="61" selection-end-column="24" />
-          <folding>
-            <element signature="e#3032#3397#0" expanded="false" />
-            <element signature="e#6992#8041#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/CordialError.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="453">
-          <caret line="101" column="8" lean-forward="true" selection-start-line="101" selection-start-column="8" selection-end-line="101" selection-end-column="8" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/UrlTag.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="10" column="11" lean-forward="false" selection-start-line="10" selection-start-column="4" selection-end-line="10" selection-end-column="17" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/RssItem.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="14" column="1" lean-forward="true" selection-start-line="14" selection-start-column="1" selection-end-line="16" selection-end-column="233" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/xmlExtra/EventWriterExt.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="582">
@@ -967,55 +832,152 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/ResourceReference.rs">
+    <entry file="file://$PROJECT_DIR$/src/domain/Localization.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="9" column="103" lean-forward="false" selection-start-line="9" selection-start-column="88" selection-end-line="9" selection-end-column="127" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/RssItemLanguageVariant.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="8" column="39" lean-forward="false" selection-start-line="8" selection-start-column="15" selection-end-line="8" selection-end-column="39" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/ProcessingPriority.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="306">
-          <caret line="16" column="185" lean-forward="true" selection-start-line="16" selection-start-column="176" selection-end-line="16" selection-end-column="206" />
+          <caret line="16" column="209" lean-forward="false" selection-start-line="16" selection-start-column="209" selection-end-line="16" selection-end-column="209" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/Configuration.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="173" column="12" lean-forward="false" selection-start-line="173" selection-start-column="12" selection-end-line="173" selection-end-column="12" />
+          <folding>
+            <element signature="e#2869#3400#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/CordialError.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="211">
+          <caret line="114" column="9" lean-forward="false" selection-start-line="114" selection-start-column="9" selection-end-line="114" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/webserver/requestHandlers/RegularAndPjaxStaticResponse.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="309">
+          <caret line="49" column="20" lean-forward="false" selection-start-line="49" selection-start-column="20" selection-end-line="49" selection-end-column="20" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/RssItem.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="743">
+          <caret line="86" column="10" lean-forward="false" selection-start-line="86" selection-start-column="10" selection-end-line="86" selection-end-column="10" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/SiteMap.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="9" column="47" lean-forward="true" selection-start-line="8" selection-start-column="86" selection-end-line="9" selection-end-column="47" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/UrlTag.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="126">
+          <caret line="6" column="16" lean-forward="false" selection-start-line="6" selection-start-column="16" selection-end-line="6" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/hjson/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="8" column="16" lean-forward="false" selection-start-line="8" selection-start-column="6" selection-end-line="8" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/mod.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="469">
+          <caret line="39" column="37" lean-forward="false" selection-start-line="39" selection-start-column="30" selection-end-line="39" selection-end-column="37" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/Pipeline.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1119">
+          <caret line="366" column="96" lean-forward="false" selection-start-line="366" selection-start-column="96" selection-end-line="366" selection-end-column="96" />
+          <folding>
+            <element signature="n#!!block;n#Pipeline#0" expanded="false" />
+            <element signature="e#5005#5361#0" expanded="false" />
+            <element signature="e#5489#6498#0" expanded="false" />
+            <element signature="e#6632#7524#0" expanded="false" />
+            <element signature="e#7592#8081#0" expanded="false" />
+            <element signature="e#14135#14849#0" expanded="false" />
+            <element signature="e#15065#16556#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/ImageSourceSet.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="699">
+          <caret line="122" column="25" lean-forward="false" selection-start-line="122" selection-start-column="16" selection-end-line="122" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/Resource.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="851">
+          <caret line="55" column="33" lean-forward="false" selection-start-line="55" selection-start-column="18" selection-end-line="55" selection-end-column="33" />
+          <folding>
+            <element signature="e#4183#4548#0" expanded="false" />
+            <element signature="e#8198#9247#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/domain/ResourceReference.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="690">
+          <caret line="43" column="28" lean-forward="false" selection-start-line="43" selection-start-column="18" selection-end-line="43" selection-end-column="33" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/domain/RssChannel.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="486">
-          <caret line="26" column="0" lean-forward="false" selection-start-line="26" selection-start-column="0" selection-end-line="26" selection-end-column="0" />
-          <folding>
-            <element signature="e#8661#9064#0" expanded="false" />
-            <element signature="e#9118#9119#0" expanded="true" />
-            <element signature="e#9141#9142#0" expanded="true" />
-            <element signature="e#9219#9220#0" expanded="true" />
-            <element signature="e#9246#9247#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/domain/mod.rs">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1086">
-          <caret line="106" column="26" lean-forward="false" selection-start-line="106" selection-start-column="26" selection-end-line="106" selection-end-column="26" />
+        <state relative-caret-position="459">
+          <caret line="57" column="10" lean-forward="false" selection-start-line="57" selection-start-column="10" selection-end-line="57" selection-end-column="10" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/domain/RssFeedlyChannel.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="432">
-          <caret line="23" column="48" lean-forward="true" selection-start-line="23" selection-start-column="48" selection-end-line="23" selection-end-column="48" />
-          <folding>
-            <element signature="e#1622#4356#0" expanded="false" />
-            <element signature="e#3764#3765#0" expanded="true" />
-            <element signature="e#3840#3841#0" expanded="true" />
-            <element signature="e#3908#3909#0" expanded="true" />
-            <element signature="e#3980#3981#0" expanded="true" />
-            <element signature="e#4048#4049#0" expanded="true" />
-            <element signature="e#4130#4131#0" expanded="true" />
-            <element signature="e#4191#4192#0" expanded="true" />
-            <element signature="e#4216#4217#0" expanded="true" />
-            <element signature="e#4270#4271#0" expanded="true" />
-            <element signature="e#4280#4281#0" expanded="true" />
-            <element signature="e#4343#4344#0" expanded="true" />
-            <element signature="e#4353#4354#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="506">
+          <caret line="52" column="20" lean-forward="false" selection-start-line="52" selection-start-column="20" selection-end-line="52" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>

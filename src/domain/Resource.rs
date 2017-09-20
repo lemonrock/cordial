@@ -14,7 +14,7 @@ pub(crate) struct Resource
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
 	#[serde(default, skip_deserializing)] resourceOutputRelativeUrl: String,
-	#[serde(default, skip_deserializing)] urls: HashMap<String, HashMap<UrlTag, Url>>,
+	#[serde(default, skip_deserializing)] urls: HashMap<String, HashMap<UrlTag, (Url, Rc<JsonValue>)>>,
 	#[serde(default, skip_deserializing)] resourceIfDataUri: HashMap<Url, RegularAndPjaxStaticResponse>,
 }
 
@@ -33,41 +33,75 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn resource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag, newResources: &'b Resources) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
+	pub(crate) fn urlAndResource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag, newResources: &'b Resources) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
 	{
-		let (isForPrimaryLanguageOnly, _isVersioned) = self.pipeline.is();
-		let key = if isForPrimaryLanguageOnly
+		match self.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
 		{
-			primary_iso_639_1_alpha_2_language_code
+			None => None,
+			Some(url) =>
+			{
+				if self.is_data_uri
+				{
+					Some((resource.toDataUri(), self.resourceIfDataUri.get(url).expect("BUG: data-uri resource missing")))
+				}
+				else
+				{
+					Some((url, newResources.getLatestResponse(url).expect("BUG: newResources resource missing")))
+				}
+			}
 		}
-		else if let Some(iso_639_1_alpha_2_language_code) = iso_639_1_alpha_2_language_code
-		{
-			iso_639_1_alpha_2_language_code
-		}
-		else
-		{
-			primary_iso_639_1_alpha_2_language_code
-		};
-		match self.urls.get(key)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn urlAndJsonValue<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag) -> Option<(&'a Url, Rc<JsonValue>)>
+	{
+		match self.urls.get(self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code))
 		{
 			None => None,
 			Some(urlTags) => match urlTags.get(urlTag)
 			{
 				None => None,
-				Some(url) =>
-				{
-					if self.is_data_uri
-					{
-						let resource = self.resourceIfDataUri.get(url).expect("BUG: data-uri resource missing");
-						
-						Some((resource.toDataUri(), resource))
-					}
-					else
-					{
-						Some((url, newResources.getLatestResponse(url).expect("BUG: newResources resource missing")))
-					}
-				}
+				Some((url, jsonValue)) => Some((url, jsonValue))
 			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn url<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag) -> Option<&'a Url>
+	{
+		match self.urls.get(self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code))
+		{
+			None => None,
+			Some(urlTags) => match urlTags.get(urlTag)
+			{
+				None => None,
+				Some((url, _)) => Some(url)
+			}
+		}
+	}
+	
+	#[inline(always)]
+	fn urlKey(&self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> &str
+	{
+		let (isForPrimaryLanguageOnly, _isVersioned) = self.pipeline.is();
+		if isForPrimaryLanguageOnly
+		{
+			primary_iso_639_1_alpha_2_language_code
+		}
+		else if let Some(iso_639_1_alpha_2_language_code) = iso_639_1_alpha_2_language_code
+		{
+			if self.urls.contains_key(iso_639_1_alpha_2_language_code)
+			{
+				iso_639_1_alpha_2_language_code
+			}
+			else
+			{
+				primary_iso_639_1_alpha_2_language_code
+			}
+		}
+		else
+		{
+			primary_iso_639_1_alpha_2_language_code
 		}
 	}
 	
@@ -110,7 +144,7 @@ impl Resource
 					None
 				};
 				
-				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::with_capacity(result.len() * 3));
+				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
 				
 				let inputContentFilePath = if isForPrimaryLanguageOnly
 				{
@@ -127,9 +161,9 @@ impl Resource
 				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
 				let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
-				for (mut url, urlTags, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
+				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
-					debug_assert!(!urlTags.is_empty(), "urlTags is empty");
+					debug_assert!(!urlTagAndJsonValuePairs.is_empty(), "urlTags is empty");
 					
 					let hasPjax = pjax.is_some();
 					
@@ -166,9 +200,9 @@ impl Resource
 						url.set_query(Some(&format!("v={}", newResponse.entityTag())));
 					}
 					
-					for urlTag in urlTags
+					for (urlTag, jsonValue) in urlTagAndJsonValuePairs.iter()
 					{
-						urls.insert(urlTag, url.clone());
+						urls.insert(urlTag, (url.clone(), jsonValue));
 					}
 					
 					if self.is_data_uri

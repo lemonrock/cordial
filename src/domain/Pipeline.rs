@@ -265,7 +265,7 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let mut canBeCompressed = true;
 		
@@ -299,7 +299,7 @@ impl Pipeline
 				
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(mimeType), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut md { max_age_in_seconds: _, .. } =>
@@ -316,6 +316,10 @@ impl Pipeline
 //				Add to WebPageSiteMaps; detect videos and images  (see https://developers.google.com/webmasters/videosearch/sitemaps)
 				// Supporting video: https://www.html5rocks.com/en/tutorials/video/basics/
 
+				//
+				
+				//let synopsisHtml = markdown_to_html(&rssItemLanguageVariant.webPageSynopsisMarkdown, markdownOptions);
+				
 //				Ok(result)
 				panic!("Implement me");
 			}
@@ -338,7 +342,7 @@ impl Pipeline
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, true)?;
-				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut scss { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
@@ -346,7 +350,7 @@ impl Pipeline
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, false)?;
-				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut svg { max_age_in_seconds, is_downloadable, do_not_optimize, .. } =>
@@ -360,13 +364,13 @@ impl Pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
 			}
 		}
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
 		

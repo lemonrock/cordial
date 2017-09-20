@@ -16,6 +16,7 @@ extern crate brotli2;
 extern crate chardet;
 extern crate chrono;
 extern crate clap;
+extern crate comrak;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
 extern crate futures;

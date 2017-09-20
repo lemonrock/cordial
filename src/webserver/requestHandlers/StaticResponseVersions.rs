@@ -43,7 +43,7 @@ pub(crate) enum StaticResponseVersions
 impl StaticResponseVersions
 {
 	#[inline(always)]
-	fn lastModified(&self) -> HttpDate
+	pub(crate) fn lastModified(&self) -> HttpDate
 	{
 		use self::StaticResponseVersions::*;
 		
@@ -68,6 +68,20 @@ impl StaticResponseVersions
 			{
 				previousLastModified
 			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn latestResponse<'a>(&'a self) -> &'a RegularAndPjaxStaticResponse
+	{
+		use self::StaticResponseVersions::*;
+		
+		match *self
+		{
+			Unversioned { ref currentResponse, .. } => currentResponse,
+			SingleVersion { ref currentResponse, .. } => currentResponse,
+			HasPrevisionVersion { ref currentResponse, .. } => currentResponse,
+			Discontinued { ref previousResponse, .. } => previousResponse,
 		}
 	}
 	

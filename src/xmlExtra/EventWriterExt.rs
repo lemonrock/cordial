@@ -8,10 +8,16 @@ pub(crate) trait EventWriterExt
 	fn writeBasicXmlDocumentPreamble(&mut self) -> XmlWriterResult;
 	
 	#[inline(always)]
+	fn writeProcessingInstruction(&mut self, name: &str, data: Option<&str>) -> XmlWriterResult;
+	
+	#[inline(always)]
 	fn writeSimpleStartElement<'a>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>]) -> XmlWriterResult;
 	
 	#[inline(always)]
 	fn writeText(&mut self, text: &str) -> XmlWriterResult;
+	
+	#[inline(always)]
+	fn writeCData(&mut self, text: &str) -> XmlWriterResult;
 	
 	#[inline(always)]
 	fn writeEndElement<'a>(&mut self, name: Name<'a>) -> XmlWriterResult;
@@ -21,6 +27,9 @@ pub(crate) trait EventWriterExt
 	
 	#[inline(always)]
 	fn writeTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: Name<'a>, text: &str) -> XmlWriterResult;
+	
+	#[inline(always)]
+	fn writeCDataElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: Name<'a>, text: &str) -> XmlWriterResult;
 	
 	#[inline(always)]
 	fn writeUnprefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, text: &str) -> XmlWriterResult;
@@ -46,6 +55,12 @@ impl<W: Write> EventWriterExt for EventWriter<W>
 	}
 	
 	#[inline(always)]
+	fn writeProcessingInstruction(&mut self, name: &str, data: Option<&str>) -> XmlWriterResult
+	{
+		self.write(XmlEvent::processing_instruction(name, data))
+	}
+	
+	#[inline(always)]
 	fn writeSimpleStartElement<'a>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>]) -> XmlWriterResult
 	{
 		self.write(XmlEvent::StartElement
@@ -60,6 +75,12 @@ impl<W: Write> EventWriterExt for EventWriter<W>
 	fn writeText(&mut self, text: &str) -> XmlWriterResult
 	{
 		self.write(XmlEvent::Characters(text))
+	}
+	
+	#[inline(always)]
+	fn writeCData(&mut self, text: &str) -> XmlWriterResult
+	{
+		self.write(XmlEvent::CData(text))
 	}
 	
 	#[inline(always)]
@@ -83,10 +104,17 @@ impl<W: Write> EventWriterExt for EventWriter<W>
 	{
 		self.writeSimpleStartElement(name, namespace, attributes)?;
 		{
-			if !text.is_empty()
-			{
-				self.writeText(text)?;
-			}
+			self.writeText(text)?;
+		}
+		self.writeEndElement(name)
+	}
+	
+	#[inline(always)]
+	fn writeCDataElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: Name<'a>, text: &str) -> XmlWriterResult
+	{
+		self.writeSimpleStartElement(name, namespace, attributes)?;
+		{
+			self.writeCData(text)?;
 		}
 		self.writeEndElement(name)
 	}

@@ -5,8 +5,11 @@
       <w>bindgen</w>
       <w>brotli</w>
       <w>canonicalized</w>
+      <w>chardet</w>
+      <w>chrono</w>
       <w>chunksize</w>
       <w>cloexec</w>
+      <w>comrak</w>
       <w>cpus</w>
       <w>cvlan</w>
       <w>daemonize</w>
@@ -25,6 +28,7 @@
       <w>errormsg</w>
       <w>failover</w>
       <w>fclass</w>
+      <w>feedly</w>
       <w>flowinfo</w>
       <w>funcs</w>
       <w>getinfo</w>
@@ -112,6 +116,7 @@
       <w>unsharpen</w>
       <w>unsubscribes</w>
       <w>unversioned</w>
+      <w>webfeeds</w>
       <w>webserver</w>
       <w>werror</w>
       <w>whitelist</w>

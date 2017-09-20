@@ -29,8 +29,8 @@ impl SiteMap
 	#[inline(always)]
 	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &[SiteMapWebPage]) -> Result<(), CordialError>
 	{
-		let primary_iso_639_1_alpha_2_language_code = languageData.0;
-		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;
+		let iso_639_1_alpha_2_language_code = languageData.0;
+		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
 		
 		let namespace = Namespace
 		(
@@ -91,12 +91,13 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap-index.{}.{}.xmlExtra", index, primary_iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code)).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
-			let siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
+			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
+			siteMapIndexBodyUncompressed.shrink_to_fit();
 			let siteMapIndexBodyCompressed = self.compression.compress(&siteMapIndexBodyUncompressed)?;
 			
-			let xmlMimeType = "application/xmlExtra; charset=utf-8".parse().unwrap();
+			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
 			
 			siteMapIndexUrls.insert(unversionedCanonicalUrl.clone());
@@ -112,8 +113,8 @@ impl SiteMap
 	#[inline(always)]
 	fn writeSiteMapFiles<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
-		let primary_iso_639_1_alpha_2_language_code = languageData.0;
-		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl()?;
+		let iso_639_1_alpha_2_language_code = languageData.0;
+		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
 		
 		let namespace = Namespace
 		(
@@ -150,7 +151,7 @@ impl SiteMap
 				{
 					startingIndex += 1;
 					
-					if webPage.writeXml(primary_iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)?
+					if webPage.writeXml(iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)?
 					{
 						count += 1;
 						
@@ -169,12 +170,13 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("sitemap.{}.{}.xmlExtra", urlAndResponse.len(), primary_iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("{}.sitemap.{}.xml", urlAndResponse.len(), iso_639_1_alpha_2_language_code)).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
-			let siteMapBodyUncompressed = eventWriter.into_inner().bytes();
+			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
+			siteMapBodyUncompressed.shrink_to_fit();
 			let siteMapBodyCompressed = self.compression.compress(&siteMapBodyUncompressed)?;
 			
-			let xmlMimeType = "application/xmlExtra; charset=utf-8".parse().unwrap();
+			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapBodyUncompressed, Some(siteMapBodyCompressed));
 			
 			urlAndResponse.push((unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse)));

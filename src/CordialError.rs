@@ -114,6 +114,14 @@ quick_error!
 			context(path: &'a Path, cause: ::image::ImageError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotParseMimeType(cause: ::hyper::mime::FromStrError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not parse MIME type because: {}", cause)
+			from()
+		}
+		
 		CouldNotRenderHandlebarsTemplate(cause: ::handlebars::TemplateRenderError)
 		{
 			cause(cause)

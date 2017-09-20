@@ -21,6 +21,16 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
 		#[serde(default)] is_leaf: bool,
 		
+		// open graph, RSS, schema.org
+		publication_date: SystemTime,
+		
+		// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
+		// empty modifications imply use of publication date
+		#[serde(default)] modifications: BTreeMap<SystemTime, HashMap<String, String>>,
+		
+		// open graph
+		#[serde(default)] expiration_date: Option<SystemTime>,
+		
 		abstracts: HashMap<String, Abstract>,
 		/*
 		{
@@ -90,9 +100,6 @@ pub(crate) enum Pipeline
 		// By language code. Used in alt tag
 		descriptions: HashMap<String, ImageAbstract>,
 	}
-//	sitemap, // xmlExtra
-//	robots,
-//	rss, // xmlExtra
 //	json,
 //	// js,
 //	gif (animations only),
@@ -102,6 +109,23 @@ pub(crate) enum Pipeline
 	// empty body
 	// Needs access to site configuration in order to write out the 'Location' header
 	// header field values are visible US-ASCII, ie 32 - 126 incl
+}
+
+impl Default for Pipeline
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Pipeline::raw
+		{
+			max_age_in_seconds: Self::max_age_in_seconds_long_default(),
+			is_downloadable: Self::is_downloadable_false_default(),
+			is_versioned: Self::is_versioned_true_default(),
+			language_aware: false,
+			can_be_compressed: None,
+			mime_type: None,
+		}
+	}
 }
 
 impl Pipeline
@@ -241,11 +265,12 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, unversionedCanonicalUrl: Url, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let mut canBeCompressed = true;
 		
 		use self::Pipeline::*;
+		use self::UrlTag::*;
 		match self
 		{
 			&mut raw { max_age_in_seconds, is_downloadable, can_be_compressed, ref mime_type, .. } =>
@@ -274,7 +299,7 @@ impl Pipeline
 				
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-				Ok(vec![(unversionedCanonicalUrl, ContentType(mimeType), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut md { max_age_in_seconds: _, .. } =>
@@ -313,7 +338,7 @@ impl Pipeline
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, true)?;
-				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut scss { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
@@ -321,7 +346,7 @@ impl Pipeline
 				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, false)?;
-				Ok(vec![(unversionedCanonicalUrl, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut svg { max_age_in_seconds, is_downloadable, do_not_optimize, .. } =>
@@ -335,13 +360,13 @@ impl Pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(unversionedCanonicalUrl, ContentType("image/svg+xmlExtra".parse().unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(unversionedCanonicalUrl, hashset![default], ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
 			}
 		}
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
 		

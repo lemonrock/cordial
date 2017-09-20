@@ -6,19 +6,19 @@ pub(crate) struct DiscoverResources
 {
 	prefix: PathBuf,
 	resourceTemplates: ResourceTemplates,
-	resources: BTreeMap<ProcessingPriority, Vec<Resource>>
+	resources: BTreeMap<String, Resource>,
 }
 
 impl DiscoverResources
 {
-	pub(crate) fn discoverResourcesByProcessingPriority(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<ProcessingPriority, Vec<Resource>>, CordialError>
+	pub(crate) fn discover(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<String, Resource>, CordialError>
 	{
 		let prefix = inputFolderPath.join("root");
 		let mut this = Self
 		{
 			prefix: prefix.clone(),
 			resourceTemplates: ResourceTemplates::new(configuration),
-			resources: ProcessingPriority::newBTreeMap(1024),
+			resources: BTreeMap::new(),
 		};
 		this.processRootFile(inputFolderPath)?;
 		this.processFolder(&prefix)?;
@@ -28,7 +28,7 @@ impl DiscoverResources
 	#[inline(always)]
 	fn insertResource(&mut self, resource: Resource)
 	{
-		self.resources.get_mut(&resource.pipeline.processingPriority()).unwrap().push(resource);
+		self.resources.insert(resource.resourceOutputRelativeUrl().to_owned(), resource);
 	}
 	
 	#[inline(always)]

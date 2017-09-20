@@ -169,6 +169,24 @@ impl Resources
 	}
 	
 	#[inline(always)]
+	pub fn getLatestResponse<'a>(&'a self, url: &Url) -> Option<&'a RegularAndPjaxStaticResponse>
+	{
+		match url.host_str()
+		{
+			None => None,
+			Some(hostName) => match self.resourcesByHostNameAndPathAndQueryString.get(hostName)
+			{
+				None => None,
+				Some(trie) => match trie.get(url.path())
+				{
+					None => None,
+					Some(staticResponseVersions) => Some(staticResponseVersions.latestResponse())
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
 	fn response<'a>(&self, isHead: bool, hostName: &str, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers) -> Response
 	{
 		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)

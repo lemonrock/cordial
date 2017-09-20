@@ -29,9 +29,9 @@ impl SiteMapWebPage
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
 	{
-		let locationUrl = self.urlsByIsoLanguageCode.get(primary_iso_639_1_alpha_2_language_code);
+		let locationUrl = self.urlsByIsoLanguageCode.get(iso_639_1_alpha_2_language_code);
 		if locationUrl.is_none()
 		{
 			return Ok(false);

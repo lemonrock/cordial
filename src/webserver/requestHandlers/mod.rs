@@ -3,6 +3,8 @@
 
 
 use super::*;
+use ::base64::encode_config as base64Encode;
+use ::base64::STANDARD;
 use ::futures::future::Either;
 use ::futures::future::Empty;
 use ::futures::future::Future;

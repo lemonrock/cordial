@@ -4,15 +4,15 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ProcessingPriority
+pub(crate) enum UrlTag
 {
-	NoDependenciesEgImage,
-	DependsOnOthersEgStylesheet,
-	LinksToSubResourcesEgHtmlPage,
-	IndexesEgSiteMap,
-}
-
-impl ProcessingPriority
-{
-	pub const All: [ProcessingPriority; 4] = [NoDependenciesEgImage, DependsOnOthersEgStylesheet, LinksToSubResourcesEgHtmlPage, IndexesEgSiteMap];
+	default,
+	smallest_image,
+	largest_image,
+	primary_image,
+	width_image(u32),
+	height_image(u32),
+	width_height_image(u32, u32),
+	
+	amp,
 }

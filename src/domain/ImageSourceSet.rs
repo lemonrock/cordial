@@ -90,7 +90,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, HashSet<UrlTag>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -102,21 +102,40 @@ impl<'a> ImageSourceSet<'a>
 		};
 		
 		let mut urls = Vec::with_capacity(self.imagesInOrder.len());
+		let mut index = 0;
+		let finalIndex = self.imagesInOrder.len() - 1;
 		for (width, image) in self.imagesInOrder.iter()
 		{
 			let width = *width;
-			let url = if width == self.primaryImageWidth
+			let (url, isPrimary) = if width == self.primaryImageWidth
 			{
-				self.primaryUnversionedUrl.clone()
+				(self.primaryUnversionedUrl.clone(), true)
 			}
 			else
 			{
-				Self::widthUrl(width, &self.primaryUnversionedUrl, fileExtension)
+				(Self::widthUrl(width, &self.primaryUnversionedUrl, fileExtension), false)
 			};
 			
 			let body = self.optimize(image)?;
 			let headers = headerGenerator(&url, canBeCompressed)?;
-			urls.push((url, contentType.clone(), headers, body, None, canBeCompressed))
+			
+			use self::UrlTag::*;
+			
+			let mut urlTags = hashset!(width_image(width), height_image(height), width_height_image(width, height));
+			if isPrimary
+			{
+				urlTags.insert(default);
+			}
+			if index == 0
+			{
+				urlTags.insert(smallest);
+			}
+			if index == finalIndex
+			{
+				urlTags.insert(largest);
+			}
+			urls.push((url, urlTags, contentType.clone(), headers, body, None, canBeCompressed));
+			index += 1;
 		}
 		Ok(urls)
 	}

@@ -38,6 +38,38 @@ impl RegularAndPjaxStaticResponse
 	}
 	
 	#[inline(always)]
+	pub(crate) fn contentMimeType<'a>(&'a self) -> &'a Mime
+	{
+		&self.regular.contentType.0
+	}
+	
+	#[inline(always)]
+	pub(crate) fn toDataUri(&self) -> Url
+	{
+		let dataUriString = format!("data:{};base64,{}", resource.contentMimeType(), base64Encode(&regular.uncompressedBody, STANDARD));
+		Url.parse(dataUriString).unwrap()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn contentMimeTypeWithoutParameters<'a>(&'a self) -> Mime
+	{
+		let mimeTypeWithParameters = self.contentMimeType();
+		
+		let type_ = mimeTypeWithParameters.type_();
+		let subtype = mimeTypeWithParameters.subtype();
+		
+		let mimeString = if let Some(suffix) = mimeTypeWithParameters.suffix()
+		{
+			format!("{}/{}+{}", type_, subtype, suffix)
+		}
+		else
+		{
+			format!("{}/{}", type_, subtype)
+		};
+		mimeString.parse().unwrap()
+	}
+	
+	#[inline(always)]
 	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		if isPjax && self.pjax.is_some()

@@ -2,17 +2,11 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ProcessingPriority
+#[derive(Debug, Clone)]
+pub(crate) struct RssItemLanguageVariant
 {
-	NoDependenciesEgImage,
-	DependsOnOthersEgStylesheet,
-	LinksToSubResourcesEgHtmlPage,
-	IndexesEgSiteMap,
-}
-
-impl ProcessingPriority
-{
-	pub const All: [ProcessingPriority; 4] = [NoDependenciesEgImage, DependsOnOthersEgStylesheet, LinksToSubResourcesEgHtmlPage, IndexesEgSiteMap];
+	pub(crate) webPageDescription: String, // eg HTML <meta name="description">, used for RSS title
+	pub(crate) webPageSynopsisMarkdown: CommonMarkAndGitHubFlavouredMarkdown, // A short paragraph synopsis of the web page, can contain embedded HTML; probably best as markdown
+	pub(crate) languageSpecificUrl: Url,
+	pub(crate) primaryImage: RssImage,
 }

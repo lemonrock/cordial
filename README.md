@@ -76,6 +76,8 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have both an index and a leaf resource for an URL end path segment (eg '' for `https://example.com/about/` and 'about' for `https://example.com/about`). In practice this is rarely an issue. [cordial] supports automatic redirects for one to the other (one can specify which way).
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
+* RSS feeds can not have XSL or CSS stylesheets. In practice, the only common user of these now is the RSS renderer (not extension) in Chrome which is only used for RSS URLs.
+
 
 ## Licensing
 
@@ -109,20 +111,8 @@ The license for this project is AGPL-3.0.
 	* HTML
 		* extract PJAX automatically with CSS selectors
 		* Explore using [spongedown](https://ivanceras.github.io/spongedown/) because it allows creating charts and emoji faces; builds on [comrak](https://crates.io/crates/comrak), a commonmark and GitHub Flavoured Markdown renderer
-	* XML
-		* Minify
-		* Sitemap
-			* one per host name, or one per language
-		* RSS
-		* <https://crates.io/crates/quick-xmlExtra> or <https://rahulg.github.io/treexml-rs/treexml/index.html>
 	* GIF
 		* engiffen
-	* Images
-		* image source sets
-		* calculating size and embedding into resource / pipeline
-	* Robots.txt
-		* one per host name
-	* Raw
 	* CSS
 		* Simple minifications
 		* Embedding images into the stylesheet as data-uris
@@ -138,10 +128,24 @@ The license for this project is AGPL-3.0.
 		* Svg2Png, then go from there, really. Multiple outputs.
 	* [kuchiki](https://crates.io/crates/kuchiki) or [scraper](https://crates.io/crates/scraper) for manipulating HTML & XML with CSS selectors or [select](https://crates.io/crates/select)
 * Modify zopfli crate to allow specifying options
-* Sitemaps
-	* 50,000 URL / size limit respected
-	* Translations
+* RSS
+	* ?Register with Feedly, InoReader, Bazqux, The Older Reader and Feedbin?
+	* Support itunes extensions for podcasts
+	* <https://blog.feedly.com/10-ways-to-optimize-your-feed-for-feedly/>
 * SEO
+* Fonts
+	* WOFF and WOFF2 cover all modern browsers
+	* Generation of WebFonts (eg WOFF2) from an input file
+	* Creation of icon fonts from SVGs or other fonts
+		* take a folder of svg glyphs
+		* or use IcoMoon online service
+	* Use [FontSquirrel](https://www.fontsquirrel.com/tools/webfont-generator) to generate font variants
+* SVG & Markdown extensions
+	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
+	* svgbob
+	* comic (ascii faces to SVG)
+	* csv table from spongedown
+	* [memenhancer](https://github.com/ivanceras/memenhancer)
 
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly

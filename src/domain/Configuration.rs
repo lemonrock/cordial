@@ -12,6 +12,7 @@ pub(crate) struct Configuration
 	localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] sitemap: SiteMap,
+	#[serde(default)] rss: RssChannel,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
@@ -81,9 +82,9 @@ impl Configuration
 	{
 		let mut handlebars = self.registerHandlebarsTemplates()?;
 		
-		let resourcesByProcessingPriority = self.discoverResources()?;
+		let resources = self.discoverResources()?;
 		
-		let newResources = self.renderResources(resourcesByProcessingPriority, &oldResources, &ourHostNames, &mut handlebars)?;
+		let newResources = self.renderResources(resources, &oldResources, &ourHostNames, &mut handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
 	}
 	
@@ -107,31 +108,33 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn discoverResources(&self) -> Result<BTreeMap<ProcessingPriority, Vec<Resource>>, CordialError>
+	fn discoverResources(&self) -> Result<BTreeMap<String, Resource>, CordialError>
 	{
-		DiscoverResources::discoverResourcesByProcessingPriority(&self, &self.inputFolderPath)
+		DiscoverResources::discover(&self, &self.inputFolderPath)
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resourcesByProcessingPriority: BTreeMap<ProcessingPriority, Vec<Resource>>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
+	fn renderResources(&self, mut resources: BTreeMap<String, Resource>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
 	{
 		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
 		
-		let mut siteMapWebPages = Vec::with_capacity(4096);
+		let mut siteMapWebPages = HashMap::with_capacity(self.localization.len());
+		let mut rssItems = HashMap::with_capacity(self.localization.len());
 		
-		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+		for processingPriority in ProcessingPriority::All
 		{
-			for resources in resourcesByProcessingPriority.values_mut()
+			for resource in newResources.values()
 			{
-				for resource in resources.iter_mut()
+				if resource.hasProcessingPriority(processingPriority)
 				{
-					resource.render(iso_639_1_alpha_2_language_code, language, &mut newResources, oldResources.clone(), self, handlebars, &mut siteMapWebPages)?
+					resource.render(&mut newResources, oldResources, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
 			}
-			Ok(())
-		})?;
+		}
 		
 		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, siteMapWebPages)?;
+		
+		self.renderRssFeeds(rssItems)?;
 		
 		newResources.addAnythingThatIsDiscontinued(oldResources);
 		
@@ -148,7 +151,7 @@ impl Configuration
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
 			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, &siteMapWebPages[..])?;
-			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url());
+			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url(iso_639_1_alpha_2_language_code));
 			
 			Ok(())
 		})?;
@@ -161,6 +164,12 @@ impl Configuration
 		}
 		
 		Ok(())
+	}
+	
+	#[inline(always)]
+	fn renderRssFeeds(&self, rssItems: HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
+	{
+		self.rss.
 	}
 	
 	#[inline(always)]

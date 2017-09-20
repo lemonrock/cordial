@@ -2,17 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ProcessingPriority
-{
-	NoDependenciesEgImage,
-	DependsOnOthersEgStylesheet,
-	LinksToSubResourcesEgHtmlPage,
-	IndexesEgSiteMap,
-}
-
-impl ProcessingPriority
-{
-	pub const All: [ProcessingPriority; 4] = [NoDependenciesEgImage, DependsOnOthersEgStylesheet, LinksToSubResourcesEgHtmlPage, IndexesEgSiteMap];
-}
+pub type FullName = String;

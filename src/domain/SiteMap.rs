@@ -27,7 +27,7 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, newResources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.0;
 		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
@@ -74,7 +74,7 @@ impl SiteMap
 						{
 							let namespace = &namespace;
 							let emptyAttributes = &emptyAttributes;
-							let resources = &mut *resources;
+							let resources = &mut *newResources;
 							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move |eventWriter|
 							{
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
@@ -101,7 +101,7 @@ impl SiteMap
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
 			
 			siteMapIndexUrls.insert(unversionedCanonicalUrl.clone());
-			resources.addResource(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResources.clone());
+			newResources.addResource(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResources.clone());
 			
 			index += 1;
 		}

@@ -3,25 +3,20 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RssChannel
 {
 	// Should have MIME types of text/xsl or text/css, eg <?xml-stylesheet type="text/xsl" media="screen" href="/~d/styles/rss2full.xsl"?><?xml-stylesheet type="text/css" media="screen" href="http://feeds.feedburner.com/~d/styles/itemcontent.css"?>
 	// Only seem to be used by Chrome
-	#[serde(default)] stylesheets: Vec<ResourceReference>,
+	#[serde(default)] stylesheets: Vec<StylesheetLink>,
 	#[serde(default = "RssChannel::external_stylesheet_mime_type_default")] external_stylesheet_mime_type: String,
-	title: String, // should default to home page or feed title; need access to web pages collection
-	description: String, // should default to
-	
-	// Maximum value for width is 144, default value is 88.
-	// Maximum value for height is 400, default value is 31.
-	// Probably should use organization logo
-	// BBC uses 120x60, NYT 250x40, Google Publisher logos are 60x600px maximum
+	title: HashMap<String, String>, // should default to home page or feed title; need access to web pages collection; by iso code
+	description: HashMap<String, String>, // by iso code
 	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
-	image_alt: String, // this is the img element's alt attribute; in practice it should match RssChannel.title
-	image_tooltip: String, // this is the a element's title attribute, ie tooltip
+	image_alt: HashMap<String, String>, // this is the img element's alt attribute; in practice it should match RssChannel.title; by iso code
+	image_tooltip: HashMap<String, String>, // this is the a element's title attribute, ie tooltip; by iso code
 	
-	copyright: String,
+	copyright: HashMap<String, String>, // by iso code
 	managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	web_master: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] categories: Vec<String>,
@@ -30,30 +25,68 @@ pub(crate) struct RssChannel
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default = "RssChannel::max_age_in_seconds_default")] max_age_in_seconds: u32,
 	#[serde(default)] compression: Compression,
+	
+	// rating, textInput, skipHours and skipDays are not generated
 }
 
 impl RssChannel
 {
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>) -> Result<(), CordialError>
+	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
-		const FeedlyDescriptionLength: usize = 140;
-		if self.description.len() > FeedlyDescriptionLength
-		{
-			return Err(CordialError::Configuration("RSS feed description exceeds Feedly's maximum of 140 characters".to_owned()))
-		}
-		
 		let iso_639_1_alpha_2_language_code = languageData.0;
 		let rssChannelBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
 		
+		let title = match self.title.get(iso_639_1_alpha_2_language_code)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS title for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(title) => title,
+		};
+		
+		let description = match self.description.get(iso_639_1_alpha_2_language_code)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS description for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(description) =>
+			{
+				const FeedlyDescriptionLength: usize = 140;
+				if description.len() > FeedlyDescriptionLength
+				{
+					return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
+				}
+				description
+			},
+		};
+		
+		let image_alt = match self.image_alt.get(iso_639_1_alpha_2_language_code)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS image_alt for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(image_alt) => image_alt,
+		};
+		
+		let image_tooltip = match self.image_tooltip.get(iso_639_1_alpha_2_language_code)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS image_tooltip for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(image_tooltip) => image_tooltip,
+		};
+		
+		let copyright = match self.copyright.get(iso_639_1_alpha_2_language_code)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS copyright for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(copyright) => copyright,
+		};
+		
 		let (imageUrl, imageWidthAndHeight) = match self.image_url.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
 		{
-			None => return Err(CordialError::Configuration(format!("Invalid rss.image_url {:?}", &self.image_url))),
-			Some((url, jsonValue)) =>
+			None => return Err(CordialError::Configuration(format!("Invalid RSS image_url {:?}", &self.image_url))),
+			Some((url, None)) =>
 			{
-				let width = jsonValue["width"].unwrap().as_u64().unwrap() as u32;
-				let height = jsonValue["height"].unwrap().as_u64().unwrap() as u32;
-				Some(url, Some(width, height))
+				(url, None)
+			}
+			Some((url, Some(jsonValue))) =>
+			{
+				let width = jsonValue["width"].as_u64().unwrap() as u32;
+				let height = jsonValue["height"].as_u64().unwrap() as u32;
+				(url, Some((width, height)))
 			}
 		};
 		
@@ -72,30 +105,25 @@ impl RssChannel
 		};
 		let unversionedCanonicalUrl = rssChannelBaseUrlWithTrailingSlash.join(&format!("{}.rss.xml", iso_639_1_alpha_2_language_code)).unwrap();
 		let rssItems = rssItems.get(iso_639_1_alpha_2_language_code).unwrap();
-		let namespace = Namespace(BTreeMap::new());
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
 		
 		eventWriter.writeBasicXmlDocumentPreamble()?;
 		
-		for stylesheet in self.stylesheets
+		for stylesheet in self.stylesheets.iter()
 		{
-			if let Some((url, response)) = stylesheet.urlAndResponse(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
+			let (url, media, mimeType, characterSet) = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)?;
+			
+			let data = if let Some(characterSet) = characterSet
 			{
-				let mimeType = if response.is_some()
-				{
-					response.contentMimeTypeWithoutParameters();
-				}
-				else
-				{
-					match self.external_stylesheet_mime_type.parse()
-					{
-						Err(error) => return Err(CordialError::Configuration(format!("Could not parse rss.external_stylesheet_mime_type because '{:?}", error))),
-						Ok(mimeType) => mimeType,
-					}
-				};
-				eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&format!("type=\"{}\" media=\"screen\" href=\"{}\"", mimeType, url)))?;
+				format!("type=\"{}\" media=\"{:?}\" href=\"{}\" charset=\"{}\"", mimeType, media, url, characterSet.as_ref())
 			}
+			else
+			{
+				format!("type=\"{}\" media=\"{:?}\" href=\"{}\"", mimeType, media, url)
+			};
+			
+			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
 		let namespace = Namespace
@@ -110,33 +138,33 @@ impl RssChannel
 			}
 		);
 		
-		let versionAttributes =
+		let attributes =
 		[
 			Attribute::new(Name::local("version"), "2.0"),
 		];
-		eventWriter.writeWithinElement(Name::local("rss"), &namespace, &versionAttributes, |eventWriter|
+		eventWriter.writeWithinElement(Name::local("rss"), &namespace, &attributes, |eventWriter|
 		{
 			eventWriter.writeWithinElement(Name::local("channel"), &namespace, &emptyAttributes, |eventWriter|
 			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", &self.title)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", title)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.1.baseUrl(languageData.0).unwrap().as_ref())?;
 				
-				if let Some(feedly) = self.feedly
+				if let Some(ref feedly) = self.feedly
 				{
-					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, newResources)?;
+					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, parentGoogleAnalyticsCode)?;
 				}
 				
-				let atomLinkAttributes =
+				let attributes =
 				[
 					Attribute::new(Name::local("rel"), "self"),
 					Attribute::new(Name::local("type"), "application/rss+xml"),
 					Attribute::new(Name::local("href"), unversionedCanonicalUrl.as_ref()),
 				];
-				eventWriter.writeEmptyElement(&namespace, &atomLinkAttributes, Name::prefixed("link", "atom"))?;
+				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
 				
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", &self.description)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.0)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", &self.copyright)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", copyright)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubDate", &deploymentDateTime.to_rfc2822())?;
@@ -151,8 +179,8 @@ impl RssChannel
 				eventWriter.writeWithinElement(Name::local("image"), &namespace, &emptyAttributes, |eventWriter|
 				{
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "url", imageUrl.as_str())?;
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", &self.image_alt)?;
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", &self.image_tooltip)?;
+					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", image_alt)?;
+					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", image_tooltip)?;
 					if let Some((width, height)) = imageWidthAndHeight
 					{
 						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "width", &format!("{}", width))?;
@@ -160,8 +188,6 @@ impl RssChannel
 					}
 					Ok(())
 				})?;
-				
-				// rating, textInput, skipHours and skipDays are not generated
 				
 				for rssItem in rssItems.iter()
 				{
@@ -210,9 +236,9 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn feedly_default() -> RssFeedlyChannel
+	fn feedly_default() -> Option<RssFeedlyChannel>
 	{
-		Feedly::default()
+		Some(RssFeedlyChannel::default())
 	}
 	
 	#[inline(always)]

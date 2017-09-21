@@ -15,7 +15,7 @@ pub(crate) struct Resource
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
 	#[serde(default, skip_deserializing)] resourceOutputRelativeUrl: String,
 	#[serde(default, skip_deserializing)] urls: HashMap<String, HashMap<UrlTag, (Url, Rc<JsonValue>)>>,
-	#[serde(default, skip_deserializing)] resourceIfDataUri: HashMap<Url, RegularAndPjaxStaticResponse>,
+	#[serde(default, skip_deserializing)] resourceIfDataUri: HashMap<Url, (RegularAndPjaxStaticResponse, Url)>,
 }
 
 impl Resource
@@ -29,11 +29,11 @@ impl Resource
 	#[inline(always)]
 	pub(crate) fn hasProcessingPriority(&self, processingPriority: ProcessingPriority) -> bool
 	{
-		self.pipeline.processingPriority()
+		self.pipeline.processingPriority() == processingPriority
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlAndResource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag, newResources: &'b Resources) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
+	pub(crate) fn urlAndResource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag, newResources: &'b Resources) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
 	{
 		match self.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
 		{
@@ -42,7 +42,8 @@ impl Resource
 			{
 				if self.is_data_uri
 				{
-					Some((resource.toDataUri(), self.resourceIfDataUri.get(url).expect("BUG: data-uri resource missing")))
+					let &(ref resource, ref dataUri) = self.resourceIfDataUri.get(url).expect("BUG: data-uri resource missing");
+					Some((dataUri, resource))
 				}
 				else
 				{
@@ -53,7 +54,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlAndJsonValue<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag) -> Option<(&'a Url, Rc<JsonValue>)>
+	pub(crate) fn urlAndJsonValue<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag) -> Option<(&'a Url, Rc<JsonValue>)>
 	{
 		match self.urls.get(self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code))
 		{
@@ -61,13 +62,13 @@ impl Resource
 			Some(urlTags) => match urlTags.get(urlTag)
 			{
 				None => None,
-				Some((url, jsonValue)) => Some((url, jsonValue))
+				Some(&(ref url, ref jsonValue)) => Some((url, jsonValue.clone()))
 			}
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn url<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: UrlTag) -> Option<&'a Url>
+	pub(crate) fn url<'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag) -> Option<&'a Url>
 	{
 		match self.urls.get(self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code))
 		{
@@ -75,13 +76,13 @@ impl Resource
 			Some(urlTags) => match urlTags.get(urlTag)
 			{
 				None => None,
-				Some((url, _)) => Some(url)
+				Some(&(ref url, _)) => Some(url)
 			}
 		}
 	}
 	
 	#[inline(always)]
-	fn urlKey(&self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> &str
+	fn urlKey<'a>(&self, primary_iso_639_1_alpha_2_language_code: &'a str, iso_639_1_alpha_2_language_code: Option<&'a str>) -> &'a str
 	{
 		let (isForPrimaryLanguageOnly, _isVersioned) = self.pipeline.is();
 		if isForPrimaryLanguageOnly
@@ -144,8 +145,6 @@ impl Resource
 					None
 				};
 				
-				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
-				
 				let inputContentFilePath = if isForPrimaryLanguageOnly
 				{
 					self.languageNeutralInputContentFilePath(primaryLanguage, None)?
@@ -158,9 +157,12 @@ impl Resource
 				let unversionedCanonicalUrl = self.unversionedUrl(iso_639_1_alpha_2_language_code, language)?;
 				
 				let mut siteMapWebPages = siteMapWebPages.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
+				
 				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
 				let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
+				
+				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
 				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
 					debug_assert!(!urlTagAndJsonValuePairs.is_empty(), "urlTags is empty");
@@ -202,12 +204,13 @@ impl Resource
 					
 					for (urlTag, jsonValue) in urlTagAndJsonValuePairs.iter()
 					{
-						urls.insert(urlTag, (url.clone(), jsonValue));
+						urls.insert(*urlTag, (url.clone(), jsonValue.clone()));
 					}
 					
 					if self.is_data_uri
 					{
-						self.resourceIfDataUri.insert(url, newResponse);
+						let dataUri = newResponse.toDataUri();
+						self.resourceIfDataUri.insert(url, (newResponse, dataUri));
 					}
 					else
 					{

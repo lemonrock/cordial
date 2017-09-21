@@ -3,10 +3,10 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ResourceReference
 {
-	absolute(Url),
+	absolute(#[serde(with = "url_serde")] Url),
 	internal(String, #[serde(default)] Option<UrlTag>),
 }
 
@@ -19,7 +19,7 @@ impl ResourceReference
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => url,
+			absolute(ref url) => Some(url),
 			internal(ref resourceOutputRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceOutputRelativeUrl)
@@ -32,7 +32,7 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						resource.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
+						resource.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag)
 					}
 				}
 			}
@@ -41,12 +41,12 @@ impl ResourceReference
 	
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a Url, Rc<JsonValue>)>
+	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a Url, Option<Rc<JsonValue>>)>
 	{
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => url,
+			absolute(ref url) => Some((url, None)),
 			internal(ref resourceOutputRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceOutputRelativeUrl)
@@ -59,7 +59,11 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
+						match resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag)
+						{
+							None => None,
+							Some((url, jsonValue)) => Some((url, Some(jsonValue)))
+						}
 					}
 				}
 			}
@@ -73,7 +77,7 @@ impl ResourceReference
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => url,
+			absolute(ref url) => Some((url, None)),
 			internal(ref resourceOutputRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceOutputRelativeUrl)
@@ -86,10 +90,10 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag, newResources)
+						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag, newResources)
 						{
 							None => None,
-							Some((url, response)) => Some(url, Some(response))
+							Some((url, response)) => Some((url, Some(response)))
 						}
 					}
 				}

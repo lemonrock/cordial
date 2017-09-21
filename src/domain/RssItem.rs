@@ -51,11 +51,14 @@ impl RssItem
 			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "author", &self.author.to_string())?;
 			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, "dc", "creator", &self.author.full_name)?;
 			
+			let fileSize = format!("{}", rssItemLanguageVariant.primaryImage.fileSize);
+			let width = format!("{}", rssItemLanguageVariant.primaryImage.width);
+			let height = format!("{}", rssItemLanguageVariant.primaryImage.height);
 			
 			let enclosureAttributes =
 			[
 				Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
-				Attribute::new(Name::local("length"), &format!("{}", rssItemLanguageVariant.primaryImage.fileSize)),
+				Attribute::new(Name::local("length"), &fileSize),
 				Attribute::new(Name::local("type"), rssItemLanguageVariant.primaryImage.mimeType.as_ref()),
 			];
 			eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
@@ -64,9 +67,9 @@ impl RssItem
 			[
 				Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
 				Attribute::new(Name::local("medium"), "image"),
-				Attribute::new(Name::local("height"), &format!("{}", rssItemLanguageVariant.primaryImage.height)),
-				Attribute::new(Name::local("width"), &format!("{}", rssItemLanguageVariant.primaryImage.width)),
-				Attribute::new(Name::local("fileSize"), &format!("{}", rssItemLanguageVariant.primaryImage.fileSize)),
+				Attribute::new(Name::local("height"), &height),
+				Attribute::new(Name::local("width"), &width),
+				Attribute::new(Name::local("fileSize"), &fileSize),
 				Attribute::new(Name::local("type"), rssItemLanguageVariant.primaryImage.mimeType.as_ref()),
 				Attribute::new(Name::local("lang"), iso_639_1_alpha_2_language_code),
 			];
@@ -78,8 +81,8 @@ impl RssItem
 				
 				let thumbnailAttributes =
 				[
-					Attribute::new(Name::local("width"), &format!("{}", rssItemLanguageVariant.primaryImage.width)),
-					Attribute::new(Name::local("height"), &format!("{}", rssItemLanguageVariant.primaryImage.height)),
+					Attribute::new(Name::local("width"), &width),
+					Attribute::new(Name::local("height"), &height),
 					Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
 				];
 				eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))

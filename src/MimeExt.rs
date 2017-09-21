@@ -2,46 +2,41 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
-struct UserNewType(User);
-
-impl Deref for UserNewType
-{
-	type Target = User;
-	
-	fn deref(&self) -> &User
-	{
-		&self.0
-	}
-}
-
-impl DerefMut for UserNewType
-{
-	fn deref_mut(&mut self) -> &mut User
-	{
-		&mut self.0
-	}
-}
-
-impl<'de> Deserialize<'de> for UserNewType
-{
-	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
-	{
-		deserializer.deserialize_any(StringOrNumberVisitor(PhantomData))
-	}
-}
-
-impl FromStringOrNumber for UserNewType
+pub(crate) trait MimeExt: Sized
 {
 	#[inline(always)]
-	fn from_str<'a>(value: &'a str) -> Self
+	fn withoutParameters(&self) -> Self;
+	
+	#[inline(always)]
+	fn characterSet<'a>(&'a self) -> Option<Name<'a>>;
+}
+
+impl MimeExt for Mime
+{
+	#[inline(always)]
+	fn withoutParameters(&self) -> Self
 	{
-		UserNewType(User::from(value))
+		let type_ = self.type_();
+		let subtype = self.subtype();
+		
+		let mimeString = if let Some(suffix) = self.suffix()
+		{
+			format!("{}/{}+{}", type_, subtype, suffix)
+		}
+		else
+		{
+			format!("{}/{}", type_, subtype)
+		};
+		mimeString.parse().unwrap()
 	}
 	
 	#[inline(always)]
-	fn from_u32(value: u32) -> Self
+	fn characterSet<'a>(&'a self) -> Option<Name<'a>>
 	{
-		UserNewType(User::from(value))
+		match self.get_param(mime::CHARSET)
+		{
+			None => None,
+			Some(value) => Some(value)
+		}
 	}
 }

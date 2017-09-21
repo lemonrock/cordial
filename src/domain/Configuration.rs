@@ -9,15 +9,41 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::maximum_number_of_tls_sessions_default")] maximum_number_of_tls_sessions: u32,
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
-	localization: Localization,
+	#[serde(default)] localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] sitemap: SiteMap,
-	#[serde(default)] rss: RssChannel,
+	#[serde(default)] rss: Option<RssChannel>,
+	#[serde(default)] google_analytics: Option<String>,
 	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] environment: String,
 	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] deploymentVersion: String,
+}
+
+impl Default for Configuration
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			daemon: Daemon::default(),
+			maximum_number_of_tls_sessions: Self::maximum_number_of_tls_sessions_default(),
+			http_keep_alive: Self::http_keep_alive_default(),
+			resource_template: None,
+			localization: Localization::default(),
+			robots: RobotsTxt::default(),
+			sitemap: SiteMap::default(),
+			rss: None,
+			google_analytics: None,
+			inputFolderPath: PathBuf::default(),
+			outputFolderPath: PathBuf::default(),
+			environment: String::default(),
+			deploymentDate: Self::deploymentDate_default(),
+			deploymentVersion: String::default(),
+		}
+	}
 }
 
 impl Configuration
@@ -46,7 +72,7 @@ impl Configuration
 	#[inline(always)]
 	fn finishReconfigure(self, oldResources: Arc<Resources>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
-		let ourHostNames = self.localization.serverHostNames()?;
+		let ourHostNames = self.ourHostNames()?;
 		
 		Ok
 		(
@@ -82,7 +108,7 @@ impl Configuration
 	{
 		let mut handlebars = self.registerHandlebarsTemplates()?;
 		
-		let resources = self.discoverResources()?;
+		let mut resources = self.discoverResources()?;
 		
 		let newResources = self.renderResources(&mut resources, &oldResources, &ourHostNames, &mut handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
@@ -117,15 +143,14 @@ impl Configuration
 	fn renderResources(&self, resources: &mut BTreeMap<String, Resource>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
 	{
 		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
+		let mut siteMapWebPages = self.languagesHashMap();
+		let mut rssItems = self.languagesHashMap();
 		
-		let mut siteMapWebPages = HashMap::with_capacity(self.localization.len());
-		let mut rssItems = HashMap::with_capacity(self.localization.len());
-		
-		for processingPriority in ProcessingPriority::All
+		for processingPriority in ProcessingPriority::All.iter()
 		{
-			for resource in resources.values()
+			for resource in resources.values_mut()
 			{
-				if resource.hasProcessingPriority(processingPriority)
+				if resource.hasProcessingPriority(*processingPriority)
 				{
 					resource.render(&mut newResources, oldResources, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
@@ -134,7 +159,7 @@ impl Configuration
 		
 		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, &siteMapWebPages)?;
 		
-		self.renderRssFeeds(resources, oldResources, handlebars, &rssItems, &resources)?;
+		self.renderRssFeeds(&mut newResources, oldResources, handlebars, &rssItems, &resources)?;
 		
 		newResources.addAnythingThatIsDiscontinued(oldResources);
 		
@@ -143,24 +168,24 @@ impl Configuration
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, resources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
-		self.localization.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, resources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
+			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
 			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url(iso_639_1_alpha_2_language_code));
 			
 			Ok(())
 		})?;
 		
-		let primaryHostName = &self.localization.primaryLanguage()?.host;
+		let primaryHostName = self.primaryLanguageHost()?;
 		
 		for (hostName, siteMapIndexUrlsAndListOfLanguageUrls) in robotsTxtByHostName.iter()
 		{
-			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, resources, oldResources)?;
+			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, newResources, oldResources)?;
 		}
 		
 		Ok(())
@@ -169,13 +194,21 @@ impl Configuration
 	#[inline(always)]
 	fn renderRssFeeds(&self, newResources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, rssItems: &HashMap<String, Vec<RssItem>>, resources: &BTreeMap<String, Resource>) -> Result<(), CordialError>
 	{
-		let primary_iso_639_1_alpha_2_language_code = &self.localization.primary_iso_639_1_alpha_2_language_code;
-		
-		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, isPrimaryLanguage|
+		if let Some(rss) = self.rss.as_ref()
 		{
-			let languageData = (iso_639_1_alpha_2_language_code, language);
-			self.rss.renderResource(languageData, handlebars, self, newResources, oldResources, items.get(iso_639_1_alpha_2_language_code), primary_iso_639_1_alpha_2_language_code, resources)
-		})
+			let primary_iso_639_1_alpha_2_language_code = self.primary_iso_639_1_alpha_2_language_code();
+			
+			self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+			{
+				let languageData = (iso_639_1_alpha_2_language_code, language);
+				let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
+				rss.renderResource(languageData, handlebars, self, newResources, oldResources, rssItems, primary_iso_639_1_alpha_2_language_code, resources, googleAnalytics)
+			})
+		}
+		else
+		{
+			Ok(())
+		}
 	}
 	
 	#[inline(always)]
@@ -216,12 +249,6 @@ impl Configuration
 		let consistent = timeStamp.to_be();
 		let raw: [u8; 8] = unsafe { transmute(consistent) };
 		base64Encode(&raw, URL_SAFE_NO_PAD)
-	}
-	
-	#[inline(always)]
-	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &Language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
-	{
-		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}
 	
 	#[inline(always)]
@@ -334,6 +361,48 @@ impl Configuration
 		{
 			errors.push(format!("{:?} is unknown (?Solaris Door?)", path));
 		}
+	}
+	
+	#[inline(always)]
+	fn primaryLanguageHost(&self) -> Result<&str, CordialError>
+	{
+		Ok(&self.primaryLanguage()?.host)
+	}
+	
+	#[inline(always)]
+	fn primaryLanguage(&self) -> Result<&Language, CordialError>
+	{
+		self.localization.primaryLanguage()
+	}
+	
+	#[inline(always)]
+	fn ourHostNames(&self) -> Result<HashSet<String>, CordialError>
+	{
+		self.localization.serverHostNames()
+	}
+	
+	#[inline(always)]
+	fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
+	{
+		&self.localization.primary_iso_639_1_alpha_2_language_code
+	}
+	
+	#[inline(always)]
+	fn numberOfLanguages(&self) -> usize
+	{
+		self.localization.numberOfLanguages()
+	}
+	
+	#[inline(always)]
+	fn languagesHashMap<R>(&self) -> HashMap<String, R>
+	{
+		HashMap::with_capacity(self.numberOfLanguages())
+	}
+	
+	#[inline(always)]
+	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &Language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
+	{
+		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}
 	
 	#[inline(always)]

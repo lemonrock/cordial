@@ -2,8 +2,9 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+//add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RssFeedlyChannel
 {
 	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: ResourceReference,
@@ -11,7 +12,7 @@ pub(crate) struct RssFeedlyChannel
 	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: ResourceReference,
 	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: String, // eg 00FF00
 	#[serde(default = "RssFeedlyChannel::related_default")] related: bool,
-	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: bool,
+	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: Option<RssFeedlyChannelGoogleAnalyticsCode>,
 }
 
 impl Default for RssFeedlyChannel
@@ -34,9 +35,9 @@ impl Default for RssFeedlyChannel
 impl RssFeedlyChannel
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
-		if let Some(url) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
+		if let Some(url) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
 		{
 			let attributes =
 			[
@@ -45,12 +46,12 @@ impl RssFeedlyChannel
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(url) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
+		if let Some(url) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
 		}
 		
-		if let Some(url) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)
+		if let Some(url) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
 		}
@@ -64,14 +65,31 @@ impl RssFeedlyChannel
 		];
 		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))?;
 		
-		let attributes =
-		[
-			Attribute::new(Name::local("id"), GOOGLE_UA_xxx),
-			Attribute::new(Name::local("engine"), "GoogleAnalytics"),
-		];
-		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))
+		if let Some(ref googleAnalytics) = self.google_analytics
+		{
+			fn writeGoogleAnalyticsCode<W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, code: &str) -> XmlWriterResult
+			{
+				let attributes =
+				[
+					Attribute::new(Name::local("id"), code),
+					Attribute::new(Name::local("engine"), "GoogleAnalytics"),
+				];
+				eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))
+			}
+			
+			use self::RssFeedlyChannelGoogleAnalyticsCode::*;
+			match *googleAnalytics
+			{
+				specific(ref code) => writeGoogleAnalyticsCode(eventWriter, namespace, code)?,
+				inherit => match parentGoogleAnalyticsCode
+				{
+					Some(code) => writeGoogleAnalyticsCode(eventWriter, namespace, code)?,
+					None => (),
+				},
+			}
+		}
 		
-		//add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
+		Ok(())
 	}
 	
 	#[inline(always)]
@@ -105,8 +123,8 @@ impl RssFeedlyChannel
 	}
 	
 	#[inline(always)]
-	fn google_analytics_default() -> bool
+	fn google_analytics_default() -> Option<RssFeedlyChannelGoogleAnalyticsCode>
 	{
-		true
+		Some(RssFeedlyChannelGoogleAnalyticsCode::inherit)
 	}
 }

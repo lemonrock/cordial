@@ -3,7 +3,25 @@
 
 
 #[derive(Debug, Clone)]
-struct GroupNewType(Group);
+struct GroupNewType(pub Group);
+
+impl Deref for GroupNewType
+{
+	type Target = Group;
+	
+	fn deref(&self) -> &Group
+	{
+		&self.0
+	}
+}
+
+impl DerefMut for GroupNewType
+{
+	fn deref_mut(&mut self) -> &mut Group
+	{
+		&mut self.0
+	}
+}
 
 impl<'de> Deserialize<'de> for GroupNewType
 {

@@ -64,6 +64,7 @@ use ::clap::ArgMatches;
 use ::handlebars::Handlebars;
 use ::hyper::mime;
 use ::hyper::mime::Mime;
+use ::hyper::mime::Name;
 use ::phf::Set as PhfSet;
 use ::rustls::Certificate;
 use ::rustls::PrivateKey;
@@ -105,6 +106,7 @@ pub(crate) mod xmlExtra;
 include!("ArgMatchesExt.rs");
 include!("CordialError.rs");
 include!("fatal.rs");
+include!("MimeExt.rs");
 include!("PathExt.rs");
 include!("UrlExt.rs");
 

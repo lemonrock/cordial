@@ -53,20 +53,7 @@ impl RegularAndPjaxStaticResponse
 	#[inline(always)]
 	pub(crate) fn contentMimeTypeWithoutParameters<'a>(&'a self) -> Mime
 	{
-		let mimeTypeWithParameters = self.contentMimeType();
-		
-		let type_ = mimeTypeWithParameters.type_();
-		let subtype = mimeTypeWithParameters.subtype();
-		
-		let mimeString = if let Some(suffix) = mimeTypeWithParameters.suffix()
-		{
-			format!("{}/{}+{}", type_, subtype, suffix)
-		}
-		else
-		{
-			format!("{}/{}", type_, subtype)
-		};
-		mimeString.parse().unwrap()
+		self.contentMimeType().withoutParameters()
 	}
 	
 	#[inline(always)]

@@ -8,23 +8,25 @@ pub(crate) struct Localization
 {
 	#[serde(with = "url_serde", default = "Localization::language_tool_base_url_default")] language_tool_base_url: Url,
 	#[serde(default = "Localization::primary_iso_639_1_alpha_2_language_code_default")] primary_iso_639_1_alpha_2_language_code: String,
-	languages: HashMap<String, Language>,
+	#[serde(default = "Localization::languages_default")] languages: HashMap<String, Language>,
+}
+
+impl Default for Localization
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			language_tool_base_url: Self::language_tool_base_url_default(),
+			primary_iso_639_1_alpha_2_language_code: Self::primary_iso_639_1_alpha_2_language_code_default(),
+			languages: Self::languages_default(),
+		}
+	}
 }
 
 impl Localization
 {
-	#[inline(always)]
-	fn language_tool_base_url_default() -> Url
-	{
-		Url::parse("https://languagetool.org").unwrap()
-	}
-	
-	#[inline(always)]
-	fn primary_iso_639_1_alpha_2_language_code_default() -> String
-	{
-		"en".to_owned()
-	}
-	
 	#[inline(always)]
 	pub(crate) fn primaryLanguage(&self) -> Result<&Language, CordialError>
 	{
@@ -61,6 +63,12 @@ impl Localization
 		Ok(())
 	}
 	
+	#[inline(always)]
+	pub(crate) fn numberOfLanguages(&self) -> usize
+	{
+		self.languages.len()
+	}
+	
 	pub(crate) fn serverHostNames(&self) -> Result<HashSet<String>, CordialError>
 	{
 		let mut serverHostNames = HashSet::with_capacity(self.languages.len());
@@ -90,5 +98,26 @@ impl Localization
 		}
 		
 		Ok(serverHostNames)
+	}
+	
+	#[inline(always)]
+	fn language_tool_base_url_default() -> Url
+	{
+		Url::parse("https://languagetool.org").unwrap()
+	}
+	
+	#[inline(always)]
+	fn primary_iso_639_1_alpha_2_language_code_default() -> String
+	{
+		"en".to_owned()
+	}
+	
+	#[inline(always)]
+	fn languages_default() -> HashMap<String, Language>
+	{
+		hashmap!
+		{
+			Self::primary_iso_639_1_alpha_2_language_code_default() => Language::default(),
+		}
 	}
 }

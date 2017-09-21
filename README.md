@@ -10,10 +10,12 @@ It also does a lot more to create a great experience for your users:-
 	* Versioned assets for the old deployment are available even when the new deployment is switched to, in cases where clients got a web page with versioned asset references just before the point of switch-over
 * Serving web pages in more than one language is very easy
 	* Even images can be localized
-	* Internationally aware site maps are supported, too
+	* All language content is spell-checked and grammar-checked
+	* Internationally aware site maps and RSS feeds are supported, too
 	* Localization can be by relative URL or by alternative server
 * Support for PJAX is built-in, so everyone gets fast web pages;
 * Support for AMP is built-in, so mobile users get a great experience;
+* Support for Feedly;
 * Security and robustness are priorities
 	* HTTP is always redirected to HTTPS, no ifs, no buts;
 	* Only the latest TLSv1.2 cipher suites are used;
@@ -29,7 +31,7 @@ It also does a lot more to create a great experience for your users:-
 	* Pipelines to resize, dither, optimize, crop, etc
 	* Source sets (`srcset`) are automatically generated
 		* See [this blog post](https://mattwilcox.net/web-development/keeping-srcset-and-sizes-under-control) to work out how many you'll need
-	* Full integration for schema.org, image sitemaps, Twitter Cards and Open Graph
+	* Full integration for schema.org, image site maps, Feedly, Twitter Cards and Open Graph
 	* Images can vary by language
 	* Images are always converted and compressed to the best possible format using the latest optimizations (eg guetzli)
 * All assets are minified and compressed using Brotli and Zopfli;
@@ -76,7 +78,6 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have both an index and a leaf resource for an URL end path segment (eg '' for `https://example.com/about/` and 'about' for `https://example.com/about`). In practice this is rarely an issue. [cordial] supports automatic redirects for one to the other (one can specify which way).
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
-* RSS feeds can not have XSL or CSS stylesheets. In practice, the only common user of these now is the RSS renderer (not extension) in Chrome which is only used for RSS URLs.
 
 
 ## Licensing
@@ -88,11 +89,9 @@ The license for this project is AGPL-3.0.
 
 ## TODO
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
-* Sitemaps
-	* Sitemap indices
-	* Link headers for language-specifc images
+* Redirect for leaf URLs to index URLs (eg '/en' to '/en/')
 * Markdown / Handlebars / HTML minify / purifycss
-* Spellchecking
+* Spellchecking using [languagetool](https://www.languagetool.org/)
 * Errors
 	* 400 Bad Request - display a page very similar to 404 Not Found
 	* 404 not found

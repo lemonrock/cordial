@@ -12,6 +12,21 @@ pub(crate) struct Language
 	#[serde(default)] relative_root_url: RelativeRootUrl,
 }
 
+impl Default for Language
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			iso_3166_1_alpha_2_country_code: "US".to_owned(),
+			language_tool_long_code: "en-US".to_owned(),
+			host: Self::host_default(),
+			relative_root_url: RelativeRootUrl::default(),
+		}
+	}
+}
+
 impl Language
 {
 	#[inline(always)]

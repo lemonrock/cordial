@@ -350,7 +350,7 @@ impl Pipeline
 				panic!("Implement me");
 			}
 			
-			&mut font { max_age_in_seconds, is_downloadable, input_format, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf, .. } =>
+			&mut font { max_age_in_seconds, is_downloadable, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf, .. } =>
 			{
 				canBeCompressed = false;
 				
@@ -393,7 +393,7 @@ impl Pipeline
 				{
 					let ttfUrl = languageData.url(resourceRelativeUrl)?;
 					let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
-					urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("application/x-font-ttf")), ttfHeaders, ttfBytes, None, canBeCompressed));
+					urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
 				}
 				
 				Ok(urls)

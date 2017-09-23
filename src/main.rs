@@ -94,8 +94,6 @@ use ::std::io::Write;
 use ::std::os::unix::fs::PermissionsExt;
 use ::std::path::Path;
 use ::std::path::PathBuf;
-use ::std::process::Command;
-use ::std::process::Stdio;
 use ::std::process::exit;
 use ::stderr_logging::StandardErrorAnsiLog;
 use ::quick_error::ResultExt;

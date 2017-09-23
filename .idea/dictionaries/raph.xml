@@ -36,6 +36,7 @@
       <w>guetzli</w>
       <w>guid</w>
       <w>hjson</w>
+      <w>hsts</w>
       <w>ibverbs</w>
       <w>infini</w>
       <w>infiniband</w>
@@ -86,6 +87,7 @@
       <w>pmemp</w>
       <w>pobj</w>
       <w>poolsize</w>
+      <w>preloading</w>
       <w>pthread</w>
       <w>pwait</w>
       <w>qkey</w>

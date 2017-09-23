@@ -197,10 +197,51 @@ impl Resources
 				None => Response::not_found(isHead),
 				Some(staticResponseVersions) =>
 				{
+					let origin = requestHeaders.get::<Origin>();
+					let ourOrigin = if let Some(origin) = origin
+					{
+						if origin.is_null()
+						{
+							return Response::illegal_origin(isHead);
+						}
+						
+						if origin.scheme() != Some("https")
+						{
+							return Response::illegal_origin(isHead);
+						}
+						
+						match origin.host()
+						{
+							None =>	return Response::illegal_origin(isHead),
+							Some(host) =>
+							{
+								let theirOriginHostName = host.hostname();
+								if self.isNotOneOfOurHostNames(theirOriginHostName)
+								{
+									return Response::illegal_origin(isHead);
+								}
+								Some(AccessControlAllowOrigin::Value(format!("https://{}", theirOriginHostName)))
+							}
+						}
+					}
+					else
+					{
+						None
+					};
+					
 					let isPjax = requestHeaders.get_raw("X-PJAX").is_some();
 					let preferredEncoding = PreferredEncoding::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
 					
-					staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>(), requestHeaders.get::<IfRange>(), requestHeaders.get::<Range>())
+					let response = staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>(), requestHeaders.get::<IfRange>(), requestHeaders.get::<Range>());
+					
+					if let Some(ourOrigin) = ourOrigin
+					{
+						response.with_header(ourOrigin)
+					}
+					else
+					{
+						response
+					}
 				}
 			}
 		}

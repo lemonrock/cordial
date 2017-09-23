@@ -3,7 +3,7 @@
 
 
 #[inline(always)]
-pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<(&str, &Language)>, htmlVariant: HtmlVariant, configuration: &Configuration, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
+pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: Option<&LanguageData>, htmlVariant: HtmlVariant, configuration: &Configuration, canBeCompressed: bool, maximumAge: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
 {
 	let localization = &configuration.localization;
 	let deploymentVersion = &configuration.deploymentVersion;
@@ -64,7 +64,7 @@ pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &Has
 	let (ourLanguage, otherLanguages) = match languageData
 	{
 		None => (None, None),
-		Some((iso_639_1_alpha_2_language_code, language)) =>
+		Some(&LanguageData { iso_639_1_alpha_2_language_code, language }) =>
 		{
 			headers.push(("Content-Language".to_owned(), iso_639_1_alpha_2_language_code.to_owned()));
 			

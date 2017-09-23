@@ -4,19 +4,20 @@
 
 pub(crate) struct ImageSourceSet<'a>
 {
-	primaryUnversionedUrl: Url,
 	inputContentFilePath: &'a Path,
+	resourceRelativeUrlWithoutFileNameExtension: &'a str,
 	jpegQuality: Option<u8>,
 	jpegSpeedOverCompression: bool,
 	primaryImageWidth: u32,
 	primaryImageHeight: u32,
 	imagesInOrder: BTreeMap<u32, ::image::DynamicImage>,
+	languageData: &'a LanguageData<'a>
 }
 
 impl<'a> ImageSourceSet<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFilePath: &'a Path, primaryUnversionedUrl: Url, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage) -> Self
+	pub(crate) fn new(inputContentFilePath: &'a Path, resourceRelativeUrlWithoutFileNameExtension: &'a str, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
 	{
 		let primaryImageWidth = primaryImage.width();
 		let primaryImageHeight = primaryImage.height();
@@ -26,13 +27,14 @@ impl<'a> ImageSourceSet<'a>
 		
 		Self
 		{
-			primaryUnversionedUrl,
 			inputContentFilePath,
+			resourceRelativeUrlWithoutFileNameExtension,
 			jpegQuality,
 			jpegSpeedOverCompression,
 			primaryImageWidth,
 			primaryImageHeight,
 			imagesInOrder,
+			languageData
 		}
 	}
 	
@@ -62,7 +64,7 @@ impl<'a> ImageSourceSet<'a>
 	/// Outputs (Url, Width) pairs
 	/// Use as say (note commas MATTER): srcset="/url/elva-fairy-320w.jpg 320w, /url/elva-fairy-480w.jpg 480w, /url/elva-fairy.jpg 800w, /url/elva-fairy-1000w.jpg 1000w,"
 	#[inline(always)]
-	pub(crate) fn processedImageSourceSet(&self) -> Vec<(Url, u32)>
+	pub(crate) fn processedImageSourceSet(&self) -> Result<Vec<(Url, u32)>, CordialError>
 	{
 		let fileExtension = if self.jpegQuality.is_some()
 		{
@@ -79,16 +81,16 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let url = if width == self.primaryImageWidth
 			{
-				self.primaryUnversionedUrl.clone()
+				Self::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?
 			}
 			else
 			{
-				Self::widthUrl(width, &self.primaryUnversionedUrl, fileExtension)
+				Self::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?
 			};
 			
 			imageSourceSet.push((url, width))
 		}
-		imageSourceSet
+		Ok(imageSourceSet)
 	}
 	
 	#[inline(always)]
@@ -111,11 +113,11 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let (url, isPrimary) = if width == self.primaryImageWidth
 			{
-				(self.primaryUnversionedUrl.clone(), true)
+				(Self::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?, true)
 			}
 			else
 			{
-				(Self::widthUrl(width, &self.primaryUnversionedUrl, fileExtension), false)
+				(Self::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?, false)
 			};
 			
 			let body = self.optimize(image)?;
@@ -158,22 +160,23 @@ impl<'a> ImageSourceSet<'a>
 		Ok(urls)
 	}
 	
-	fn widthUrl(width: u32, url: &Url, fileExtension: &'static str) -> Url
+	fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
 	{
-		let fileName = url.fileNameOrIndexNamePercentDecodedUntrusted(fileExtension);
+		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
+		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
+		path.push_str(&format!("-{}w", width));
+		path.push_str(fileExtension);
 		
-		let mut replacementFileName = String::with_capacity(fileName.len() + 6);
-		let index = match fileName.rfind('.')
-		{
-			None => fileName.len(),
-			Some(index) => index,
-		};
-		let (left, right) = fileName.split_at(index);
-		replacementFileName.push_str(left);
-		replacementFileName.push_str(&format!("-{}w", width));
-		replacementFileName.push_str(right);
+		Ok(languageData.url(&path)?)
+	}
+	
+	fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
+		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
+		path.push_str(fileExtension);
 		
-		url.clone().pushReplacementFileName(&replacementFileName)
+		Ok(languageData.url(&path)?)
 	}
 	
 	fn optimize(&self, image: &::image::DynamicImage) -> Result<Vec<u8>, CordialError>

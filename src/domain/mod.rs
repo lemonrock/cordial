@@ -98,6 +98,7 @@ include!("ImageSourceSetEntry.rs");
 include!("ImageTransformation.rs");
 include!("ImageTransformationFilterType.rs");
 include!("Language.rs");
+include!("LanguageData.rs");
 include!("Localization.rs");
 include!("MediaType.rs");
 include!("MimeNewType.rs");

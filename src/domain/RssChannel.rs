@@ -32,10 +32,9 @@ pub(crate) struct RssChannel
 impl RssChannel
 {
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
+	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.0;
-		let rssChannelBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
+		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
 		let title = match self.title.get(iso_639_1_alpha_2_language_code)
 		{
@@ -103,7 +102,7 @@ impl RssChannel
 				minutesRoundedDown
 			}
 		};
-		let unversionedCanonicalUrl = rssChannelBaseUrlWithTrailingSlash.join(&format!("{}.rss.xml", iso_639_1_alpha_2_language_code)).unwrap();
+		let unversionedCanonicalUrl = languageData.url(&format!("{}.rss.xml", iso_639_1_alpha_2_language_code))?;
 		let rssItems = rssItems.get(iso_639_1_alpha_2_language_code).unwrap();
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
@@ -147,7 +146,7 @@ impl RssChannel
 			eventWriter.writeWithinElement(Name::local("channel"), &namespace, &emptyAttributes, |eventWriter|
 			{
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", title)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.1.baseUrl(languageData.0).unwrap().as_ref())?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.baseUrl().unwrap().as_ref())?;
 				
 				if let Some(ref feedly) = self.feedly
 				{
@@ -163,7 +162,7 @@ impl RssChannel
 				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
 				
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.0)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso_639_1_alpha_2_language_code)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", copyright)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;

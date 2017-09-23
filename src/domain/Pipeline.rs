@@ -229,62 +229,6 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn resourceOutputRelativeUrl(&self, parentHierarchy: &[String], resourceInputName: &str) -> String
-	{
-		let mut relativeUrl = String::with_capacity(1024);
-		for parent in parentHierarchy
-		{
-			relativeUrl.push_str(parent);
-			relativeUrl.push('/');
-		}
-		
-		use self::Pipeline::*;
-		match *self
-		{
-			md { is_leaf, .. } =>
-			{
-				relativeUrl.push_str(resourceInputName);
-				
-				if !is_leaf
-				{
-					relativeUrl.push('/');
-				}
-			}
-			raster_image { jpeg_quality, .. } =>
-			{
-				let first = resourceInputName.rmatch_indices(".").next();
-				let index = first.unwrap().0;
-				
-				let slice = if first.is_some()
-				{
-					&resourceInputName[0..index]
-				}
-				else
-				{
-					resourceInputName
-				};
-				relativeUrl.push_str(slice);
-				
-				let fileExtension = if jpeg_quality.is_none()
-				{
-					".png"
-				}
-				else
-				{
-					".jpg"
-				};
-				relativeUrl.push_str(fileExtension);
-			}
-			_ =>
-			{
-				relativeUrl.push_str(resourceInputName);
-			}
-		};
-		
-		relativeUrl
-	}
-	
-	#[inline(always)]
 	pub(crate) fn is<'a>(&self) -> (bool, bool)
 	{
 		use self::Pipeline::*;
@@ -301,17 +245,33 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, resourceOutputRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: (&str, &Language), ifLanguageAwareLanguageData: Option<(&str, &Language)>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn withoutFileNameExtension<'a>(resourceRelativeUrl: &'a str) -> &'a str
 	{
-		#[inline(always)]
-		fn unversionedUrl(languageData: (&str, &Language), resourceOutputRelativeUrl: &str) -> Result<Url, CordialError>
+		match resourceRelativeUrl.rfind('.')
 		{
-			let baseUrl = languageData.1.baseUrl(languageData.0)?;
-			let url = baseUrl.join(resourceOutputRelativeUrl).context(format!("Invalid resourceOutputRelativeUrl '{}'", resourceOutputRelativeUrl))?;
-			Ok(url)
+			None => resourceRelativeUrl,
+			Some(index) => resourceRelativeUrl.split_at(index).0,
 		}
-		let unversionedCanonicalUrl = unversionedUrl(languageData, resourceOutputRelativeUrl)?;
-		
+	}
+	
+	#[inline(always)]
+	fn appendFileNameExtension<'a>(withoutFileNameExtension: &str, extension: &str) -> String
+	{
+		let mut string = String::with_capacity(withoutFileNameExtension.len() + extension.len());
+		string.push_str(withoutFileNameExtension.as_ref());
+		string.push_str(extension);
+		string
+	}
+	
+	#[inline(always)]
+	fn replaceFileNameExtension(resourceRelativeUrl: &str, extension: &str) -> String
+	{
+		Self::appendFileNameExtension(Self::withoutFileNameExtension(resourceRelativeUrl), extension)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	{
 		let mut canBeCompressed = true;
 		
 		use self::Pipeline::*;
@@ -320,6 +280,8 @@ impl Pipeline
 		{
 			&mut raw { max_age_in_seconds, is_downloadable, can_be_compressed, ref mime_type, .. } =>
 			{
+				let inputCanonicalUrl = languageData.url(resourceRelativeUrl)?;
+				
 				canBeCompressed = if can_be_compressed.is_none()
 				{
 					!inputContentFilePath.hasCompressedFileExtension()?
@@ -342,13 +304,25 @@ impl Pipeline
 					}
 				};
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &inputCanonicalUrl)?;
 				let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType), headers, body, None, canBeCompressed)])
+				Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
 			
-			&mut md { max_age_in_seconds: _, .. } =>
+			&mut md { max_age_in_seconds, is_leaf, .. } =>
 			{
+				let inputCanonicalUrl = if is_leaf
+				{
+					let mut leafPath = String::with_capacity(resourceRelativeUrl.len() + 1);
+					leafPath.push_str(resourceRelativeUrl);
+					leafPath.push('/');
+					languageData.url(&leafPath)?
+				}
+				else
+				{
+					languageData.url(resourceRelativeUrl)?
+				};
+				
 //				let mut result = Vec::with_capacity(2);
 //
 //				let regularHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
@@ -371,9 +345,11 @@ impl Pipeline
 			
 			&mut font { max_age_in_seconds, is_downloadable, input_format, .. } =>
 			{
+				let inputCanonicalUrl = languageData.url(resourceRelativeUrl)?;
+				
 				canBeCompressed = false;
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &inputCanonicalUrl)?;
 				
 				
 				
@@ -387,7 +363,7 @@ impl Pipeline
 			{
 				canBeCompressed = false;
 				
-				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, canBeCompressed, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url, canBeCompressed|
+				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, Self::withoutFileNameExtension(resourceRelativeUrl), languageData, canBeCompressed, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url, canBeCompressed|
 				{
 					generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
 				})?;
@@ -398,23 +374,29 @@ impl Pipeline
 			
 			&mut sass { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
 			{
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".css"))?;
+				
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, true)?;
-				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut scss { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
 			{
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".css"))?;
+				
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
 				let inputFolderPath = &configuration.inputFolderPath;
 				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, false)?;
-				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
 			}
 			
 			&mut svg { max_age_in_seconds, is_downloadable, do_not_optimize, .. } =>
 			{
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".svg"))?;
+				
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
 				let body = if do_not_optimize
 				{
 					inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?
@@ -423,13 +405,13 @@ impl Pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(unversionedCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
 			}
 		}
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<'a, F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, canBeCompressed: bool, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(imageInputFormat)?;
 		
@@ -437,11 +419,11 @@ impl Pipeline
 		let imageAfterTransformation = ImageTransformation::applyTransformations(imageBeforeTransformation, transformations)?;
 		
 		// generate image src set
-		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, unversionedUrl, jpegQuality, jpegSpeedOverCompression, imageAfterTransformation);
+		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, resourceRelativeUrlWithoutFileNameExtension, jpegQuality, jpegSpeedOverCompression, imageAfterTransformation, languageData);
 		imageSourceSet.generate(imageSourceSetEntries)?;
 		
 		let primaryImageDimensions = imageSourceSet.primaryImageDimensions();
-		let processedImageSourceSet = imageSourceSet.processedImageSourceSet();
+		let processedImageSourceSet = imageSourceSet.processedImageSourceSet()?;
 		let urls = imageSourceSet.urls(headerGenerator, canBeCompressed)?;
 		
 		Ok((primaryImageDimensions, processedImageSourceSet, urls))

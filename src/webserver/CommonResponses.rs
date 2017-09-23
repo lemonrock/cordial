@@ -35,6 +35,15 @@ trait CommonResponses: Sized
 	fn precondition_failed(isHead: bool, entityTag: &str, lastModified: HttpDate) -> Self;
 	
 	#[inline(always)]
+	fn forbidden(isHead: bool) -> Self;
+	
+	#[inline(always)]
+	fn illegal_origin(isHead: bool) -> Self
+	{
+		Self::forbidden(isHead)
+	}
+	
+	#[inline(always)]
 	fn not_found(isHead: bool) -> Self;
 	
 	#[inline(always)]
@@ -130,10 +139,10 @@ impl CommonResponses for Response
 	{
 		const CacheTimeInSeconds: u32 = 60;
 		
-		let mut response = Self::static_txt_response(false, StatusCode::Ok, "")
+		let response = Self::static_txt_response(false, StatusCode::Ok, "")
 		.with_header(commonCacheControlHeader(CacheTimeInSeconds));
 		
-		let mut response = if let Some(responseToAccessControlRequest) = responseToAccessControlRequest
+		let response = if let Some(responseToAccessControlRequest) = responseToAccessControlRequest
 		{
 			let mut response = response.with_header(AccessControlMaxAge(CacheTimeInSeconds)).with_header(responseToAccessControlRequest.0);
 			
@@ -194,6 +203,12 @@ impl CommonResponses for Response
 		Self::static_txt_response(isHead, StatusCode::PreconditionFailed, "")
 		.with_header(ETag(EntityTag::strong(entityTag.to_owned())))
 		.with_header(LastModified(lastModified))
+	}
+	
+	#[inline(always)]
+	fn forbidden(isHead: bool) -> Self
+	{
+		Self::static_txt_response(isHead, StatusCode::Forbidden, "")
 	}
 	
 	#[inline(always)]

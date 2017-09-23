@@ -13,7 +13,7 @@ pub(crate) struct Resource
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
-	#[serde(default, skip_deserializing)] resourceOutputRelativeUrl: String,
+	#[serde(default, skip_deserializing)] resourceRelativeUrl: String,
 	#[serde(default, skip_deserializing)] urls: HashMap<String, HashMap<UrlTag, (Url, Rc<JsonValue>)>>,
 	#[serde(default, skip_deserializing)] resourceIfDataUri: HashMap<Url, (RegularAndPjaxStaticResponse, Url)>,
 }
@@ -21,9 +21,9 @@ pub(crate) struct Resource
 impl Resource
 {
 	#[inline(always)]
-	pub(crate) fn resourceOutputRelativeUrl(&self) -> &str
+	pub(crate) fn resourceRelativeUrl(&self) -> &str
 	{
-		&self.resourceOutputRelativeUrl
+		&self.resourceRelativeUrl
 	}
 	
 	#[inline(always)]
@@ -115,10 +115,25 @@ impl Resource
 	#[inline(always)]
 	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf)
 	{
+		#[inline(always)]
+		fn resourceRelativeUrl(parentHierarchy: &[String], resourceInputName: &str) -> String
+		{
+			let mut resourceRelativeUrl = String::with_capacity(1024);
+			for parent in parentHierarchy
+			{
+				resourceRelativeUrl.push_str(parent);
+				resourceRelativeUrl.push('/');
+			}
+			
+			resourceRelativeUrl.push_str(resourceInputName);
+			
+			resourceRelativeUrl
+		}
+		
 		self.canonicalParentFolderPath = canonicalParentFolderPath;
 		self.resourceInputName = resourceInputName.to_owned();
 		self.resourceInputContentFileNamesWithExtension = self.pipeline.resourceInputContentFileNamesWithExtension(resourceInputName);
-		self.resourceOutputRelativeUrl = self.pipeline.resourceOutputRelativeUrl(&parentHierarchy, resourceInputName);
+		self.resourceRelativeUrl = resourceRelativeUrl(&parentHierarchy, resourceInputName);
 	}
 	
 	// SiteMap, RSS hash maps are by language ISO code
@@ -127,7 +142,7 @@ impl Resource
 	{
 		let primaryLanguage = configuration.localization.primaryLanguage()?;
 		
-		configuration.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, isPrimaryLanguage|
+		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
 			let (isForPrimaryLanguageOnly, isVersioned) = self.pipeline.is();
 			
@@ -136,10 +151,9 @@ impl Resource
 			}
 			else
 			{
-				let languageData = (iso_639_1_alpha_2_language_code, language);
 				let ifLanguageAwareLanguageData = if isForPrimaryLanguageOnly
 				{
-					Some((iso_639_1_alpha_2_language_code, language))
+					Some(languageData)
 				}
 				else
 				{
@@ -152,14 +166,16 @@ impl Resource
 				}
 				else
 				{
-					self.inputContentFilePath(primaryLanguage, Some(language))?
+					self.inputContentFilePath(primaryLanguage, Some(languageData.language))?
 				};
+				
+				let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 				
 				let mut siteMapWebPages = siteMapWebPages.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
 				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
-				let result = self.pipeline.execute(&inputContentFilePath, &self.resourceOutputRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
+				let result = self.pipeline.execute(&inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
 				
 				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
 				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result

@@ -28,7 +28,7 @@ impl DiscoverResources
 	#[inline(always)]
 	fn insertResource(&mut self, resource: Resource)
 	{
-		self.resources.insert(resource.resourceOutputRelativeUrl().to_owned(), resource);
+		self.resources.insert(resource.resourceRelativeUrl().to_owned(), resource);
 	}
 	
 	#[inline(always)]

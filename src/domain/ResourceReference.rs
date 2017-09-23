@@ -20,9 +20,9 @@ impl ResourceReference
 		match *self
 		{
 			absolute(ref url) => Some(url),
-			internal(ref resourceOutputRelativeUrl, urlTag) =>
+			internal(ref resourceRelativeUrl, urlTag) =>
 			{
-				match resources.get(resourceOutputRelativeUrl)
+				match resources.get(resourceRelativeUrl)
 				{
 					None => None,
 					Some(resource) =>
@@ -47,9 +47,9 @@ impl ResourceReference
 		match *self
 		{
 			absolute(ref url) => Some((url, None)),
-			internal(ref resourceOutputRelativeUrl, urlTag) =>
+			internal(ref resourceRelativeUrl, urlTag) =>
 			{
-				match resources.get(resourceOutputRelativeUrl)
+				match resources.get(resourceRelativeUrl)
 				{
 					None => None,
 					Some(resource) =>
@@ -78,9 +78,9 @@ impl ResourceReference
 		match *self
 		{
 			absolute(ref url) => Some((url, None)),
-			internal(ref resourceOutputRelativeUrl, urlTag) =>
+			internal(ref resourceRelativeUrl, urlTag) =>
 			{
-				match resources.get(resourceOutputRelativeUrl)
+				match resources.get(resourceRelativeUrl)
 				{
 					None => None,
 					Some(resource) =>

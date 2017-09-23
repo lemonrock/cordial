@@ -9,8 +9,6 @@
 
 		headers:
 		{
-			# 2 years; submit to https://hstspreload.org/ when ready
-			"Strict-Transport-Security": max-age=63072000;includeSubDomains;preload
 		}
 
 		sass:

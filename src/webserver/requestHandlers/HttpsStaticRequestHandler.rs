@@ -7,6 +7,7 @@ pub(crate) struct HttpsStaticRequestHandler
 {
 	resources: Arc<Resources>,
 	httpKeepAlive: bool,
+	hstsPreloadingEnabledForProduction: bool,
 }
 
 impl RequestHandler for HttpsStaticRequestHandler
@@ -48,7 +49,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 		}
 		
 		use ::hyper::Method::*;
-		match method
+		let response = match method
 		{
 			Options =>
 			{
@@ -59,29 +60,36 @@ impl RequestHandler for HttpsStaticRequestHandler
 					let accessControlRequestMethods = requestHeaders.get::<AccessControlRequestMethod>();
 					let accessControlRequestHeaders = requestHeaders.get::<AccessControlRequestHeaders>();
 					
-					let ourOrigin = AccessControlAllowOrigin::Value(hostName.to_string());
-					
-					if !origin.is_null()
+					let ourOrigin = if origin.is_null()
+					{
+						return HttpService::<Self>::response(Response::options(methods(), Some((AccessControlAllowOrigin::Null, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))))
+					}
+					else
 					{
 						if origin.scheme() != Some("http")
 						{
-							return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))))
+							return HttpService::<Self>::response(Response::options(methods(), Some((AccessControlAllowOrigin::Null, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))))
 						}
 						
-						if let Some(host) = origin.host()
+						let ourOrigin = if let Some(host) = origin.host()
 						{
-							if self.isNotOneOfOurHostNames(host.hostname())
+							let theirOriginHostName = host.hostname();
+							if self.isNotOneOfOurHostNames(theirOriginHostName)
 							{
-								return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
+								return HttpService::<Self>::response(Response::options(methods(), Some((AccessControlAllowOrigin::Null, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
 							}
+							
+							AccessControlAllowOrigin::Value(format!("https://{}", theirOriginHostName))
 						}
 						else
 						{
-							return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
-						}
+							return HttpService::<Self>::response(Response::options(methods(), Some((AccessControlAllowOrigin::Null, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
+						};
+						
+						ourOrigin
 					};
 					
-					let allowMethods = if let Some(accessControlRequestMethods) = accessControlRequestMethods
+					let allowMethods = if accessControlRequestMethods.is_some()
 					{
 						Some(methods())
 					}
@@ -99,28 +107,40 @@ impl RequestHandler for HttpsStaticRequestHandler
 						None
 					};
 					
-					HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, allowMethods, allowHeaders))))
+					Response::options(methods(), Some((ourOrigin, allowMethods, allowHeaders)))
 				}
 				else
 				{
-					HttpService::<Self>::response(Response::options(methods(), None))
+					Response::options(methods(), None)
 				}
 			},
-			Head | Get  => self.response(isHead, hostName, path, query, requestHeaders),
-			_ => HttpService::<Self>::response(Response::method_not_allowed(methods())),
+			Head | Get  => self.resources.response(isHead, hostName, path, query, requestHeaders),
+			_ => Response::method_not_allowed(methods()),
+		};
+		
+		let response = if self.hstsPreloadingEnabledForProduction
+		{
+			response.with_header(Strict_Transport_Security::Default)
 		}
+		else
+		{
+			response
+		};
+		
+		HttpService::<Self>::response(response)
 	}
 }
 
 impl HttpsStaticRequestHandler
 {
 	#[inline(always)]
-	pub(crate) fn new(resources: Resources, httpKeepAlive: bool) -> Self
+	pub(crate) fn new(resources: Resources, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool) -> Self
 	{
 		Self
 		{
 			resources: Arc::new(resources),
 			httpKeepAlive,
+			hstsPreloadingEnabledForProduction,
 		}
 	}
 	
@@ -128,11 +148,5 @@ impl HttpsStaticRequestHandler
 	pub(crate) fn resources(&self) -> Arc<Resources>
 	{
 		self.resources.clone()
-	}
-	
-	#[inline(always)]
-	fn response<'a>(&self, isHead: bool, hostName: &str,path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers) -> Either<FutureResult<Response, ::hyper::Error>, <HttpsStaticRequestHandler as RequestHandler>::AlternativeFuture>
-	{
-		HttpService::<Self>::response(self.resources.response(isHead, hostName, path, query, requestHeaders))
 	}
 }

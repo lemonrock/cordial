@@ -27,10 +27,9 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, newResources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.0;
-		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
+		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
 		let namespace = Namespace
 		(
@@ -91,7 +90,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = languageData.url(&format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code)).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapIndexBodyUncompressed.shrink_to_fit();
@@ -111,10 +110,9 @@ impl SiteMap
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeSiteMapFiles<'a>(&'a self, languageData: (&str, &Language), handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
+	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.0;
-		let siteMapBaseUrlWithTrailingSlash = languageData.1.baseUrl(iso_639_1_alpha_2_language_code)?;
+		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
 		let namespace = Namespace
 		(
@@ -170,7 +168,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = siteMapBaseUrlWithTrailingSlash.join(&format!("{}.sitemap.{}.xml", urlAndResponse.len(), iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = languageData.url(&format!("{}.sitemap.{}.xml", urlAndResponse.len(), iso_639_1_alpha_2_language_code)).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapBodyUncompressed.shrink_to_fit();

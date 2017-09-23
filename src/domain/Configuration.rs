@@ -8,6 +8,7 @@ pub(crate) struct Configuration
 	#[serde(default)] daemon: Daemon,
 	#[serde(default = "Configuration::maximum_number_of_tls_sessions_default")] maximum_number_of_tls_sessions: u32,
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
+	#[serde(default)] enable_hsts_preloading_for_production: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	#[serde(default)] localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
@@ -31,6 +32,7 @@ impl Default for Configuration
 			daemon: Daemon::default(),
 			maximum_number_of_tls_sessions: Self::maximum_number_of_tls_sessions_default(),
 			http_keep_alive: Self::http_keep_alive_default(),
+			enable_hsts_preloading_for_production: false,
 			resource_template: None,
 			localization: Localization::default(),
 			robots: RobotsTxt::default(),
@@ -111,7 +113,7 @@ impl Configuration
 		let mut resources = self.discoverResources()?;
 		
 		let newResources = self.renderResources(&mut resources, &oldResources, &ourHostNames, &mut handlebars)?;
-		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive))
+		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production))
 	}
 	
 	#[inline(always)]
@@ -172,11 +174,11 @@ impl Configuration
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
-		self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+		self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 		{
-			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.sitemap.renderResource((iso_639_1_alpha_2_language_code, language), handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
-			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(language.relative_root_url(iso_639_1_alpha_2_language_code));
+			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
+			self.sitemap.renderResource(languageData, handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
+			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso_639_1_alpha_2_language_code));
 			
 			Ok(())
 		})?;
@@ -198,9 +200,8 @@ impl Configuration
 		{
 			let primary_iso_639_1_alpha_2_language_code = self.primary_iso_639_1_alpha_2_language_code();
 			
-			self.visitLanguagesWithPrimaryFirst(|iso_639_1_alpha_2_language_code, language, _isPrimaryLanguage|
+			self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
-				let languageData = (iso_639_1_alpha_2_language_code, language);
 				let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
 				rss.renderResource(languageData, handlebars, self, newResources, oldResources, rssItems, primary_iso_639_1_alpha_2_language_code, resources, googleAnalytics)
 			})
@@ -400,7 +401,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &Language, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
+	fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
 		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}

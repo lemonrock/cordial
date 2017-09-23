@@ -50,14 +50,14 @@ impl Localization
 	}
 	
 	#[inline(always)]
-	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&str, &Language, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
+	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
 	{
-		visitor(&self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?, true)?;
+		visitor(&LanguageData::new(&self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?), true)?;
 		for (iso_639_1_alpha_2_language_code, language) in self.languages.iter()
 		{
 			if iso_639_1_alpha_2_language_code != &self.primary_iso_639_1_alpha_2_language_code
 			{
-				visitor(&iso_639_1_alpha_2_language_code, language, false)?;
+				visitor(&LanguageData::new(&iso_639_1_alpha_2_language_code, language), false)?;
 			}
 		}
 		Ok(())

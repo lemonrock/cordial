@@ -18,6 +18,7 @@ It also does a lot more to create a great experience for your users:-
 * Support for Feedly;
 * Security and robustness are priorities
 	* HTTP is always redirected to HTTPS, no ifs, no buts;
+	* HTTPS in production can have HSTS preloading enabled for maximum protection of your users;
 	* Only the latest TLSv1.2 cipher suites are used;
 	* The server runs with minimal permissions and file system access
 * HTTP headers are considered part of the web page, so you don't need horrible hacks
@@ -87,18 +88,14 @@ The license for this project is AGPL-3.0.
 
 
 ## TODO
-* Support cross-origin access control for fonts, see https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
-	* An easy policy is to enable cross-origin for all others hosts
-* Headers
-	* Add HSTS header for HTTPS production environment
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
 * Redirect for leaf URLs to index URLs (eg '/en' to '/en/')
 * Markdown / Handlebars / HTML minify / purifycss
 * Spellchecking using [languagetool](https://www.languagetool.org/)
-* Errors
+* Error Templates / Content
 	* 400 Bad Request - display a page very similar to 404 Not Found
-	* 404 not found
-	* Review error message pages
+	* 403 Forbidden
+	* 404 Not Found
 * Web server
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs

@@ -62,7 +62,7 @@ impl<R: RequestHandler> Service for HttpService<R>
 		{
 			if method == Options
 			{
-				Self::response(Response::options(vec![Options, Head, Get, Post, Delete, Put, Patch]))
+				Self::response(Response::options(vec![Options, Head, Get, Post, Delete, Put, Patch], None))
 			}
 			else
 			{

@@ -7,8 +7,7 @@
 pub(crate) enum FontInputFormat
 {
 	TTF,
-	OTF,
-	// WOFF, WOFF2, SVG (font), SVG (icons), EOT
+	// OTF, WOFF, WOFF2, SVG (font), SVG (icons), EOT
 }
 
 impl Default for FontInputFormat
@@ -29,7 +28,6 @@ impl FontInputFormat
 		match *self
 		{
 			TTF => vec![".ttf"],
-			OTF => vec![".otf"],
 		}
 	}
 }

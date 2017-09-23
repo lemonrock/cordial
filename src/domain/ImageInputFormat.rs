@@ -39,7 +39,7 @@ impl ImageInputFormat
 			JPEG => vec![".jpeg", ".jpg", ".jpe"],
 			GIF => vec![".gif"],
 			BMP => vec![".bmp"],
-			ICO => vec![".ico"],
+			ICO => vec![".ico", ".cur"],
 			TIFF => vec![".tiff", ".tif"],
 			WebP => vec![".webp"],
 			PPM => vec![".ppm"],

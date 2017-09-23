@@ -99,6 +99,7 @@
       <w>rwlock</w>
       <w>scss</w>
       <w>serialiser</w>
+      <w>sfnt</w>
       <w>shmem</w>
       <w>sigmask</w>
       <w>sigs</w>
@@ -120,6 +121,7 @@
       <w>webserver</w>
       <w>werror</w>
       <w>whitelist</w>
+      <w>woff</w>
       <w>wrlock</w>
       <w>xmltree</w>
       <w>xrcd</w>

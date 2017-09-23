@@ -17,7 +17,7 @@ trait CommonResponses: Sized
 	fn static_html_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self;
 	
 	#[inline(always)]
-	fn options(permittedMethods: Vec<Method>) -> Self;
+	fn options(permittedMethods: Vec<Method>, responseToAccessControlRequest: Option<(AccessControlAllowOrigin, Option<Vec<Method>>, Option<Vec<Ascii<String>>>)>) -> Self;
 	
 	#[inline(always)]
 	fn method_not_allowed(permittedMethods: Vec<Method>) -> Self;
@@ -126,11 +126,35 @@ impl CommonResponses for Response
 	}
 	
 	#[inline(always)]
-	fn options(permittedMethods: Vec<Method>) -> Self
+	fn options(permittedMethods: Vec<Method>, responseToAccessControlRequest: Option<(AccessControlAllowOrigin, Option<Vec<Method>>, Option<Vec<Ascii<String>>>)>) -> Self
 	{
-		Self::static_txt_response(false, StatusCode::Ok, "")
-		.with_header(commonCacheControlHeader(60))
-		.with_header(Allow(permittedMethods))
+		const CacheTimeInSeconds: u32 = 60;
+		
+		let mut response = Self::static_txt_response(false, StatusCode::Ok, "")
+		.with_header(commonCacheControlHeader(CacheTimeInSeconds));
+		
+		let mut response = if let Some(responseToAccessControlRequest) = responseToAccessControlRequest
+		{
+			let mut response = response.with_header(AccessControlMaxAge(CacheTimeInSeconds)).with_header(responseToAccessControlRequest.0);
+			
+			if let Some(methods) = responseToAccessControlRequest.1
+			{
+				response = response.with_header(AccessControlAllowMethods(methods));
+			}
+			
+			if let Some(headers) = responseToAccessControlRequest.2
+			{
+				response = response.with_header(AccessControlAllowHeaders(headers));
+			}
+			
+			response
+		}
+		else
+		{
+			response
+		};
+		
+		response.with_header(Allow(permittedMethods.clone()))
 	}
 	
 	#[inline(always)]

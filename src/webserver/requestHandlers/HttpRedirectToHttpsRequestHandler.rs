@@ -27,7 +27,7 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 	}
 	
 	#[inline(always)]
-	fn handle<'a>(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, _requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
+	fn handle<'a>(&self, isHead: bool, method: Method, hostName: &str, port: u16, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers, _requestBody: Body) -> Either<FutureResult<Response, ::hyper::Error>, Self::AlternativeFuture>
 	{
 		#[inline(always)]
 		fn methods() -> Vec<Method>
@@ -38,8 +38,7 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 		use ::hyper::Method::*;
 		match method
 		{
-			Options => HttpService::<Self>::response(Response::options(methods())),
-			Head | Get | Post | Delete | Put | Patch =>
+			Head | Get | Post | Delete | Put | Patch | Options =>
 			{
 				let mut url = match Url::parse(&format!("https://{}:{}{}", hostName, port, path))
 				{

@@ -87,6 +87,10 @@ The license for this project is AGPL-3.0.
 
 
 ## TODO
+* Support cross-origin access control for fonts, see https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+	* An easy policy is to enable cross-origin for all others hosts
+* Headers
+	* Add HSTS header for HTTPS production environment
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
 * Redirect for leaf URLs to index URLs (eg '/en' to '/en/')
 * Markdown / Handlebars / HTML minify / purifycss

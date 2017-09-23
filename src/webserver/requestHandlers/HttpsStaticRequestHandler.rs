@@ -34,10 +34,78 @@ impl RequestHandler for HttpsStaticRequestHandler
 			vec![Options, Head, Get]
 		}
 		
+		#[inline(always)]
+		fn deny<H, R>(value: Option<H>) -> Option<Vec<R>>
+		{
+			if value.is_some()
+			{
+				Some(vec![])
+			}
+			else
+			{
+				None
+			}
+		}
+		
 		use ::hyper::Method::*;
 		match method
 		{
-			Options => HttpService::<Self>::response(Response::options(methods())),
+			Options =>
+			{
+				let origin = requestHeaders.get::<Origin>();
+				
+				if let Some(origin) = origin
+				{
+					let accessControlRequestMethods = requestHeaders.get::<AccessControlRequestMethod>();
+					let accessControlRequestHeaders = requestHeaders.get::<AccessControlRequestHeaders>();
+					
+					let ourOrigin = AccessControlAllowOrigin::Value(hostName.to_string());
+					
+					if !origin.is_null()
+					{
+						if origin.scheme() != Some("http")
+						{
+							return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))))
+						}
+						
+						if let Some(host) = origin.host()
+						{
+							if self.isNotOneOfOurHostNames(host.hostname())
+							{
+								return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
+							}
+						}
+						else
+						{
+							return HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, deny(accessControlRequestMethods), deny(accessControlRequestHeaders)))));
+						}
+					};
+					
+					let allowMethods = if let Some(accessControlRequestMethods) = accessControlRequestMethods
+					{
+						Some(methods())
+					}
+					else
+					{
+						None
+					};
+					
+					let allowHeaders = if let Some(accessControlRequestHeaders) = accessControlRequestHeaders
+					{
+						Some(accessControlRequestHeaders.0.clone())
+					}
+					else
+					{
+						None
+					};
+					
+					HttpService::<Self>::response(Response::options(methods(), Some((ourOrigin, allowMethods, allowHeaders))))
+				}
+				else
+				{
+					HttpService::<Self>::response(Response::options(methods(), None))
+				}
+			},
 			Head | Get  => self.response(isHead, hostName, path, query, requestHeaders),
 			_ => HttpService::<Self>::response(Response::method_not_allowed(methods())),
 		}

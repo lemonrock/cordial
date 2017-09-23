@@ -121,7 +121,7 @@ impl Resource
 		self.resourceOutputRelativeUrl = self.pipeline.resourceOutputRelativeUrl(&parentHierarchy, resourceInputName);
 	}
 	
-	// SiteMap, RSS hashmaps are by language ISO code
+	// SiteMap, RSS hash maps are by language ISO code
 	#[inline(always)]
 	pub(crate) fn render(&mut self, newResources: &mut Resources, oldResources: &Arc<Resources>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPages: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItems: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
 	{
@@ -136,7 +136,8 @@ impl Resource
 			}
 			else
 			{
-				let languageData = if isForPrimaryLanguageOnly
+				let languageData = (iso_639_1_alpha_2_language_code, language);
+				let ifLanguageAwareLanguageData = if isForPrimaryLanguageOnly
 				{
 					Some((iso_639_1_alpha_2_language_code, language))
 				}
@@ -154,13 +155,11 @@ impl Resource
 					self.inputContentFilePath(primaryLanguage, Some(language))?
 				};
 				
-				let unversionedCanonicalUrl = self.unversionedUrl(iso_639_1_alpha_2_language_code, language)?;
-				
 				let mut siteMapWebPages = siteMapWebPages.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
 				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
-				let result = self.pipeline.execute(&inputContentFilePath, unversionedCanonicalUrl, handlebars, &self.headers, languageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
+				let result = self.pipeline.execute(&inputContentFilePath, &self.resourceOutputRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
 				
 				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
 				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
@@ -271,13 +270,5 @@ impl Resource
 		}
 		
 		CordialError::couldNotFindResourceContentFile(self, primaryLanguage, language)
-	}
-	
-	#[inline(always)]
-	fn unversionedUrl(&self, iso_639_1_alpha_2_language_code: &str, language: &Language) -> Result<Url, CordialError>
-	{
-		let baseUrl = language.baseUrl(iso_639_1_alpha_2_language_code)?;
-		let url = baseUrl.join(&self.resourceOutputRelativeUrl).context(format!("Invalid resourceOutputRelativeUrl '{}'", self.resourceOutputRelativeUrl))?;
-		Ok(url)
 	}
 }

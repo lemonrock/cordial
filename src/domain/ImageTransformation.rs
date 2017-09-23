@@ -18,12 +18,12 @@ pub(crate) enum ImageTransformation
 	resize
 	{
 		scale: ImageScale,
-		filter: TransformFilterType,
+		#[serde(default)] filter: ImageTransformationFilterType,
 	},
 	resize_exact
 	{
 		scale: ImageScale,
-		filter: TransformFilterType,
+		#[serde(default)] filter: ImageTransformationFilterType,
 	},
 	blur
 	{

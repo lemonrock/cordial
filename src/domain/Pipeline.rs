@@ -61,6 +61,7 @@ pub(crate) enum Pipeline
 		#[serde(default)] language_aware: bool,
 		#[serde(default)] input_format: ImageInputFormat,
 		#[serde(default)] jpeg_quality: Option<u8>,
+		#[serde(default)] jpeg_speed_over_compression: bool,
 		#[serde(default)] transformations: Vec<ImageTransformation>,
 		
 		// img tag sizes and srcset
@@ -370,11 +371,11 @@ impl Pipeline
 				// https://github.com/google/woff2/blob/master/src/woff2_compress.cc - poor; file name needs to end in .ttf; we need a wrapper
 			}
 			
-			&mut raster_image { max_age_in_seconds, is_downloadable, input_format, jpeg_quality, ref transformations, ref img_srcset, ref mut primary_image_dimensions, ref mut image_source_set, .. } =>
+			&mut raster_image { max_age_in_seconds, is_downloadable, input_format, jpeg_quality, jpeg_speed_over_compression, ref transformations, ref img_srcset, ref mut primary_image_dimensions, ref mut image_source_set, .. } =>
 			{
 				canBeCompressed = false;
 				
-				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, canBeCompressed, input_format, jpeg_quality, transformations, img_srcset, |url, canBeCompressed|
+				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, unversionedCanonicalUrl, canBeCompressed, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url, canBeCompressed|
 				{
 					generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
 				})?;
@@ -416,16 +417,16 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: ImageInputFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
-		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
+		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(imageInputFormat)?;
 		
 		// transform
 		let imageAfterTransformation = ImageTransformation::applyTransformations(imageBeforeTransformation, transformations)?;
 		
 		// generate image src set
-		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, unversionedUrl, jpeg_quality, imageAfterTransformation);
-		imageSourceSet.generate(img_srcset)?;
+		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, unversionedUrl, jpegQuality, jpegSpeedOverCompression, imageAfterTransformation);
+		imageSourceSet.generate(imageSourceSetEntries)?;
 		
 		let primaryImageDimensions = imageSourceSet.primaryImageDimensions();
 		let processedImageSourceSet = imageSourceSet.processedImageSourceSet();

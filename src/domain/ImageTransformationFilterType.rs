@@ -5,26 +5,35 @@
 //noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum TransformFilterType
+pub(crate) enum ImageTransformationFilterType
 {
-	Nearest,
-	Triangle,
-	CatmullRom,
-	Gaussian,
-	Lanczos3,
+	nearest_neighbour,
+	triangle_linear,
+	catmull_rom_cubic,
+	gaussian,
+	lanczos_with_window_3,
 }
 
-impl TransformFilterType
+impl Default for ImageTransformationFilterType
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ImageTransformationFilterType::lanczos_with_window_3
+	}
+}
+
+impl ImageTransformationFilterType
 {
 	pub(crate) fn to_FilterType(&self) -> ::image::FilterType
 	{
 		match *self
 		{
-			TransformFilterType::Nearest => ::image::FilterType::Nearest,
-			TransformFilterType::Triangle => ::image::FilterType::Triangle,
-			TransformFilterType::CatmullRom => ::image::FilterType::CatmullRom,
-			TransformFilterType::Gaussian => ::image::FilterType::Gaussian,
-			TransformFilterType::Lanczos3 => ::image::FilterType::Lanczos3,
+			ImageTransformationFilterType::nearest_neighbour => ::image::FilterType::Nearest,
+			ImageTransformationFilterType::triangle_linear => ::image::FilterType::Triangle,
+			ImageTransformationFilterType::catmull_rom_cubic => ::image::FilterType::CatmullRom,
+			ImageTransformationFilterType::gaussian => ::image::FilterType::Gaussian,
+			ImageTransformationFilterType::lanczos_with_window_3 => ::image::FilterType::Lanczos3,
 		}
 	}
 }

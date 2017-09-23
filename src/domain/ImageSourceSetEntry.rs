@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ImageSourceSetEntry
 {
-	crop: Option<ImageCrop>,
+	#[serde(default)] crop: Option<ImageCrop>,
 	scale: ImageScale,
-	filter: TransformFilterType
+	#[serde(default)] filter: ImageTransformationFilterType
 }
 
 impl ImageSourceSetEntry

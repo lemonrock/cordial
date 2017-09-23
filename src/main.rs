@@ -20,6 +20,7 @@ extern crate comrak;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
 extern crate futures;
+extern crate guetzli_sys;
 extern crate handlebars;
 extern crate hyper;
 extern crate image;

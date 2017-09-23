@@ -7,6 +7,7 @@ pub(crate) struct ImageSourceSet<'a>
 	primaryUnversionedUrl: Url,
 	inputContentFilePath: &'a Path,
 	jpegQuality: Option<u8>,
+	jpegSpeedOverCompression: bool,
 	primaryImageWidth: u32,
 	primaryImageHeight: u32,
 	imagesInOrder: BTreeMap<u32, ::image::DynamicImage>,
@@ -15,7 +16,7 @@ pub(crate) struct ImageSourceSet<'a>
 impl<'a> ImageSourceSet<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFilePath: &'a Path, primaryUnversionedUrl: Url, jpegQuality: Option<u8>, primaryImage: ::image::DynamicImage) -> Self
+	pub(crate) fn new(inputContentFilePath: &'a Path, primaryUnversionedUrl: Url, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage) -> Self
 	{
 		let primaryImageWidth = primaryImage.width();
 		let primaryImageHeight = primaryImage.height();
@@ -28,6 +29,7 @@ impl<'a> ImageSourceSet<'a>
 			primaryUnversionedUrl,
 			inputContentFilePath,
 			jpegQuality,
+			jpegSpeedOverCompression,
 			primaryImageWidth,
 			primaryImageHeight,
 			imagesInOrder,
@@ -35,9 +37,9 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn generate(&mut self, img_srcset: &[ImageSourceSetEntry]) -> Result<(), CordialError>
+	pub(crate) fn generate(&mut self, imageSourceSetEntries: &[ImageSourceSetEntry]) -> Result<(), CordialError>
 	{
-		for imageSourceSetEntry in img_srcset.iter()
+		for imageSourceSetEntry in imageSourceSetEntries.iter()
 		{
 			let (width, image) = imageSourceSetEntry.cropAndResize(self.primaryImage())?;
 			self.imagesInOrder.insert(width, image);
@@ -176,24 +178,46 @@ impl<'a> ImageSourceSet<'a>
 	
 	fn optimize(&self, image: &::image::DynamicImage) -> Result<Vec<u8>, CordialError>
 	{
+		fn encodeJpeg(image: &::image::DynamicImage, quality: u8, path: &Path) -> Result<Vec<u8>, CordialError>
+		{
+			let bytes = image.raw_pixels();
+			let mut jpegBytes = Vec::with_capacity(bytes.len() * 2);
+			{
+				let mut writer = BufWriter::with_capacity(jpegBytes.len(), &mut jpegBytes);
+				
+				let mut jpegEncoder = JPEGEncoder::new_with_quality(&mut writer, quality);
+				
+				let (width, height) = image.dimensions();
+				let color = image.color();
+				jpegEncoder.encode(&bytes, width, height, color).context(path)?;
+			}
+			Ok(jpegBytes)
+		}
+		
 		let bytes = if let Some(jpegQuality) = self.jpegQuality
 		{
-			let quality = match jpegQuality
+			if self.jpegSpeedOverCompression
 			{
-				0 => 1,
-				quality @ 0 ... 100 => quality,
-				_ => 100
-			};
-			
-			// create PNG bytes
-			let mut pngBytes = Vec::with_capacity(32 * 1024);
-			{
-				let mut writer = BufWriter::with_capacity(pngBytes.len(), &mut pngBytes);
-				image.save(&mut writer, ::image::ImageFormat::PNG).context(self.inputContentFilePath)?;
+				let quality = match jpegQuality
+				{
+					quality @ 0 ... 100 => quality,
+					_ => 100
+				};
+				encodeJpeg(image, quality, self.inputContentFilePath)?
 			}
-			
-			// create JPEG
-			CordialError::executeCommandCapturingStandardOut(Command::new("guetzli").env_clear().args(&["--nomemlimit", "--quality", &format!("{}", quality), "-", "-"]), self.inputContentFilePath, pngBytes)?
+			else
+			{
+				let inputJpegBytes = encodeJpeg(image, 100, self.inputContentFilePath)?;
+				
+				let quality = match jpegQuality
+				{
+					quality if quality < 84 => 84,
+					quality @ 84 ... 100 => quality,
+					_ => 100
+				};
+				
+				::guetzli_sys::guetzli(&inputJpegBytes, quality, None)?
+			}
 		}
 		else
 		{

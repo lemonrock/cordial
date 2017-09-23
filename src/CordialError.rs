@@ -114,6 +114,14 @@ quick_error!
 			context(path: &'a Path, cause: ::image::ImageError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotPerceptuallyEncodeJpegWithGuetzli(cause: ::guetzli_sys::GuetzliError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("JPEG could not be perceptually encoded because: '{}'", cause)
+			from()
+		}
+		
 		CouldNotRenderHandlebarsTemplate(cause: ::handlebars::TemplateRenderError)
 		{
 			cause(cause)

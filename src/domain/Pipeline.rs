@@ -51,6 +51,12 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		#[serde(default)] input_format: FontInputFormat,
+		
+		#[serde(default)] utf8_xml_metadata: Vec<u8>,
+		#[serde(default)] woff1_private_data: Vec<u8>,
+		#[serde(default = "Pipeline::woff1_iterations_default")] woff1_iterations: u16,
+		#[serde(default = "Pipeline::woff2_brotli_quality_default")] woff2_brotli_quality: u8,
+		#[serde(default)] woff2_disallow_transforms: bool,
 	},
 	
 	raster_image
@@ -343,20 +349,46 @@ impl Pipeline
 				panic!("Implement me");
 			}
 			
-			&mut font { max_age_in_seconds, is_downloadable, input_format, .. } =>
+			&mut font { max_age_in_seconds, is_downloadable, input_format, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, .. } =>
 			{
-				let inputCanonicalUrl = languageData.url(resourceRelativeUrl)?;
-				
 				canBeCompressed = false;
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &inputCanonicalUrl)?;
+				// ttf
+				let ttfBytes = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
 				
+				// woff
+				let woffNumberOfIterations = match woff1_iterations
+				{
+					woffNumberOfIterations @ 0 ... 5000 => woffNumberOfIterations,
+					_ => 5000,
+				};
+				let woffUrl = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
+				let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
+				let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, &utf8_xml_metadata[..], &woff1_private_data[..]).context(inputContentFilePath)?.as_ref().to_vec();
 				
+				// woff2
+				let woff2BrotliQuality = match woff2_brotli_quality
+				{
+					0 => 1,
+					quality @ 1 ... 11 => quality,
+					_ => 11,
+				};
+				let woff2Url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
+				let woff2Headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woff2Url)?;
+				let woff2Body = match convertTtfToWoff2(&ttfBytes, &utf8_xml_metadata[..], woff2BrotliQuality, !woff2_disallow_transforms)
+				{
+					Err(()) => return Err(CordialError::Configuration("Could not encode font to WOFF2".to_owned())),
+					Ok(body) => body,
+				};
 				
-				
-				panic!();
-				// https://github.com/khaledhosny/ots/blob/master/docs/DesignDoc.md  ots-sanitize --quiet font_file [dest_font_file] [font_index]
-				// https://github.com/google/woff2/blob/master/src/woff2_compress.cc - poor; file name needs to end in .ttf; we need a wrapper
+				Ok
+				(
+					vec!
+					[
+						(woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed),
+						(woff2Url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed),
+					]
+				)
 			}
 			
 			&mut raster_image { max_age_in_seconds, is_downloadable, input_format, jpeg_quality, jpeg_speed_over_compression, ref transformations, ref img_srcset, ref mut primary_image_dimensions, ref mut image_source_set, .. } =>
@@ -405,9 +437,15 @@ impl Pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType("image/svg+xml".parse().unwrap()), headers, body, None, canBeCompressed)])
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("image/svg+xml")), headers, body, None, canBeCompressed)])
 			}
 		}
+	}
+	
+	#[inline(always)]
+	fn mimeType(string: &str) -> Mime
+	{
+		string.parse().unwrap()
 	}
 	
 	#[inline(always)]
@@ -512,5 +550,17 @@ impl Pipeline
 	fn is_versioned_true_default() -> bool
 	{
 		true
+	}
+	
+	#[inline(always)]
+	fn woff1_iterations_default() -> u16
+	{
+		DefaultNumberOfIterations
+	}
+	
+	#[inline(always)]
+	fn woff2_brotli_quality_default() -> u8
+	{
+		11
 	}
 }

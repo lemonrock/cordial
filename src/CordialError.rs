@@ -114,6 +114,14 @@ quick_error!
 			context(path: &'a Path, cause: ::image::ImageError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotEncodeTtfToWoff(path: PathBuf, cause: self::woff::WoffError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("TTF data in {:?} could not be converted to WOFF because : '{}'", path, cause)
+			context(path: &'a Path, cause: self::woff::WoffError) -> (path.to_path_buf(), cause)
+		}
+		
 		CouldNotPerceptuallyEncodeJpegWithGuetzli(cause: ::guetzli_sys::GuetzliError)
 		{
 			cause(cause)

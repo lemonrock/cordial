@@ -24,8 +24,10 @@ extern crate guetzli_sys;
 extern crate handlebars;
 extern crate hyper;
 extern crate image;
+extern crate libc;
 #[macro_use] extern crate log;
 #[macro_use] extern crate quick_error;
+extern crate malloc_buf;
 #[macro_use] extern crate maplit;
 extern crate mktemp;
 extern crate mime_guess;
@@ -104,6 +106,7 @@ use ::url::Url;
 pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod webserver;
+pub(crate) mod woff;
 pub(crate) mod xmlExtra;
 
 

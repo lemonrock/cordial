@@ -4,6 +4,7 @@
 
 use super::*;
 use super::hjson::*;
+use super::woff::*;
 use super::xmlExtra::*;
 use super::webserver::RsaManyServersResolvesServerCert;
 use super::webserver::UpdatableTlsServerConfigurationFactory;
@@ -65,6 +66,7 @@ use ::std::time::UNIX_EPOCH;
 use ::url::Url;
 use ::url::percent_encoding::USERINFO_ENCODE_SET;
 use ::url::percent_encoding::utf8_percent_encode;
+use ::woff2_sys::convertTtfToWoff2;
 use ::xml::attribute::Attribute;
 use ::xml::name::Name;
 use ::xml::namespace::Namespace;

@@ -2,32 +2,18 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum FontInputFormat
-{
-	TTF_or_OTF,
-	// TTC (true type collections), WOFF, WOFF2, SVG (font), SVG (icons), EOT
-}
 
-impl Default for FontInputFormat
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		FontInputFormat::TTF_or_OTF
-	}
-}
+use ::malloc_buf::Malloc;
+use ::libc::c_void;
+use ::std::mem::uninitialized;
 
-impl FontInputFormat
-{
-	#[inline(always)]
-	pub(crate) fn fileExtensions(&self) -> Vec<&'static str>
-	{
-		use self::FontInputFormat::*;
-		match *self
-		{
-			TTF_or_OTF => vec![".ttf", ".otf"],
-		}
-	}
-}
+
+include!("encodeWoff.rs");
+include!("WoffError.rs");
+
+
+pub const DefaultNumberOfIterations: u16 = 15;
+
+pub const DefaultFontMajorVersion: u8 = 0;
+
+pub const DefaultFontMinorVersion: u16 = 0;

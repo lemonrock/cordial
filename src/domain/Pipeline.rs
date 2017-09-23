@@ -44,13 +44,22 @@ pub(crate) enum Pipeline
 		*/
 	},
 	
+	font
+	{
+		#[serde(default = "Pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
+		#[serde(default)] language_aware: bool,
+		#[serde(default)] input_format: FontInputFormat,
+	},
+	
 	raster_image
 	{
 		#[serde(default = "Pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default)] input_format: InputImageFormat,
+		#[serde(default)] input_format: ImageInputFormat,
 		#[serde(default)] jpeg_quality: Option<u8>,
 		#[serde(default)] transformations: Vec<ImageTransformation>,
 		
@@ -139,6 +148,7 @@ impl Pipeline
 		{
 			raw { .. } => NoDependenciesEgImage,
 			md { .. } => LinksToSubResourcesEgHtmlPage,
+			font { .. } => NoDependenciesEgImage,
 			raster_image { .. } => NoDependenciesEgImage,
 			sass { .. } => DependsOnOthersEgStylesheet,
 			scss { .. } => DependsOnOthersEgStylesheet,
@@ -164,6 +174,30 @@ impl Pipeline
 					result.push(withExtension);
 				}
 			}
+			
+			font { input_format, .. } =>
+			{
+				let first = resourceInputName.rmatch_indices(".").next();
+				
+				for fileExtension in input_format.fileExtensions()
+				{
+					let index = first.unwrap().0;
+					let mut withExtension = String::with_capacity(index + fileExtension.len());
+					let slice = if first.is_some()
+					{
+						&resourceInputName[0..index]
+					}
+					else
+					{
+						resourceInputName
+					};
+					withExtension.push_str(slice);
+					withExtension.push_str(fileExtension);
+					
+					result.push(withExtension);
+				}
+			}
+			
 			raster_image { input_format, .. } =>
 			{
 				let first = resourceInputName.rmatch_indices(".").next();
@@ -257,6 +291,7 @@ impl Pipeline
 		{
 			raw { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			md { .. } => (false, false),
+			font { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			raster_image { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			sass { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			scss { is_versioned, language_aware, .. } => (language_aware, is_versioned),
@@ -324,6 +359,17 @@ impl Pipeline
 				panic!("Implement me");
 			}
 			
+			&mut font { max_age_in_seconds, is_downloadable, input_format, .. } =>
+			{
+				canBeCompressed = false;
+				
+				let headers = generateHeaders(handlebars, headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &unversionedCanonicalUrl)?;
+				
+				panic!();
+				// https://github.com/khaledhosny/ots/blob/master/docs/DesignDoc.md  ots-sanitize --quiet font_file [dest_font_file] [font_index]
+				// https://github.com/google/woff2/blob/master/src/woff2_compress.cc - poor; file name needs to end in .ttf; we need a wrapper
+			}
+			
 			&mut raster_image { max_age_in_seconds, is_downloadable, input_format, jpeg_quality, ref transformations, ref img_srcset, ref mut primary_image_dimensions, ref mut image_source_set, .. } =>
 			{
 				canBeCompressed = false;
@@ -335,7 +381,7 @@ impl Pipeline
 				*primary_image_dimensions = dimensions;
 				*image_source_set = imageSourceSet;
 				Ok(result)
-			},
+			}
 			
 			&mut sass { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
 			{
@@ -370,7 +416,7 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: InputImageFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, unversionedUrl: Url, canBeCompressed: bool, input_format: ImageInputFormat, jpeg_quality: Option<u8>, transformations: &[ImageTransformation], img_srcset: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(input_format)?;
 		

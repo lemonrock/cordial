@@ -43,7 +43,7 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsHandlebarsTemplate(&self, prefix: &Path, handlebars: &mut Handlebars) -> Result<(), CordialError>;
 	
-	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>;
+	fn fileContentsAsImage(&self, imageInputFormat: ImageInputFormat) -> Result<::image::DynamicImage, CordialError>;
 	
 	fn fileContentsAsSvgDocument(&self) -> Result<(::svgdom::Document, String), CordialError>;
 	
@@ -351,13 +351,13 @@ impl PathExt for Path
 		}
 	}
 	
-	fn fileContentsAsImage(&self, inputImageFormat: InputImageFormat) -> Result<::image::DynamicImage, CordialError>
+	fn fileContentsAsImage(&self, imageInputFormat: ImageInputFormat) -> Result<::image::DynamicImage, CordialError>
 	{
 		let reader = self.fileContentsAsBufReader(4096).context(self)?;
 		
-		use InputImageFormat::*;
+		use ImageInputFormat::*;
 		use ::image::ImageFormat;
-		let decoder = match inputImageFormat
+		let decoder = match imageInputFormat
 		{
 			PNG => ImageFormat::PNG,
 			JPEG => ImageFormat::JPEG,

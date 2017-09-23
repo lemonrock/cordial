@@ -4,47 +4,32 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum InputImageFormat
+pub(crate) enum FontInputFormat
 {
-	PNG,
-	JPEG,
-	GIF,
-	BMP,
-	ICO,
-	TIFF,
-	WebP,
-	PPM,
-	HDR,
-	TGA
+	TTF,
+	OTF,
+	// WOFF, WOFF2, SVG (font), SVG (icons), EOT
 }
 
-impl Default for InputImageFormat
+impl Default for FontInputFormat
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		InputImageFormat::PNG
+		FontInputFormat::TTF
 	}
 }
 
-impl InputImageFormat
+impl FontInputFormat
 {
 	#[inline(always)]
 	pub(crate) fn fileExtensions(&self) -> Vec<&'static str>
 	{
-		use self::InputImageFormat::*;
+		use self::FontInputFormat::*;
 		match *self
 		{
-			PNG => vec![".png"],
-			JPEG => vec![".jpeg", ".jpg", ".jpe"],
-			GIF => vec![".gif"],
-			BMP => vec![".bmp"],
-			ICO => vec![".ico"],
-			TIFF => vec![".tiff", ".tif"],
-			WebP => vec![".webp"],
-			PPM => vec![".ppm"],
-			HDR => vec![".hdr"],
-			TGA => vec![".tga", ".icb", ".vda", ".vst"],
+			TTF => vec![".ttf"],
+			OTF => vec![".otf"],
 		}
 	}
 }

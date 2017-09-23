@@ -84,7 +84,6 @@ It also does a lot more to create a great experience for your users:-
 
 The license for this project is AGPL-3.0.
 
-[cordial]: https://github.com/lemonrock/cordial "cordial GitHub page"
 
 
 ## TODO
@@ -133,12 +132,10 @@ The license for this project is AGPL-3.0.
 	* <https://blog.feedly.com/10-ways-to-optimize-your-feed-for-feedly/>
 * SEO
 * Fonts
+	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
+	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* WOFF and WOFF2 cover all modern browsers
-	* Generation of WebFonts (eg WOFF2) from an input file
-	* Creation of icon fonts from SVGs or other fonts
-		* take a folder of svg glyphs
-		* or use IcoMoon online service
-	* Use [FontSquirrel](https://www.fontsquirrel.com/tools/webfont-generator) to generate font variants
+	* Use Fontello's curl API to support Icon font creation
 * SVG & Markdown extensions
 	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
 	* svgbob
@@ -149,3 +146,5 @@ The license for this project is AGPL-3.0.
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly
 * UX ideas <https://www.nomensa.com/blog/2010/7-tips-for-multi-lingual-website-accessibility>
+
+[cordial]: https://github.com/lemonrock/cordial "cordial GitHub page"

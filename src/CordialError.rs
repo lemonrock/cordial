@@ -176,30 +176,30 @@ impl CordialError
 		Err(CordialError::CouldNotFindResourceContentFile(reason))
 	}
 	
-	pub(crate) fn executeCommandCapturingStandardOut(command: &mut Command, context: &Path, standardIn: Vec<u8>) -> Result<Vec<u8>, CordialError>
-	{
-		let mut child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().context(context)?;
-		
-		{
-			let input = child.stdin.as_mut().unwrap();
-			let mut inputWriter = BufWriter::new(input);
-			inputWriter.write_all(&standardIn).context(context)?;
-		}
-		
-		let output = child.wait_with_output().context(context)?;
-		
-		let exitStatus = output.status;
-		match exitStatus.code()
-		{
-			None => Err(CordialError::InvalidFile(context.to_path_buf(), format!("command '{:?}' terminated by signal", command))),
-			Some(code) => if code == 0
-			{
-				Ok(output.stdout)
-			}
-			else
-			{
-				Err(CordialError::InvalidFile(context.to_path_buf(), format!("command '{:?}' exited with code {} and said: {}", command, code, String::from_utf8_lossy(&output.stderr))))
-			},
-		}
-	}
+//	pub(crate) fn executeCommandCapturingStandardOut(command: &mut Command, context: &Path, standardIn: Vec<u8>) -> Result<Vec<u8>, CordialError>
+//	{
+//		let mut child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().context(context)?;
+//
+//		{
+//			let input = child.stdin.as_mut().unwrap();
+//			let mut inputWriter = BufWriter::new(input);
+//			inputWriter.write_all(&standardIn).context(context)?;
+//		}
+//
+//		let output = child.wait_with_output().context(context)?;
+//
+//		let exitStatus = output.status;
+//		match exitStatus.code()
+//		{
+//			None => Err(CordialError::InvalidFile(context.to_path_buf(), format!("command '{:?}' terminated by signal", command))),
+//			Some(code) => if code == 0
+//			{
+//				Ok(output.stdout)
+//			}
+//			else
+//			{
+//				Err(CordialError::InvalidFile(context.to_path_buf(), format!("command '{:?}' exited with code {} and said: {}", command, code, String::from_utf8_lossy(&output.stderr))))
+//			},
+//		}
+//	}
 }

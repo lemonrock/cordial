@@ -71,11 +71,6 @@ pub(crate) enum Pipeline
 		#[serde(default)] jpeg_speed_over_compression: bool,
 		#[serde(default)] transformations: Vec<ImageTransformation>,
 		
-		// img tag sizes and srcset
-		
-		// By language code. Used in alt tag
-		descriptions: HashMap<String, ImageAbstract>,
-		
 		// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
 		img_sizes: Option<String>,
 		
@@ -113,13 +108,30 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
 		do_not_optimize: bool, // Exists solely because of potential bugs in svg optimizer
+	
+		// TODO: Add option to add height, width if missing
+		// TODO: Add alternative output formats, eg ICO and PNG, with multiple sizes
+	},
+	
+	engiffen
+	{
+		#[serde(default = "Pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
+		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
+		#[serde(default)] language_aware: bool,
 		
-		// By language code. Used in alt tag
-		descriptions: HashMap<String, ImageAbstract>,
+		// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
+		img_sizes: Option<String>,
+		
+		#[serde(default)] source_set: Vec<EngiffenSource>,
+		#[serde(default)] quantizer: EngiffenQuantizer,
+		#[serde(default)] loops: EngiffenLoops,
 	}
+
+
+	
 //	json,
 //	// js,
-//	gif (animations only),
 //  favicon
 //	redirect,
 	// eg for temp or perm redirect
@@ -161,6 +173,7 @@ impl Pipeline
 			sass { .. } => DependsOnOthersEgStylesheet,
 			scss { .. } => DependsOnOthersEgStylesheet,
 			svg { .. } => NoDependenciesEgImage,
+			engiffen { .. } => NoDependenciesEgImage,
 		}
 	}
 	
@@ -248,32 +261,8 @@ impl Pipeline
 			sass { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			scss { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 			svg { is_versioned, language_aware, .. } => (language_aware, is_versioned),
+			engiffen { is_versioned, language_aware, .. } => (language_aware, is_versioned),
 		}
-	}
-	
-	#[inline(always)]
-	fn withoutFileNameExtension<'a>(resourceRelativeUrl: &'a str) -> &'a str
-	{
-		match resourceRelativeUrl.rfind('.')
-		{
-			None => resourceRelativeUrl,
-			Some(index) => resourceRelativeUrl.split_at(index).0,
-		}
-	}
-	
-	#[inline(always)]
-	fn appendFileNameExtension<'a>(withoutFileNameExtension: &str, extension: &str) -> String
-	{
-		let mut string = String::with_capacity(withoutFileNameExtension.len() + extension.len());
-		string.push_str(withoutFileNameExtension.as_ref());
-		string.push_str(extension);
-		string
-	}
-	
-	#[inline(always)]
-	fn replaceFileNameExtension(resourceRelativeUrl: &str, extension: &str) -> String
-	{
-		Self::appendFileNameExtension(Self::withoutFileNameExtension(resourceRelativeUrl), extension)
 	}
 	
 	#[inline(always)]
@@ -403,10 +392,7 @@ impl Pipeline
 			{
 				canBeCompressed = false;
 				
-				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, Self::withoutFileNameExtension(resourceRelativeUrl), languageData, canBeCompressed, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url, canBeCompressed|
-				{
-					generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url)
-				})?;
+				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, Self::withoutFileNameExtension(resourceRelativeUrl), languageData, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url))?;
 				*primary_image_dimensions = dimensions;
 				*image_source_set = imageSourceSet;
 				Ok(result)
@@ -447,6 +433,14 @@ impl Pipeline
 				};
 				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("image/svg+xml")), headers, body, None, canBeCompressed)])
 			}
+			
+			&mut engiffen { max_age_in_seconds, is_downloadable, ref source_set, ref quantizer, loops, .. } =>
+			{
+				canBeCompressed = false;
+				
+				let engiffenPipeline = Engiffen::new(inputContentFilePath, source_set, quantizer, loops);
+				engiffenPipeline.process(Self::withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url))
+			}
 		}
 	}
 	
@@ -457,12 +451,20 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	fn raster_image<'a, F: for<'r> FnMut(&'r Url, bool) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, canBeCompressed: bool, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<'a, F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
-		let imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(imageInputFormat)?;
+		// load original
+		let mut imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(imageInputFormat)?;
 		
 		// transform
-		let imageAfterTransformation = ImageTransformation::applyTransformations(imageBeforeTransformation, transformations)?;
+		let imageAfterTransformation = if let Some(transformedImage) = ImageTransformation::applyTransformations(&mut imageBeforeTransformation, transformations)?
+		{
+			transformedImage
+		}
+		else
+		{
+			imageBeforeTransformation
+		};
 		
 		// generate image src set
 		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, resourceRelativeUrlWithoutFileNameExtension, jpegQuality, jpegSpeedOverCompression, imageAfterTransformation, languageData);
@@ -470,7 +472,7 @@ impl Pipeline
 		
 		let primaryImageDimensions = imageSourceSet.primaryImageDimensions();
 		let processedImageSourceSet = imageSourceSet.processedImageSourceSet()?;
-		let urls = imageSourceSet.urls(headerGenerator, canBeCompressed)?;
+		let urls = imageSourceSet.urls(headerGenerator)?;
 		
 		Ok((primaryImageDimensions, processedImageSourceSet, urls))
 	}
@@ -528,6 +530,31 @@ impl Pipeline
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css.as_bytes().to_owned()),
 		}
+	}
+	
+	#[inline(always)]
+	fn withoutFileNameExtension<'a>(resourceRelativeUrl: &'a str) -> &'a str
+	{
+		match resourceRelativeUrl.rfind('.')
+		{
+			None => resourceRelativeUrl,
+			Some(index) => resourceRelativeUrl.split_at(index).0,
+		}
+	}
+	
+	#[inline(always)]
+	fn appendFileNameExtension<'a>(withoutFileNameExtension: &str, extension: &str) -> String
+	{
+		let mut string = String::with_capacity(withoutFileNameExtension.len() + extension.len());
+		string.push_str(withoutFileNameExtension.as_ref());
+		string.push_str(extension);
+		string
+	}
+	
+	#[inline(always)]
+	fn replaceFileNameExtension(resourceRelativeUrl: &str, extension: &str) -> String
+	{
+		Self::appendFileNameExtension(Self::withoutFileNameExtension(resourceRelativeUrl), extension)
 	}
 	
 	#[inline(always)]

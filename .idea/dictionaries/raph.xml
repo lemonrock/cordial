@@ -23,6 +23,7 @@
       <w>ebusy</w>
       <w>edeadlk</w>
       <w>einval</w>
+      <w>engiffen</w>
       <w>epfd</w>
       <w>epoll</w>
       <w>errormsg</w>
@@ -92,6 +93,7 @@
       <w>pwait</w>
       <w>qkey</w>
       <w>quant</w>
+      <w>quantizer</w>
       <w>raph</w>
       <w>rdma</w>
       <w>recv</w>
@@ -111,10 +113,12 @@
       <w>strdup</w>
       <w>svgcleaner</w>
       <w>svgdom</w>
+      <w>targa</w>
       <w>timewait</w>
       <w>toml</w>
       <w>uncanonicalized</w>
       <w>unextended</w>
+      <w>unicase</w>
       <w>unprefixed</w>
       <w>unsharpen</w>
       <w>unsubscribes</w>

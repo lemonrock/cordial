@@ -79,6 +79,7 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have both an index and a leaf resource for an URL end path segment (eg '' for `https://example.com/about/` and 'about' for `https://example.com/about`). In practice this is rarely an issue. [cordial] supports automatic redirects for one to the other (one can specify which way).
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
+* Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
 
 
 ## Licensing
@@ -107,6 +108,9 @@ The license for this project is AGPL-3.0.
 	* eg [qrcode](https://crates.io/crates/qrcode)
 	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
 * Formats
+	* SVG
+		- adjust or set or remove width & height in document
+		- support source set generation, also needed for Feedly
 	* HTML
 		* extract PJAX automatically with CSS selectors
 		* Explore using [spongedown](https://ivanceras.github.io/spongedown/) because it allows creating charts and emoji faces; builds on [comrak](https://crates.io/crates/comrak), a commonmark and GitHub Flavoured Markdown renderer
@@ -122,6 +126,7 @@ The license for this project is AGPL-3.0.
 			* font-faces
 				* webfont creation (may be problematic for AMP)
 		* https://github.com/purifycss/purifycss
+	* SVG to PNG - for organization-logo (feedly, google) and favicon
 	* Favicon
 		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
@@ -135,7 +140,6 @@ The license for this project is AGPL-3.0.
 * Fonts
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
-	* WOFF and WOFF2 cover all modern browsers
 	* Use Fontello's curl API to support Icon font creation
 * SVG & Markdown extensions
 	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
@@ -143,6 +147,7 @@ The license for this project is AGPL-3.0.
 	* comic (ascii faces to SVG)
 	* csv table from spongedown
 	* [memenhancer](https://github.com/ivanceras/memenhancer)
+* Image transformations need a variant of Borrow or Cow
 
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly

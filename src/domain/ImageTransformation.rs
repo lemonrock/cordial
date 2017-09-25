@@ -6,6 +6,20 @@
 #[derive(Deserialize, Debug, Copy, Clone)]
 pub(crate) enum ImageTransformation
 {
+	invert,
+	
+	resize
+	{
+		scale: ImageScale,
+		#[serde(default)] filter: ImageTransformationFilterType,
+	},
+	
+	resize_exact
+	{
+		scale: ImageScale,
+		#[serde(default)] filter: ImageTransformationFilterType,
+	},
+	
 	crop
 	{
 		x: u32,
@@ -13,85 +27,136 @@ pub(crate) enum ImageTransformation
 		width: u32,
 		height: u32,
 	},
+	
 	grayscale,
-	invert,
-	resize
-	{
-		scale: ImageScale,
-		#[serde(default)] filter: ImageTransformationFilterType,
-	},
-	resize_exact
-	{
-		scale: ImageScale,
-		#[serde(default)] filter: ImageTransformationFilterType,
-	},
+	
 	blur
 	{
 		sigma: f32,
 	},
+	
 	unsharpen
 	{
 		sigma: f32,
 		threshold: i32,
 	},
+	
 	filter3x3
 	{
 		kernel: [f32; 9],
 	},
+	
 	adjust_contrast
 	{
 		contrast: f32
 	},
+	
 	brighten
 	{
 		value: i32
 	},
+	
 	hue_rotate
 	{
 		value: i32
 	},
+	
 	flip_vertically,
+	
 	flip_horizontally,
+	
 	rotate_90_degrees,
+	
 	rotate_180_degrees,
+	
 	rotate_270_degrees,
 }
 
 impl ImageTransformation
 {
 	#[inline(always)]
-	pub(crate) fn applyTransformations(mut image: ::image::DynamicImage, transformations: &[Self]) -> Result<::image::DynamicImage, CordialError>
+	pub(crate) fn applyTransformations(originalImage: &::image::DynamicImage, transformations: &[Self]) -> Result<Option<::image::DynamicImage>, CordialError>
 	{
-		for transformation in transformations
+		let mut previousImage = None;
+		for transformation in transformations.iter()
 		{
-			image = transformation.transform(image)?;
+			let mut thisImage = None;
+			match previousImage
+			{
+				None =>
+				{
+					thisImage = transformation.transform(originalImage)?;
+				}
+				
+				Some(ref mut image) =>
+				{
+					if let Some(transformed) = transformation.transform(image)?
+					{
+						thisImage = Some(transformed);
+					}
+				},
+			};
+			previousImage = thisImage;
 		}
-		Ok(image)
+		
+		Ok(previousImage)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn transform(&self, mut image: ::image::DynamicImage) -> Result<::image::DynamicImage, CordialError>
+	pub(crate) fn transform(&self, image: &::image::DynamicImage) -> Result<Option<::image::DynamicImage>, CordialError>
 	{
 		use self::ImageTransformation::*;
-		let image = match *self
+		
+		match *self
 		{
-			crop { x, y, width, height } => image.crop(x, y, width, height),
-			grayscale => image.grayscale(),
-			invert => { image.invert(); image },
-			resize { scale, filter } => scale.resize(image, filter.to_FilterType())?,
-			resize_exact { scale, filter } => scale.resizeExact(image, filter.to_FilterType())?,
-			blur { sigma } => image.blur(sigma),
-			unsharpen { sigma, threshold } => image.unsharpen(sigma, threshold),
-			filter3x3 { ref kernel } => image.filter3x3(kernel),
-			adjust_contrast { contrast } => image.adjust_contrast(contrast),
-			brighten { value } => image.brighten(value),
-			hue_rotate { value } => image.huerotate(value),
-			flip_vertically => image.flipv(),
-			flip_horizontally => image.fliph(),
-			rotate_90_degrees => image.rotate90(),
-			rotate_180_degrees => image.rotate180(),
-			rotate_270_degrees => image.rotate270(),
-		};
-		Ok(image)
+			resize { scale, filter } => scale.resize(image, filter.to_FilterType()),
+			
+			resize_exact { scale, filter } => scale.resizeExact(image, filter.to_FilterType()),
+			
+			invert =>
+			{
+				let mut newImage = image.clone();
+				newImage.invert();
+				Ok(Some(newImage))
+			},
+			
+			crop { x, y, width, height } =>
+			{
+				if x == 0 && y == 0 && width == image.width() && height == image.height()
+				{
+					Ok(None)
+				}
+				else
+				{
+					let mut newImage = image.clone();
+					newImage.crop(x, y, width, height);
+					Ok(Some(newImage))
+				}
+			},
+			
+			grayscale => Ok(Some(image.grayscale())),
+			
+			blur { sigma } => Ok(Some(image.blur(sigma))),
+			
+			unsharpen { sigma, threshold } => Ok(Some(image.unsharpen(sigma, threshold))),
+			
+			filter3x3 { ref kernel } => Ok(Some(image.filter3x3(kernel))),
+			
+			adjust_contrast { contrast } => Ok(Some(image.adjust_contrast(contrast))),
+			
+			brighten { value } => Ok(Some(image.brighten(value))),
+			
+			hue_rotate { value } => Ok(Some(image.huerotate(value))),
+			
+			flip_vertically => Ok(Some(image.flipv())),
+			
+			flip_horizontally => Ok(Some(image.fliph())),
+			
+			rotate_90_degrees => Ok(Some(image.rotate90())),
+			
+			rotate_180_degrees => Ok(Some(image.rotate180())),
+			
+			rotate_270_degrees => Ok(Some(image.rotate270())),
+		}
 	}
 }

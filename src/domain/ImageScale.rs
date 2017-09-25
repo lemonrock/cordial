@@ -6,6 +6,7 @@
 #[derive(Deserialize, Debug, Copy, Clone)]
 pub(crate) enum ImageScale
 {
+	Identity,
 	FixedWidth
 	{
 		width: u32,
@@ -30,20 +31,43 @@ pub(crate) enum ImageScale
 	},
 }
 
+impl Default for ImageScale
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ImageScale::Identity
+	}
+}
+
 impl ImageScale
 {
 	#[inline(always)]
-	pub(crate) fn resize(&self, image: ::image::DynamicImage, filter: ::image::FilterType) -> Result<::image::DynamicImage, CordialError>
+	pub(crate) fn resize(&self, image: &::image::DynamicImage, filter: ::image::FilterType) -> Result<Option<::image::DynamicImage>, CordialError>
 	{
 		let (width, height) = self.scale(image.dimensions())?;
-		Ok(image.resize(width, height, filter))
+		if width == image.width() && height == image.height()
+		{
+			Ok(None)
+		}
+		else
+		{
+			Ok(Some(image.resize(width, height, filter)))
+		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn resizeExact(&self, image: ::image::DynamicImage, filter: ::image::FilterType) -> Result<::image::DynamicImage, CordialError>
+	pub(crate) fn resizeExact(&self, image: &::image::DynamicImage, filter: ::image::FilterType) -> Result<Option<::image::DynamicImage>, CordialError>
 	{
 		let (width, height) = self.scale(image.dimensions())?;
-		Ok(image.resize_exact(width, height, filter))
+		if width == image.width() && height == image.height()
+		{
+			Ok(None)
+		}
+		else
+		{
+			Ok(Some(image.resize_exact(width, height, filter)))
+		}
 	}
 	
 	#[inline(always)]
@@ -53,6 +77,7 @@ impl ImageScale
 		
 		match *self
 		{
+			Identity => Ok(dimensions),
 			FixedWidth { width } =>
 			{
 				if width == 0
@@ -83,7 +108,21 @@ impl ImageScale
 					Ok(((dimensions.0 * height) / dimensions.1, height))
 				}
 			}
-			FixedSize { width, height } => Ok((width, height)),
+			FixedSize { width, height } =>
+			{
+				if width == 0
+				{
+					Err(CordialError::Configuration("width can not be zero".to_owned()))
+				}
+				else if height == 0
+				{
+					Err(CordialError::Configuration("height can not be zero".to_owned()))
+				}
+				else
+				{
+					Ok((width, height))
+				}
+			},
 			Ratio { upper, lower } =>
 			{
 				if upper == 0

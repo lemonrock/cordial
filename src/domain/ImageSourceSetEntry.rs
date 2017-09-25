@@ -7,7 +7,7 @@
 pub(crate) struct ImageSourceSetEntry
 {
 	#[serde(default)] crop: Option<ImageCrop>,
-	scale: ImageScale,
+	#[serde(default)] scale: ImageScale,
 	#[serde(default)] filter: ImageTransformationFilterType
 }
 

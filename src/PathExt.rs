@@ -4,6 +4,8 @@
 
 pub(crate) trait PathExt
 {
+	fn fileContentsInFolder<R, F: Fn(&Path) -> Option<Result<R, CordialError>>>(&self, filter: F) -> Result<BTreeMap<PathBuf, R>, CordialError>;
+	
 	fn deleteOverridingPermissions(&self) -> io::Result<()>;
 	
 	fn createFolder(&self) -> io::Result<()>;
@@ -68,6 +70,30 @@ pub(crate) trait PathExt
 
 impl PathExt for Path
 {
+	fn fileContentsInFolder<R, F: Fn(&Path) -> Option<Result<R, CordialError>>>(&self, filter: F) -> Result<BTreeMap<PathBuf, R>, CordialError>
+	{
+		let mut matchedFilePaths = BTreeMap::new();
+		for entry in self.read_dir().context(self)?
+		{
+			let entry = entry.context(self)?;
+			let path = entry.path();
+			
+			let metadata = entry.metadata().context(&path)?;
+			if metadata.is_file()
+			{
+				match filter(&path)
+				{
+					None => (),
+					Some(value) =>
+					{
+						matchedFilePaths.insert(path, value?);
+					}
+				}
+			}
+		}
+		Ok((matchedFilePaths))
+	}
+	
 	fn deleteOverridingPermissions(&self) -> io::Result<()>
 	{
 		let metadata = self.symlink_metadata()?;
@@ -368,7 +394,7 @@ impl PathExt for Path
 			WebP => ImageFormat::WEBP,
 			PPM => ImageFormat::PPM,
 			HDR => ImageFormat::HDR,
-			TGA => ImageFormat::TGA,
+			Targa => ImageFormat::TGA,
 		};
 		
 		Ok(::image::load(reader, decoder).context(self)?)

@@ -15,7 +15,7 @@ pub(crate) enum ImageInputFormat
 	WebP,
 	PPM,
 	HDR,
-	TGA
+	Targa
 }
 
 impl Default for ImageInputFormat
@@ -33,6 +33,7 @@ impl ImageInputFormat
 	pub(crate) fn fileExtensions(&self) -> Vec<&'static str>
 	{
 		use self::ImageInputFormat::*;
+		
 		match *self
 		{
 			PNG => vec![".png"],
@@ -44,7 +45,51 @@ impl ImageInputFormat
 			WebP => vec![".webp"],
 			PPM => vec![".ppm"],
 			HDR => vec![".hdr"],
-			TGA => vec![".tga", ".icb", ".vda", ".vst"],
+			Targa => vec![".tga", ".icb", ".vda", ".vst"],
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn load(path: &Path) -> Option<Result<::image::DynamicImage, CordialError>>
+	{
+		if let Some(osStrExtension) = path.extension()
+		{
+			use self::ImageInputFormat::*;
+			
+			if let Some(utf8FileExtension) = osStrExtension.to_str()
+			{
+				let imageInputFormat = match utf8FileExtension
+				{
+					"png" => PNG,
+					"jpe" => JPEG,
+					"jpeg" => JPEG,
+					"jpg" => JPEG,
+					"gif" => GIF,
+					"bmp" => BMP,
+					"ico" => ICO,
+					"cur" => ICO,
+					"tiff" => TIFF,
+					"tif" => TIFF,
+					"webp" => WebP,
+					"ppm" => PPM,
+					"hdr" => HDR,
+					"tga" => Targa,
+					"icb" => Targa,
+					"vda" => Targa,
+					"vst" => Targa,
+					_ => return None,
+				};
+				Some(path.fileContentsAsImage(imageInputFormat))
+			}
+			else
+			{
+				None
+			}
+		}
+		else
+		{
+			None
+		}
+		
 	}
 }

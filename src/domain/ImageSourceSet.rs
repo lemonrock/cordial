@@ -94,7 +94,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url, bool) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F, canBeCompressed: bool) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -121,7 +121,7 @@ impl<'a> ImageSourceSet<'a>
 			};
 			
 			let body = self.optimize(image)?;
-			let headers = headerGenerator(&url, canBeCompressed)?;
+			let headers = headerGenerator(&url)?;
 			
 			let height = image.height();
 			let jsonValue = Rc::new
@@ -154,13 +154,13 @@ impl<'a> ImageSourceSet<'a>
 			{
 				urlTags.insert(largest_image, jsonValue.clone());
 			}
-			urls.push((url, urlTags, contentType.clone(), headers, body, None, canBeCompressed));
+			urls.push((url, urlTags, contentType.clone(), headers, body, None, false));
 			index += 1;
 		}
 		Ok(urls)
 	}
 	
-	fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
+	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
 	{
 		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
 		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
@@ -170,7 +170,7 @@ impl<'a> ImageSourceSet<'a>
 		Ok(languageData.url(&path)?)
 	}
 	
-	fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
+	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
 	{
 		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
 		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());

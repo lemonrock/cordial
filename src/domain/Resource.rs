@@ -144,7 +144,7 @@ impl Resource
 		
 		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
-			let (isForPrimaryLanguageOnly, isVersioned) = self.pipeline.is();
+			let (isVersioned, isForPrimaryLanguageOnly) = self.pipeline.is();
 			
 			if !isPrimaryLanguage && isForPrimaryLanguageOnly
 			{

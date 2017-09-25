@@ -27,32 +27,56 @@ impl Default for ImageInputFormat
 	}
 }
 
-impl ImageInputFormat
+impl InputFormat for ImageInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn fileExtensions(&self) -> Vec<&'static str>
+	fn fileExtensions(&self) -> &'static [&'static str]
 	{
 		use self::ImageInputFormat::*;
 		
 		match *self
 		{
-			PNG => vec![".png"],
-			JPEG => vec![".jpeg", ".jpg", ".jpe"],
-			GIF => vec![".gif"],
-			BMP => vec![".bmp"],
-			ICO => vec![".ico", ".cur"],
-			TIFF => vec![".tiff", ".tif"],
-			WebP => vec![".webp"],
-			PPM => vec![".ppm"],
-			HDR => vec![".hdr"],
-			Targa => vec![".tga", ".icb", ".vda", ".vst"],
+			PNG => &[".png"],
+			JPEG => &[".jpeg", ".jpg", ".jpe"],
+			GIF => &[".gif"],
+			BMP => &[".bmp"],
+			ICO => &[".ico", ".cur"],
+			TIFF => &[".tiff", ".tif"],
+			WebP => &[".webp"],
+			PPM => &[".ppm"],
+			HDR => &[".hdr"],
+			Targa => &[".tga", ".icb", ".vda", ".vst"],
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn load(path: &Path) -> Option<Result<::image::DynamicImage, CordialError>>
+	fn allFileExtensions() -> &'static [&'static str]
 	{
-		if let Some(osStrExtension) = path.extension()
+		&[
+			".png",
+			".jpeg", ".jpg", ".jpe",
+			".gif",
+			".bmp",
+			".ico", ".cur",
+			".tiff", ".tif",
+			".webp",
+			".ppm",
+			".hdr",
+			".tga", ".icb", ".vda", ".vst",
+		]
+	}
+}
+
+impl ImageInputFormat
+{
+	#[inline(always)]
+	pub(crate) fn load(option: Option<Self>, path: &Path) -> Option<Result<::image::DynamicImage, CordialError>>
+	{
+		if let Some(imageInputFormat) = option
+		{
+			Some(path.fileContentsAsImage(imageInputFormat))
+		}
+		else if let Some(osStrExtension) = path.extension()
 		{
 			use self::ImageInputFormat::*;
 			
@@ -90,6 +114,5 @@ impl ImageInputFormat
 		{
 			None
 		}
-		
 	}
 }

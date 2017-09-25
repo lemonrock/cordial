@@ -16,9 +16,11 @@ pub(crate) enum Pipeline
 		#[serde(default)] mime_type: Option<String>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
 	},
 	
-	md
+	html
 	{
 		#[serde(default = "Pipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
+		#[serde(default)] input_format: HtmlInputFormat,
+		
 		#[serde(default)] is_leaf: bool,
 		
 		// open graph, RSS, schema.org
@@ -50,7 +52,7 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default)] input_format: FontInputFormat,
+		#[serde(default)] input_format: Option<FontInputFormat>,
 		
 		#[serde(default)] utf8_xml_metadata: Vec<u8>,
 		#[serde(default)] woff1_private_data: Vec<u8>,
@@ -66,7 +68,7 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default)] input_format: ImageInputFormat,
+		#[serde(default)] input_format: Option<ImageInputFormat>,
 		#[serde(default)] jpeg_quality: Option<u8>,
 		#[serde(default)] jpeg_speed_over_compression: bool,
 		#[serde(default)] transformations: Vec<ImageTransformation>,
@@ -81,22 +83,13 @@ pub(crate) enum Pipeline
 		#[serde(default, skip_deserializing)] image_source_set: Vec<(Url, u32)>,
 	},
 	
-	sass
+	css
 	{
 		#[serde(default = "Pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
-		#[serde(default = "Pipeline::precision_default")] precision: u8,
-		#[serde(default)] is_template: bool,
-	},
-	
-	scss
-	{
-		#[serde(default = "Pipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
-		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
-		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
-		#[serde(default)] language_aware: bool,
+		#[serde(default)] input_format: Option<CssInputFormat>,
 		#[serde(default = "Pipeline::precision_default")] precision: u8,
 		#[serde(default)] is_template: bool,
 	},
@@ -119,6 +112,7 @@ pub(crate) enum Pipeline
 		#[serde(default = "Pipeline::is_downloadable_false_default")] is_downloadable: bool,
 		#[serde(default = "Pipeline::is_versioned_true_default")] is_versioned: bool,
 		#[serde(default)] language_aware: bool,
+		#[serde(default)] input_format: Option<ImageInputFormat>,
 		
 		// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
 		img_sizes: Option<String>,
@@ -167,11 +161,10 @@ impl Pipeline
 		match *self
 		{
 			raw { .. } => NoDependenciesEgImage,
-			md { .. } => LinksToSubResourcesEgHtmlPage,
+			html { .. } => LinksToSubResourcesEgHtmlPage,
 			font { .. } => NoDependenciesEgImage,
 			raster_image { .. } => NoDependenciesEgImage,
-			sass { .. } => DependsOnOthersEgStylesheet,
-			scss { .. } => DependsOnOthersEgStylesheet,
+			css { .. } => DependsOnOthersEgStylesheet,
 			svg { .. } => NoDependenciesEgImage,
 			engiffen { .. } => NoDependenciesEgImage,
 		}
@@ -180,105 +173,53 @@ impl Pipeline
 	#[inline(always)]
 	pub(crate) fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
 	{
-		let mut result = Vec::with_capacity(4);
-		
 		use self::Pipeline::*;
+		
 		match *self
 		{
-			md { ..} =>
-			{
-				for fileExtension in vec![".markdown", ".md"]
-				{
-					let mut withExtension = String::with_capacity(resourceInputName.len() + 3);
-					withExtension.push_str(resourceInputName);
-					withExtension.push_str(fileExtension);
-					result.push(withExtension);
-				}
-			}
+			html { input_format, .. } => input_format.resourceInputContentFileNamesWithExtension(resourceInputName),
 			
-			font { input_format, .. } =>
-			{
-				let first = resourceInputName.rmatch_indices(".").next();
-				
-				for fileExtension in input_format.fileExtensions()
-				{
-					let index = first.unwrap().0;
-					let mut withExtension = String::with_capacity(index + fileExtension.len());
-					let slice = if first.is_some()
-					{
-						&resourceInputName[0..index]
-					}
-					else
-					{
-						resourceInputName
-					};
-					withExtension.push_str(slice);
-					withExtension.push_str(fileExtension);
-					
-					result.push(withExtension);
-				}
-			}
+			font { input_format, .. } => input_format.resourceInputContentFileNamesWithExtension(resourceInputName),
 			
-			raster_image { input_format, .. } =>
-			{
-				let first = resourceInputName.rmatch_indices(".").next();
-				
-				for fileExtension in input_format.fileExtensions()
-				{
-					let index = first.unwrap().0;
-					let mut withExtension = String::with_capacity(index + fileExtension.len());
-					let slice = if first.is_some()
-					{
-						&resourceInputName[0..index]
-					}
-					else
-					{
-						resourceInputName
-					};
-					withExtension.push_str(slice);
-					withExtension.push_str(fileExtension);
-					
-					result.push(withExtension);
-				}
-			}
+			raster_image { input_format, .. } => input_format.resourceInputContentFileNamesWithExtension(resourceInputName),
 			
-			_ => result.push(resourceInputName.to_owned()),
+			css { input_format, .. } => input_format.resourceInputContentFileNamesWithExtension(resourceInputName),
+			
+			_ => vec![resourceInputName.to_owned()],
 		}
-		
-		result
 	}
 	
 	#[inline(always)]
 	pub(crate) fn is<'a>(&self) -> (bool, bool)
 	{
 		use self::Pipeline::*;
+		
 		match *self
 		{
-			raw { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			md { .. } => (false, false),
-			font { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			raster_image { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			sass { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			scss { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			svg { is_versioned, language_aware, .. } => (language_aware, is_versioned),
-			engiffen { is_versioned, language_aware, .. } => (language_aware, is_versioned),
+			raw { is_versioned, language_aware, .. } => (is_versioned, language_aware),
+			html { .. } => (false, true),
+			font { is_versioned, language_aware, .. } => (is_versioned, language_aware),
+			raster_image { is_versioned, language_aware, .. } => (is_versioned, language_aware),
+			css { is_versioned, language_aware, .. } => (is_versioned, language_aware),
+			svg { is_versioned, language_aware, .. } => (is_versioned, language_aware),
+			engiffen { is_versioned, language_aware, .. } => (is_versioned, language_aware),
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
-		let mut canBeCompressed = true;
-		
 		use self::Pipeline::*;
+		
 		use self::UrlTag::*;
+		
 		match self
 		{
 			&mut raw { max_age_in_seconds, is_downloadable, can_be_compressed, ref mime_type, .. } =>
 			{
 				let inputCanonicalUrl = languageData.url(resourceRelativeUrl)?;
 				
-				canBeCompressed = if can_be_compressed.is_none()
+				let canBeCompressed = if can_be_compressed.is_none()
 				{
 					!inputContentFilePath.hasCompressedFileExtension()?
 				}
@@ -305,8 +246,10 @@ impl Pipeline
 				Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
 			
-			&mut md { max_age_in_seconds, is_leaf, .. } =>
+			&mut html { max_age_in_seconds, is_leaf, .. } =>
 			{
+				const CanBeCompressed: bool = true;
+				
 				let inputCanonicalUrl = if is_leaf
 				{
 					let mut leafPath = String::with_capacity(resourceRelativeUrl.len() + 1);
@@ -323,9 +266,9 @@ impl Pipeline
 //
 //				let regularHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
 //				let pjaxHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::PJAX, configuration, canBeCompressed, max_age_in_seconds, false)?;
-//				//result.push((unversionedUrl, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), canBeCompressed));
+//				//result.push((unversionedUrl, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 //
-//				let ampHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::AMP, deploymentVersion, localization, canBeCompressed, max_age_in_seconds, false)?;
+//				let ampHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::AMP, deploymentVersion, localization, CanBeCompressed, max_age_in_seconds, false)?;
 //				// have to adjust unversionedUrl URL for amp
 //
 //				Add to WebPageSiteMaps; detect videos and images  (see https://developers.google.com/webmasters/videosearch/sitemaps)
@@ -339,90 +282,49 @@ impl Pipeline
 				panic!("Implement me");
 			}
 			
-			&mut font { max_age_in_seconds, is_downloadable, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf, .. } =>
+			&mut font { max_age_in_seconds, is_downloadable, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf, input_format, .. } =>
 			{
-				canBeCompressed = false;
-				
-				let ttfBytes = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-				
-				let mut urls = Vec::with_capacity(3);
-				
-				// woff
-				{
-					let woffNumberOfIterations = match woff1_iterations
-					{
-						woffNumberOfIterations @ 0 ... 5000 => woffNumberOfIterations,
-						_ => 5000,
-					};
-					let woffUrl = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
-					let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
-					let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, &utf8_xml_metadata[..], &woff1_private_data[..]).context(inputContentFilePath)?.as_ref().to_vec();
-					urls.push((woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
-				}
-				
-				// woff2
-				{
-					let woff2BrotliQuality = match woff2_brotli_quality
-					{
-						0 => 1,
-						quality @ 1 ... 11 => quality,
-						_ => 11,
-					};
-					let woff2Url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
-					let woff2Headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woff2Url)?;
-					let woff2Body = match convertTtfToWoff2(&ttfBytes, &utf8_xml_metadata[..], woff2BrotliQuality, !woff2_disallow_transforms)
-					{
-						Err(()) => return Err(CordialError::Configuration("Could not encode font to WOFF2".to_owned())),
-						Ok(body) => body,
-					};
-					urls.push((woff2Url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
-				}
-				
-				if include_ttf
-				{
-					let ttfUrl = languageData.url(resourceRelativeUrl)?;
-					let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
-					urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
-				}
-				
-				Ok(urls)
+				FontInputFormat::toWebFonts(input_format, resourceRelativeUrl, configuration, inputContentFilePath, handlebars, headerTemplates, ifLanguageAwareLanguageData, languageData, max_age_in_seconds, is_downloadable, &utf8_xml_metadata[..], &woff1_private_data[..], woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf)
 			}
 			
 			&mut raster_image { max_age_in_seconds, is_downloadable, input_format, jpeg_quality, jpeg_speed_over_compression, ref transformations, ref img_srcset, ref mut primary_image_dimensions, ref mut image_source_set, .. } =>
 			{
-				canBeCompressed = false;
+				const CanNotBeCompressed: bool = false;
 				
-				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, Self::withoutFileNameExtension(resourceRelativeUrl), languageData, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url))?;
+				let (dimensions, imageSourceSet, result) = Self::raster_image(inputContentFilePath, Self::withoutFileNameExtension(resourceRelativeUrl), languageData, input_format, jpeg_quality, jpeg_speed_over_compression, transformations, img_srcset, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, max_age_in_seconds, is_downloadable, url))?;
 				*primary_image_dimensions = dimensions;
 				*image_source_set = imageSourceSet;
 				Ok(result)
 			}
 			
-			&mut sass { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
+			&mut css { max_age_in_seconds, is_downloadable, input_format, precision, is_template, .. } =>
 			{
+				const CanBeCompressed: bool = true;
+				
 				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".css"))?;
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
-				let inputFolderPath = &configuration.inputFolderPath;
-				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, true)?;
-				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
-			}
-			
-			&mut scss { max_age_in_seconds, is_downloadable, precision, is_template, .. } =>
-			{
-				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".css"))?;
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
-				let inputFolderPath = &configuration.inputFolderPath;
-				let body = Self::sass_or_scss(inputContentFilePath, precision, is_template, inputFolderPath, handlebars, false)?;
-				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, canBeCompressed)])
+				let handlebars = if is_template
+				{
+					Some(handlebars)
+				}
+				else
+				{
+					None
+				};
+				let body = CssInputFormat::toCss(input_format, inputContentFilePath, precision, configuration, handlebars)?;
+				
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
 			}
 			
 			&mut svg { max_age_in_seconds, is_downloadable, do_not_optimize, .. } =>
 			{
+				const CanBeCompressed: bool = true;
+				
 				let url = languageData.url(&Self::replaceFileNameExtension(resourceRelativeUrl, ".svg"))?;
 				
-				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
+				let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, max_age_in_seconds, is_downloadable, &url)?;
 				let body = if do_not_optimize
 				{
 					inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?
@@ -431,15 +333,15 @@ impl Pipeline
 				{
 					inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 				};
-				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("image/svg+xml")), headers, body, None, canBeCompressed)])
+				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(Self::mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
 			}
 			
-			&mut engiffen { max_age_in_seconds, is_downloadable, ref source_set, ref quantizer, loops, .. } =>
+			&mut engiffen { max_age_in_seconds, is_downloadable, input_format, ref source_set, ref quantizer, loops, .. } =>
 			{
-				canBeCompressed = false;
+				const CanNotBeCompressed: bool = false;
 				
-				let engiffenPipeline = Engiffen::new(inputContentFilePath, source_set, quantizer, loops);
-				engiffenPipeline.process(Self::withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, url))
+				let engiffenPipeline = Engiffen::new(inputContentFilePath, source_set, quantizer, loops, input_format);
+				engiffenPipeline.process(Self::withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, max_age_in_seconds, is_downloadable, url))
 			}
 		}
 	}
@@ -451,10 +353,21 @@ impl Pipeline
 	}
 	
 	#[inline(always)]
-	fn raster_image<'a, F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, imageInputFormat: ImageInputFormat, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
+	fn raster_image<'a, F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(inputContentFilePath: &Path, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, imageInputFormat: Option<ImageInputFormat>, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, transformations: &[ImageTransformation], imageSourceSetEntries: &[ImageSourceSetEntry], headerGenerator: F) -> Result<((u32, u32), Vec<(Url, u32)>, Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>), CordialError>
 	{
 		// load original
-		let mut imageBeforeTransformation = inputContentFilePath.fileContentsAsImage(imageInputFormat)?;
+		let mut imageBeforeTransformation = match ImageInputFormat::load(imageInputFormat, inputContentFilePath)
+		{
+			Some(result) =>
+			{
+				match result
+				{
+					Err(error) => return Err(error),
+					Ok(image) => image,
+				}
+			},
+			None => panic!("Should not be possible"),
+		};
 		
 		// transform
 		let imageAfterTransformation = if let Some(transformedImage) = ImageTransformation::applyTransformations(&mut imageBeforeTransformation, transformations)?
@@ -475,61 +388,6 @@ impl Pipeline
 		let urls = imageSourceSet.urls(headerGenerator)?;
 		
 		Ok((primaryImageDimensions, processedImageSourceSet, urls))
-	}
-	
-	#[inline(always)]
-	fn sass_or_scss(inputContentFilePath: &Path, precision: u8, preProcessWithHandlebars: bool, inputFolderPath: &Path, handlebars: &mut Handlebars, isSass: bool) -> Result<Vec<u8>, CordialError>
-	{
-		fn findImportPaths(sassFolderPath: &Path) -> Result<Vec<String>, CordialError>
-		{
-			let mut importPaths = Vec::with_capacity(16);
-			let sassImportsPath = sassFolderPath.join("sass-imports");
-			for entry in sassImportsPath.read_dir().context(&sassImportsPath)?
-			{
-				let entry = entry.context(&sassImportsPath)?;
-				
-				let path = entry.path();
-				
-				if entry.file_type().context(&path)?.is_dir()
-				{
-					match path.into_os_string().into_string()
-					{
-						Err(_) => return Err(CordialError::InvalidFile(entry.path(), "a component of the path is not valid UTF-8".to_owned())),
-						Ok(importPath) => importPaths.push(importPath),
-					}
-				}
-			}
-			
-			Ok(importPaths)
-		}
-		
-		let options = ::sass_rs::Options
-		{
-			output_style: ::sass_rs::OutputStyle::Compressed,
-			precision: precision as usize,
-			indented_syntax: isSass,
-			include_paths: findImportPaths(inputFolderPath)?,
-		};
-		
-		
-		let content = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		let sassInput = if preProcessWithHandlebars
-		{
-			handlebars.register_escape_fn(::handlebars::no_escape);
-			let sassInput = handlebars.template_render(&content, &json!({}))?;
-			handlebars.unregister_escape_fn();
-			sassInput
-		}
-		else
-		{
-			content
-		};
-		
-		match ::sass_rs::compile_string(&sassInput, options)
-		{
-			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
-			Ok(css) => Ok(css.as_bytes().to_owned()),
-		}
 	}
 	
 	#[inline(always)]

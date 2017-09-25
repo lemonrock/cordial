@@ -4,50 +4,38 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum EngiffenQuantizer
+pub(crate) enum HtmlInputFormat
 {
-	naive,
-	neu_quant(#[serde(default = "EngiffenQuantizer::neu_quant_default")] u32),
+	markdown,
 }
 
-impl Default for EngiffenQuantizer
+impl Default for HtmlInputFormat
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		EngiffenQuantizer::neu_quant(Self::neu_quant_default())
+		HtmlInputFormat::markdown
 	}
 }
 
-impl EngiffenQuantizer
+impl InputFormat for HtmlInputFormat
 {
 	#[inline(always)]
-	fn toQuantizer(&self) -> Quantizer
+	fn fileExtensions(&self) -> &'static [&'static str]
 	{
-		use self::EngiffenQuantizer::*;
-		use ::engiffen::Quantizer::*;
+		use self::HtmlInputFormat::*;
 		
 		match *self
 		{
-			naive => Naive,
-			neu_quant(value) =>
-			{
-				let value = if value == 0
-				{
-					1
-				}
-				else
-				{
-					value
-				};
-				NeuQuant(value)
-			}
+			markdown => &[".md", ".markdown"],
 		}
 	}
 	
 	#[inline(always)]
-	fn neu_quant_default() -> u32
+	fn allFileExtensions() -> &'static [&'static str]
 	{
-		1
+		&[
+			".md", ".markdown",
+		]
 	}
 }

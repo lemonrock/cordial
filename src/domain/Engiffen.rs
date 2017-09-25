@@ -9,19 +9,21 @@ pub(crate) struct Engiffen<'a>
 	engiffenSources: &'a [EngiffenSource],
 	quantizer: Quantizer,
 	loops: EngiffenLoops,
+	inputFormat: Option<ImageInputFormat>,
 }
 
 impl<'a> Engiffen<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFolderPath: &'a Path, engiffenSources: &'a [EngiffenSource], quantizer: &EngiffenQuantizer, loops: EngiffenLoops) -> Self
+	pub(crate) fn new(inputContentFolderPath: &'a Path, engiffenSources: &'a [EngiffenSource], quantizer: &EngiffenQuantizer, loops: EngiffenLoops, inputFormat: Option<ImageInputFormat>) -> Self
 	{
 		Self
 		{
 			inputContentFolderPath,
 			engiffenSources,
 			quantizer: quantizer.toQuantizer(),
-			loops
+			loops,
+			inputFormat
 		}
 	}
 	
@@ -30,7 +32,7 @@ impl<'a> Engiffen<'a>
 	{
 		let images = self.inputContentFolderPath.fileContentsInFolder(|filePath|
 		{
-			match ImageInputFormat::load(filePath)
+			match ImageInputFormat::load(self.inputFormat, filePath)
 			{
 				None => None,
 				Some(Err(error)) => Some(Err(error)),

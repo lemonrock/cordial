@@ -55,11 +55,15 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsACleanedSvgFrom(&self) -> Result<Vec<u8>, CordialError>;
 	
+	fn fileContentsAsHtmlDom(&self) -> Result<RcDom, CordialError>;
+	
 	fn createFileWithByteContents(&self, bytes: &[u8]) -> io::Result<()>;
 	
 	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>;
 	
 	fn createFileWithPngImage(&self, image: &::image::DynamicImage) -> Result<(), CordialError>;
+	
+	fn createFileWithHtmlDom<HtmlDomNode: ::html5ever::serialize::Serialize>(&self, htmlDomNode: &HtmlDomNode) -> io::Result<()>;
 	
 	fn createFileWithCopyOf(&self, from: &Path) -> io::Result<()>;
 	
@@ -494,6 +498,43 @@ impl PathExt for Path
 		}
 	}
 	
+	fn fileContentsAsHtmlDom(&self) -> Result<RcDom, CordialError>
+	{
+		use ::html5ever::driver::parse_document;
+		use ::html5ever::driver::ParseOpts;
+		use ::html5ever::tokenizer::TokenizerOpts;
+		use ::html5ever::tree_builder::QuirksMode;
+		use ::html5ever::tree_builder::TreeBuilderOpts;
+		use ::html5ever::tendril::TendrilSink;
+		
+		let treeSink = RcDom::default();
+		
+		let parseOptions = ParseOpts
+		{
+			tokenizer: TokenizerOpts
+			{
+				exact_errors: true,
+				discard_bom: true,
+				profile: false,
+				initial_state: None,
+				last_start_tag_name: None,
+			},
+			tree_builder: TreeBuilderOpts
+			{
+				exact_errors: true,
+				scripting_enabled: true,
+				iframe_srcdoc: false,
+				drop_doctype: false,
+				ignore_missing_rules: false,
+				quirks_mode: QuirksMode::NoQuirks,
+			},
+		};
+		
+		let parser = parse_document(treeSink, parseOptions);
+		let document = parser.from_utf8().from_file(self).context(self)?;
+		Ok(document)
+	}
+	
 	fn createParentFolderForFilePath(&self) -> io::Result<()>
 	{
 		self.parent().unwrap().createFolder()
@@ -524,6 +565,24 @@ impl PathExt for Path
 		let mut writer = File::create(self).context(self)?;
 		image.save(&mut writer, ::image::ImageFormat::PNG).context(self)?;
 		Ok(())
+	}
+	
+	fn createFileWithHtmlDom<HtmlDomNode: ::html5ever::serialize::Serialize>(&self, htmlDomNode: &HtmlDomNode) -> io::Result<()>
+	{
+		use ::html5ever::serialize::SerializeOpts;
+		use ::html5ever::serialize::TraversalScope;
+		use ::html5ever::serialize::serialize;
+		
+		self.createParentFolderForFilePath()?;
+		let file = File::create(self)?;
+		
+		let serializeOptions = SerializeOpts
+		{
+			scripting_enabled: true,
+			traversal_scope: TraversalScope::IncludeNode,
+			create_missing_parent: true,
+		};
+		serialize(file, htmlDomNode, serializeOptions)
 	}
 	
 	fn modifyPngWithOxipng(&self) -> Result<(), CordialError>

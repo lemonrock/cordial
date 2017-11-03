@@ -2,8 +2,13 @@
   <dictionary name="raph">
     <words>
       <w>appendv</w>
+      <w>autoprefix</w>
+      <w>autoprefixer</w>
+      <w>autoprefixers</w>
+      <w>backface</w>
       <w>bindgen</w>
       <w>brotli</w>
+      <w>caniuse</w>
       <w>canonicalized</w>
       <w>chardet</w>
       <w>chrono</w>
@@ -20,6 +25,7 @@
       <w>deserialiser</w>
       <w>deserialized</w>
       <w>dlid</w>
+      <w>doctype</w>
       <w>ebusy</w>
       <w>edeadlk</w>
       <w>einval</w>
@@ -49,6 +55,7 @@
       <w>languagetool</w>
       <w>libfabric</w>
       <w>libibverbs</w>
+      <w>mathml</w>
       <w>maxevents</w>
       <w>mblkpool</w>
       <w>mcast</w>
@@ -88,6 +95,7 @@
       <w>pmemp</w>
       <w>pobj</w>
       <w>poolsize</w>
+      <w>prefixer</w>
       <w>preloading</w>
       <w>pthread</w>
       <w>pwait</w>
@@ -119,6 +127,7 @@
       <w>uncanonicalized</w>
       <w>unextended</w>
       <w>unicase</w>
+      <w>unparsed</w>
       <w>unprefixed</w>
       <w>unsharpen</w>
       <w>unsubscribes</w>

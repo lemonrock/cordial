@@ -1,0 +1,95 @@
+// This file is part of cordial. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT. No part of predicator, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
+// Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
+
+
+// TODO: Sort property names in order to maximise likelihood of gzip compression
+// TODO: Optimise @viewport rules, re-combining min-width / width and min-height / height [and replacing min-width with just width as appropriate]
+// TODO: Support auto-prefixing properties
+// TODO: Support recursive descent of @document
+
+
+Inside keyframes or document we may already be inside a vendor-prefixed rule
+Subsequent rules should then 'filter' their vendor prefixes to the vendor-prefix we are inside of
+
+
+
+
+Bootstrap:-
+
+	::-moz-focus-inner
+		A specific firefox focus
+
+    -webkit-overflow-scrolling: touch;
+    	A specific webkit extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-overflow-scrolling
+
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+    	A specific IE / Edge extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-ms-overflow-style
+
+	::-ms-expand
+	::-ms-value
+		Specific IE / Edge extension
+
+	-webkit-tap-highlight-color: transparent;
+		A specific webkit extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-tap-highlight-color
+
+	::-webkit-inner-spin-button
+	::-webkit-outer-spin-button
+	::-webkit-search-cancel-button
+    ::-webkit-search-decoration
+    ::-webkit-file-upload-button
+    	Specific webkit pseudo-element
+
+	position: -webkit-sticky !important;
+	position: sticky !important;
+/*
+
+THIS IS NEEDED:-
+css-placeholder
+
+	NOTE THAT our CSS crate takes care of the variation
+
+	::placeholder
+    ::-webkit-input-placeholder
+	::-ms-input-placeholder
+	(:-moz-placeholder **PSUEDO-CLASS** for very old Firefox)
+
+css-selection
+	- the ::selection psuedo-element needs a -moz- prefix
+
+fullscreen
+
+	NOTE THAT our CSS crate takes care of the variation
+
+	-ms-, -moz-, -webkit- prefixes
+	- the :fullscreen and ::backdrop selectors (note the single colon for :fullscreen is correct)
+	- given the current status is quite a mess, probably best avoided
+css-read-only-write
+	- prefix ':read-write' selector with -moz
+	- prefix ':read-only' selector with -moz
+css-any-link
+	- prefix with -moz, -webkit for the :any-link CSS pseudo-class
+?focus-ring
+
+
+			// Property Values
+			/*
+				Feature Name			Property Name(s)	Property Values
+				intrinsic-width			'width', 'min-width', 'max-width', 'height', 'min-height', 'max-height', 'inline-size', 'min-inline-size', 'max-inline-size', 'block-size', 'min-block-size', 'max-block-size', 'grid', 'grid-template', 'grid-template-rows', 'grid-template-columns', 'grid-auto-columns', 'grid-auto-rows'    with values   'max-content', 'min-content', 'fit-content', 'fill', 'fill-available', 'stretch'
+
+
+				THIS ONE IS NEEDED
+				css-sticky				position			sticky
+
+				css-filter-function		'background', 'background-image', 'border-image', 'mask', 'list-style', 'list-style-image', 'content', 'mask-image'     filter() (a filter function, needs prefixing with -webkit- currently)
+				css-element-function	'background', 'background-image', 'border-image', 'mask', 'list-style', 'list-style-image', 'content', 'mask-image'		element() (a element function, needs prefixing with -moz- currently)
+				css-image-set	'background', 'background-image', 'border-image', 'mask', 'list-style', 'list-style-image', 'content', 'mask-image'		image-set() (an image-set function, needs prefixing)
+				css-cross-fade	'background', 'background-image', 'border-image', 'mask', 'list-style', 'list-style-image', 'content', 'mask-image'		cross-fade() (an image-set function, needs prefixing)
+				css-unicode-bidi		unicode-bidi	Various settings for property values. Quite messy. Not widely used. Note that `css-unicode-bidi` is the name autoprefixer uses, but it does not seem to be in my caniuse.com database.
+				css-gradients (Historic)
+				calc (Historic); a function that affects all properties
+				css3-cursors-newer (Historic)  cursor	zoom-in,zoom-out
+
+				Unsupported
+					css-crisp-edges: too messy; Chrome and Firefox conflict
+			*/
+*/

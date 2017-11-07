@@ -2,16 +2,24 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use ::caniuse_serde::FeatureName;
-use ::caniuse_serde::Prefix;
-use ::css::domain::VendorPrefix;
+use self::cssRulesAutoprefixers::CompositeCssRulesAutoprefixer;
+use ::caniuse_serde::*;
+use ::caniuse_serde::regional_usage::*;
+use ::css::Stylesheet;
+use ::css::domain::*;
+use ::css::domain::properties::*;
+use ::css::domain::selectors::*;
 use ::css::domain::VendorPrefix::*;
+use ::std::ops::Deref;
 
 
-pub mod cssRulesAutoprefixers;
-pub mod propertyDeclarationAutoprefixers;
-pub mod selectorAutoprefixers;
+pub(crate) mod cssRulesAutoprefixers;
+pub(crate) mod propertyDeclarationAutoprefixers;
+pub(crate) mod selectorAutoprefixers;
 
 
-include!("featureName.rs");
+include!("autoprefix_stylesheet.rs");
+include!("toFeatureName.rs");
 include!("mapPrefixToVendorPrefix.rs");
+include!("sensible_rules_to_prefixes.rs");
+include!("sensible_rules_to_prefixes_default.rs");

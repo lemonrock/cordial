@@ -16,31 +16,6 @@ Subsequent rules should then 'filter' their vendor prefixes to the vendor-prefix
 
 Bootstrap:-
 
-	::-moz-focus-inner
-		A specific firefox focus
-
-    -webkit-overflow-scrolling: touch;
-    	A specific webkit extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-overflow-scrolling
-
-    -ms-overflow-style: -ms-autohiding-scrollbar;
-    	A specific IE / Edge extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-ms-overflow-style
-
-	::-ms-expand
-	::-ms-value
-		Specific IE / Edge extension
-
-	-webkit-tap-highlight-color: transparent;
-		A specific webkit extension: https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-tap-highlight-color
-
-	::-webkit-inner-spin-button
-	::-webkit-outer-spin-button
-	::-webkit-search-cancel-button
-    ::-webkit-search-decoration
-    ::-webkit-file-upload-button
-    	Specific webkit pseudo-element
-
-	position: -webkit-sticky !important;
-	position: sticky !important;
 /*
 
 THIS IS NEEDED:-

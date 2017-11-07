@@ -34,7 +34,7 @@ impl SimplePropertyValuePropertyDeclarationAutoprefixerCreator
 	}
 	
 	#[inline(always)]
-	fn simple(featureName: &str, propertyName: &'static str, propertyValue: &'static str, removeUnprefixedProperty: bool) -> Self
+	fn simple(featureName: &'static str, propertyName: &'static str, propertyValue: &'static str, removeUnprefixedProperty: bool) -> Self
 	{
 		SimplePropertyValuePropertyDeclarationAutoprefixerCreator::Simple
 		{
@@ -52,16 +52,16 @@ impl SimplePropertyValuePropertyDeclarationAutoprefixerCreator
 		
 		match *self
 		{
-			Simple { ref featureName, ref propertyName, ref propertyValue, ref removeUnprefixedProperty } =>
+			Simple { ref featureName, ref propertyName, ref propertyValue, removeUnprefixedProperty } =>
 			{
-				let featureName = featureName(featureName);
+				let featureName = toFeatureName(*featureName);
 				
 				let mut vendorPrefixes = BTreeSet::new();
 				our_rules.support_for_a_feature(can_i_use, &featureName, |agent, version, support|
 				{
 					if support.requires_prefix()
 					{
-						let mut vendorPrefix = mapPrefixToVendorPrefix(agent.prefix(version));
+						let vendorPrefix = mapPrefixToVendorPrefix(agent.prefix(version));
 						vendorPrefixes.insert(vendorPrefix);
 					}
 				});

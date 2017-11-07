@@ -3,9 +3,9 @@
 
 
 use super::*;
-use super::browserSets::BrowserSet;
+use super::propertyDeclarationAutoprefixers::*;
+use super::selectorAutoprefixers::*;
 use ::css::domain::CssRule;
-use ::css::domain::CssRules;
 use ::css::domain::VendorPrefix;
 use ::css::domain::atRules::document::DocumentAtRule;
 use ::css::domain::atRules::keyframes::KeyframesAtRule;

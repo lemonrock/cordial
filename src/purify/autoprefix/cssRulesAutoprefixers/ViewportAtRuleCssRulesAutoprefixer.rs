@@ -14,7 +14,7 @@ impl CssRulesAutoprefixer for ViewportAtRuleCssRulesAutoprefixer
 {
 	fn autoprefix<C: HasCssRules>(&self, css_rules: &mut C, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut css_rules = css_rules.css_rules_mut();
+		let css_rules = css_rules.css_rules_mut();
 		
 		css_rules.vendor_prefix_at_rules
 		(
@@ -27,7 +27,7 @@ impl CssRulesAutoprefixer for ViewportAtRuleCssRulesAutoprefixer
 					_ => None,
 				}
 			},
-			|index, atRule|
+			|_index, atRule|
 			{
 				let mut vendorPrefixedCssRules = Vec::with_capacity(self.vendorPrefixesAndPropertiesToRetain.len());
 				for (vendorPrefix, validCssNames) in self.vendorPrefixesAndPropertiesToRetain.iter().rev()
@@ -43,7 +43,7 @@ impl CssRulesAutoprefixer for ViewportAtRuleCssRulesAutoprefixer
 					
 					if include
 					{
-						vendorPrefixedCssRules.push(Self::createVendorPrefixedAtRule(atRule, vendorPrefix, validCssNames));
+						vendorPrefixedCssRules.push(Self::createVendorPrefixedAtRule(atRule, vendorPrefix, validCssNames.as_ref()));
 					}
 				}
 				vendorPrefixedCssRules
@@ -54,19 +54,19 @@ impl CssRulesAutoprefixer for ViewportAtRuleCssRulesAutoprefixer
 
 impl ViewportAtRuleCssRulesAutoprefixer
 {
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	fn new(can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet) -> Self
 	{
 		let mut vendorPrefixesAndPropertiesToRetain = BTreeMap::new();
 		
-		let mut vendorPrefixes = Rc::new(BTreeSet::new());
-		our_rules.support_for_a_feature(can_i_use, &Self::featureName("css-deviceadaptation"), |agent, version, support|
+		our_rules.support_for_a_feature(can_i_use, &toFeatureName("css-deviceadaptation"), |agent, version, support|
 		{
 			if support.requires_prefix()
 			{
-				let vendorPrefix = Self::mapPrefixToVendorPrefix(agent.prefix(version));
+				let vendorPrefix = mapPrefixToVendorPrefix(agent.prefix(version));
 				
-				match vendorPrefix
+				let map = match vendorPrefix
 				{
 					o => Some(hashset!
 					{
@@ -84,7 +84,7 @@ impl ViewportAtRuleCssRulesAutoprefixer
 					}),
 					
 					_ => None,
-				}
+				};
 				
 				vendorPrefixesAndPropertiesToRetain.insert(vendorPrefix, map);
 			}
@@ -100,28 +100,40 @@ impl ViewportAtRuleCssRulesAutoprefixer
 	#[inline(always)]
 	fn createVendorPrefixedAtRule(viewportAtRule: &ViewportAtRule, vendorPrefix: &VendorPrefix, validCssNames: Option<&HashSet<String>>) -> CssRule
 	{
-		let mut prefixedViewportAtRuleDeclarations = Vec::with_capacity(validCssNames.len());
-		
-		for declaration in viewportAtRule.declarations.iter()
-		{
-			let css_name = declaration.descriptor.css_name();
-			// TODO: Inefficient, as we repeatedly test validCssNames and it does not change
-			match validCssNames
-			{
-				None => prefixedViewportAtRuleDeclarations.push(declaration.clone()),
-				Some(validCssNames) => if validCssNames.contains(css_name)
-				{
-					prefixedViewportAtRuleDeclarations.push(declaration.clone());
-				},
-			}
-		}
-		
 		CssRule::Viewport
 		(
 			ViewportAtRule
 			{
 				vendor_prefix: Some(vendorPrefix.clone()),
-				declarations: prefixedViewportAtRuleDeclarations,
+				declarations: match validCssNames
+				{
+					Some(validCssNames) =>
+					{
+						let mut declarations = Vec::with_capacity(validCssNames.len());
+						
+						for declaration in viewportAtRule.declarations.iter()
+						{
+							let css_name = declaration.descriptor.css_name();
+							if validCssNames.contains(css_name)
+							{
+								declarations.push(declaration.clone());
+							}
+						}
+						
+						declarations
+					},
+					None =>
+					{
+						let mut declarations = Vec::with_capacity(viewportAtRule.declarations.len());
+						
+						for declaration in viewportAtRule.declarations.iter()
+						{
+							declarations.push(declaration.clone());
+						}
+						
+						declarations
+					},
+				},
 			}
 		)
 	}

@@ -2,25 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-//noinspection SpellCheckingInspection
 #[inline(always)]
-pub(crate) fn mapPrefixToVendorPrefix(prefix: &Prefix) -> VendorPrefix
+pub(crate) fn toFeatureName(name: &str) -> FeatureName
 {
-	match *prefix
-	{
-		Prefix::o => o,
-		
-		Prefix::moz => moz,
-		
-		Prefix::webkit => webkit,
-		
-		Prefix::ms => ms,
-		
-		Prefix::Unknown(ref value) => match value.as_str()
-		{
-			"epub" => epub,
-			"servo" => servo,
-			_ => Unrecognised(value.to_owned()),
-		},
-	}
+	name.parse().unwrap()
 }

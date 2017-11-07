@@ -6,5 +6,5 @@
 pub trait CssRulesAutoprefixer
 {
 	/// Applies vendor prefixes to CSS rules, eg @document, @viewport, etc.
-	fn autoprefix(&self, css_rules: &mut CssRules, parent_vendor_prefix: Option<&VendorPrefix>);
+	fn autoprefix<C: HasCssRules>(&self, css_rules: &mut C, parent_vendor_prefix: Option<&VendorPrefix>);
 }

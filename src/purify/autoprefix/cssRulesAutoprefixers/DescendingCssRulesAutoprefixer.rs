@@ -14,12 +14,12 @@ impl CssRulesAutoprefixer for DescendingCssRulesAutoprefixer
 {
 	fn autoprefix<C: HasCssRules>(&self, css_rules: &mut C, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut css_rules = css_rules.css_rules_mut();
+		let css_rules = css_rules.css_rules_mut();
 		
 		let mut index = 0;
 		while index < css_rules.0.len()
 		{
-			let cssRule = unsafe { &css_rules.0.get_unchecked_mut(index) };
+			let cssRule = unsafe { css_rules.0.get_unchecked_mut(index) };
 			match cssRule
 			{
 				&mut CssRule::Style(ref mut styleRule) =>
@@ -28,7 +28,7 @@ impl CssRulesAutoprefixer for DescendingCssRulesAutoprefixer
 					self.propertyDeclarationAutoprefixer.autoprefix(styleRule, parent_vendor_prefix);
 				}
 				
-				&mut CssRule::Keyframe(ref mut keyframesAtRule) =>
+				&mut CssRule::Keyframes(ref mut keyframesAtRule) =>
 				{
 					let parent_vendor_prefix = keyframesAtRule.vendor_prefix.as_ref();
 					for keyframe in keyframesAtRule.keyframes.iter_mut()
@@ -44,7 +44,8 @@ impl CssRulesAutoprefixer for DescendingCssRulesAutoprefixer
 				
 				&mut CssRule::Document(ref mut documentAtRule) =>
 				{
-					let parent_vendor_prefix = documentAtRule.vendor_prefix.as_ref();
+					let cloneToWorkAroundRustBorrowChecker = documentAtRule.vendor_prefix.clone();
+					let parent_vendor_prefix = cloneToWorkAroundRustBorrowChecker.as_ref();
 					self.autoprefix(documentAtRule, parent_vendor_prefix);
 				}
 				
@@ -55,8 +56,10 @@ impl CssRulesAutoprefixer for DescendingCssRulesAutoprefixer
 				
 				&mut CssRule::Media(ref mut mediaAtRule) =>
 				{
-					self.autoprefix(supportsAtRule, parent_vendor_prefix);
+					self.autoprefix(mediaAtRule, parent_vendor_prefix);
 				}
+				
+				_ => (),
 			}
 			index +=1;
 		}

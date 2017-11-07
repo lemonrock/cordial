@@ -14,7 +14,7 @@ impl CssRulesAutoprefixer for KeyframesAtRuleCssRulesAutoprefixer
 {
 	fn autoprefix<C: HasCssRules>(&self, css_rules: &mut C, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut css_rules = css_rules.css_rules_mut();
+		let css_rules = css_rules.css_rules_mut();
 		
 		css_rules.vendor_prefix_at_rules
 		(
@@ -27,7 +27,7 @@ impl CssRulesAutoprefixer for KeyframesAtRuleCssRulesAutoprefixer
 					_ => None,
 				}
 			},
-			|index, atRule|
+			|_index, atRule|
 			{
 				let mut vendorPrefixedCssRules = Vec::with_capacity(self.vendorPrefixes.len());
 				for vendorPrefix in self.vendorPrefixes.iter().rev()
@@ -63,7 +63,7 @@ impl KeyframesAtRuleCssRulesAutoprefixer
 	fn new(can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet) -> Self
 	{
 		let mut vendorPrefixes = BTreeSet::new();
-		our_rules.prefixes_for_implementations_of_a_feature(can_i_use, &featureName("css-animation"), |agent, version, support|
+		our_rules.support_for_a_feature(can_i_use, &toFeatureName("css-animation"), |agent, version, support|
 		{
 			if support.requires_prefix()
 			{

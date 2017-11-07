@@ -22,7 +22,7 @@ impl PropertyDeclarationAutoprefixer for CompositePropertyDeclarationAutoprefixe
 		}
 		for autoprefixer in self.simplePropertyValueAutoprefixers.iter()
 		{
-			autoprefixer.autoprefix(property_declarations, parent_vendor_prefix: Option<VendorPrefix>);
+			autoprefixer.autoprefix(property_declarations, parent_vendor_prefix);
 		}
 	}
 }
@@ -30,7 +30,7 @@ impl PropertyDeclarationAutoprefixer for CompositePropertyDeclarationAutoprefixe
 impl CompositePropertyDeclarationAutoprefixer
 {
 	#[inline(always)]
-	fn new(can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet) -> Self
+	pub(crate) fn new(can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet) -> Self
 	{
 		Self
 		{

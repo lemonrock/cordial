@@ -3,13 +3,13 @@
 
 
 use super::*;
-use super::browserSets::BrowserSet;
 use ::css::domain::HasPropertyDeclarations;
 use ::css::domain::HasVendorPrefix;
-use ::css::domain::StyleRule;
 use ::css::domain::VendorPrefix;
-use ::css::domain::properties::PropertyDeclaration;
 use ::std::collections::BTreeSet;
+use ::std::collections::HashMap;
+use ::std::collections::HashSet;
+use ::std::rc::Rc;
 
 
 include!("CompositePropertyDeclarationAutoprefixer.rs");

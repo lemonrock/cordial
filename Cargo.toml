@@ -84,8 +84,8 @@ xml-rs = "0.6.1"
 zero85 = "0.2.0"
 zopfli = "0.3.6"
 
-caniuse-serde = "0.0.4"
-css = "0.0.9"
+caniuse-serde = "0.0.5"
+css = "0.0.13"
 
 [target.'cfg(unix)'.dependencies]
 nix = "0.9.0"

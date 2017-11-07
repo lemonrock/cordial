@@ -58,17 +58,17 @@ impl PropertyNamePropertyDeclarationAutoprefixerCreator
 			{
 				AgentName::MicrosoftEdge => "12".parse().unwrap(),
 				AgentName::MicrosoftInternetExplorerMobile => "11".parse().unwrap(),
-			}, true, Box::new(|vendorPrefix| vendorPrefix), false),
+			}, Box::new(|vendorPrefix| vendorPrefix), false),
 			Self::simple("text-emphasis", false, hashset! { "text-emphasis", "text-emphasis-position", "text-emphasis-style", "text-emphasis-color" }),
 			// Firefox does not support "break-before", "break-after" and "break-inside", whether prefixed -moz- or not
 			// Regional Webkit browsers do not support column-fill, including Blackberry 10 and UC Browser
 			Self::simple("multicolumn", false, hashset! { "columns", "column-width", "column-gap", "column-rule", "column-rule-color", "column-rule-width",  "column-count", "column-rule-style", "column-span", "column-fill" }),
 			// Chrome, Opera, Safari, newer webkit browsers support -webkit-column- prefixed "break-before", "break-after" and "break-inside" with only the values auto and always
-			Self::overrideIfEqualToOrLater("multicolumn", false, hashset! { "break-before", "break-after", "break-inside" }, Box::new(|vendorPrefix|
+			Self::overrideIfEqualToOrLater("multicolumn", false, hashset! { "break-before", "break-after", "break-inside" }, hashmap!{}, Box::new(|vendorPrefix|
 			{
 				match vendorPrefix
 				{
-					webkit => Unrecognised("webkit-column"),
+					webkit => Unrecognised("webkit-column".to_owned()),
 					_ => vendorPrefix,
 				}
 			}), false),
@@ -104,13 +104,13 @@ impl PropertyNamePropertyDeclarationAutoprefixerCreator
 	}
 	
 	#[inline(always)]
-	fn simple(featureName: &str, removeIfUnprefixed: bool, propertyNames: HashSet<&'static str>) -> Self
+	fn simple(featureName: &'static str, removeIfUnprefixed: bool, propertyNames: HashSet<&'static str>) -> Self
 	{
 		PropertyNamePropertyDeclarationAutoprefixerCreator::Simple
 		{
 			featureName,
-			propertyNameAndRemoveIfUnprefixedSet: propertyNames.iter().map(|propertyName| (propertyName, removeIfUnprefixed)).collect(),
-			overrideIfEqualToOrLater: HashSet::default(),
+			propertyNameAndRemoveIfUnprefixedSet: propertyNames.iter().map(|propertyName| (*propertyName, removeIfUnprefixed)).collect(),
+			overrideIfEqualToOrLater: HashMap::default(),
 			vendorPrefixTransformation: Box::new(|vendorPrefix| vendorPrefix),
 			isMicrosoftMasqueradingAsWebkit: false,
 		}
@@ -119,12 +119,12 @@ impl PropertyNamePropertyDeclarationAutoprefixerCreator
 	// property name prefix should ONLY apply to -webkit-
 	// ie we need a vendor prefix transformation function
 	#[inline(always)]
-	fn overrideIfEqualToOrLater(featureName: &str, removeIfUnprefixed: bool, propertyNames: HashSet<&'static str>, overrideIfEqualToOrLater: HashMap<AgentName, Version>, vendorPrefixTransformation: Box<Fn(VendorPrefix) -> VendorPrefix>, isMicrosoftMasqueradingAsWebkit: bool) -> Self
+	fn overrideIfEqualToOrLater(featureName: &'static str, removeIfUnprefixed: bool, propertyNames: HashSet<&'static str>, overrideIfEqualToOrLater: HashMap<AgentName, Version>, vendorPrefixTransformation: Box<Fn(VendorPrefix) -> VendorPrefix>, isMicrosoftMasqueradingAsWebkit: bool) -> Self
 	{
 		PropertyNamePropertyDeclarationAutoprefixerCreator::Simple
 		{
 			featureName,
-			propertyNameAndRemoveIfUnprefixedSet: propertyNames.iter().map(|propertyName| (propertyName, removeIfUnprefixed)).collect(),
+			propertyNameAndRemoveIfUnprefixedSet: propertyNames.iter().map(|propertyName| (*propertyName, removeIfUnprefixed)).collect(),
 			overrideIfEqualToOrLater,
 			vendorPrefixTransformation,
 			isMicrosoftMasqueradingAsWebkit,
@@ -140,7 +140,7 @@ impl PropertyNamePropertyDeclarationAutoprefixerCreator
 		{
 			Simple { ref featureName, ref propertyNameAndRemoveIfUnprefixedSet, ref overrideIfEqualToOrLater, ref vendorPrefixTransformation, isMicrosoftMasqueradingAsWebkit } =>
 			{
-				let featureName = featureName(featureName);
+				let featureName = toFeatureName(featureName);
 				
 				let mut vendorPrefixes = Rc::new(BTreeSet::new());
 				our_rules.support_for_a_feature(can_i_use, &featureName, |agent, version, support|
@@ -159,21 +159,20 @@ impl PropertyNamePropertyDeclarationAutoprefixerCreator
 						}
 					}
 					{
-						let mut vendorPrefix = vendorPrefixTransformation(mapPrefixToVendorPrefix(agent.prefix(version)));
-						Rc::get_mut(vendorPrefixes).unwrap().insert(vendorPrefix);
+						let vendorPrefix = vendorPrefixTransformation(mapPrefixToVendorPrefix(agent.prefix(version)));
+						Rc::get_mut(&mut vendorPrefixes).unwrap().insert(vendorPrefix);
 					}
 				});
 				
-				for &(propertyName, removeUnprefixedPropertyName) in propertyNameAndRemoveIfUnprefixedSet.iter()
+				for (ref propertyName, removeUnprefixedPropertyName) in propertyNameAndRemoveIfUnprefixedSet.iter()
 				{
 					autoprefixers.push
 					(
 						PropertyNamePropertyDeclarationAutoprefixer
 						{
-							propertyName,
-							removeUnprefixedPropertyName,
+							propertyName: *propertyName,
+							removeUnprefixedPropertyName: *removeUnprefixedPropertyName,
 							vendorPrefixes: vendorPrefixes.clone(),
-							propertyNamePrefix,
 							isMicrosoftMasqueradingAsWebkit,
 						}
 					);

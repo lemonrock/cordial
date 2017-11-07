@@ -10,7 +10,7 @@ pub struct CompositeSelectorAutoprefixer
 
 impl SelectorAutoprefixer for CompositeSelectorAutoprefixer
 {
-	fn autoprefix(&self, selectors: &mut DeduplicatedSelectors, parent_vendor_prefix: Option<&VendorPrefix>)
+	fn autoprefix(&self, _selectors: &mut DeduplicatedSelectors, _parent_vendor_prefix: Option<&VendorPrefix>)
 	{
 		unimplemented!();
 	}
@@ -19,7 +19,7 @@ impl SelectorAutoprefixer for CompositeSelectorAutoprefixer
 impl CompositeSelectorAutoprefixer
 {
 	#[inline(always)]
-	fn new(can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet) -> Self
+	pub(crate) fn new(_can_i_use: &CanIUse, _our_rules: &AgentNameAndVersionSet) -> Self
 	{
 		Self
 		{

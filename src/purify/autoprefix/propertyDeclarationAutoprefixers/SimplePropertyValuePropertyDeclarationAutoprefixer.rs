@@ -17,7 +17,7 @@ impl PropertyDeclarationAutoprefixer for SimplePropertyValuePropertyDeclarationA
 {
 	fn autoprefix<H: HasPropertyDeclarations<I>, I: HasImportance>(&self, property_declarations: &mut H, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut list = property_declarations.property_declarations_vec_mut();
+		let list = property_declarations.property_declarations_vec_mut();
 		
 		let mut index = 0;
 		while index != list.len()
@@ -53,13 +53,19 @@ impl PropertyDeclarationAutoprefixer for SimplePropertyValuePropertyDeclarationA
 								value: match &propertyDeclaration.value
 								{
 									value @ &UnparsedPropertyValue::CssWideKeyword(_) => value.clone(),
-									value @ &UnparsedPropertyValue::SpecifiedValue(ref specifiedValue) => if &specifiedValue.originalCss == self.propertyValue
+									&UnparsedPropertyValue::SpecifiedValue(ref specifiedValue) => if &specifiedValue.originalCss == self.propertyValue
 									{
-										UnparsedPropertyValue::SpecifiedValue(vendorPrefix.prefix(&specifiedValue.originalCss))
+										UnparsedPropertyValue::SpecifiedValue(SpecifiedValue
+										{
+											originalCss: vendorPrefix.prefix(&specifiedValue.originalCss)
+										})
 									}
 									else
 									{
-										value.clone()
+										UnparsedPropertyValue::SpecifiedValue(SpecifiedValue
+										{
+											originalCss: specifiedValue.originalCss.clone()
+										})
 									},
 								},
 								importance: propertyDeclaration.importance,

@@ -7,5 +7,5 @@ pub trait PropertyDeclarationAutoprefixer
 {
 	/// Prefixes with any relevant vendor prefixes
 	/// If operating within, say, @-moz-document, only -moz- prefixes are only applied if they are relevant
-	fn autoprefix<I: HasImportance>(&self, property_declarations: &mut PropertyDeclarations<I>, parent_vendor_prefix: Option<&VendorPrefix>);
+	fn autoprefix<H: HasPropertyDeclarations<I>, I: HasImportance>(&self, property_declarations: &mut H, parent_vendor_prefix: Option<&VendorPrefix>);
 }

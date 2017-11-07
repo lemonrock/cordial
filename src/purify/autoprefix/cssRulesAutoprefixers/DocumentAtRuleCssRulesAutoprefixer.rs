@@ -14,7 +14,7 @@ impl CssRulesAutoprefixer for DocumentAtRuleCssRulesAutoprefixer
 {
 	fn autoprefix<C: HasCssRules>(&self, css_rules: &mut C, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut css_rules = css_rules.css_rules_mut();
+		let css_rules = css_rules.css_rules_mut();
 		
 		css_rules.vendor_prefix_at_rules
 		(
@@ -27,7 +27,7 @@ impl CssRulesAutoprefixer for DocumentAtRuleCssRulesAutoprefixer
 					_ => None,
 				}
 			},
-			|index, atRule|
+			|_index, atRule|
 			{
 				let mut vendorPrefixedCssRules = Vec::with_capacity(self.vendorPrefixes.len());
 				for vendorPrefix in self.vendorPrefixes.iter().rev()
@@ -65,7 +65,7 @@ impl DocumentAtRuleCssRulesAutoprefixer
 		Self
 		{
 			removeUnprefixedAtRule: true,
-			vendorPrefixes: breeset!
+			vendorPrefixes: btreeset!
 			{
 				moz,
 			},

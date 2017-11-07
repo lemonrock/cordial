@@ -2,8 +2,9 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+/// Autoprefix a stylesheet
 #[inline(always)]
-pub(crate) fn featureName(name: &str) -> FeatureName
+pub fn autoprefix_stylesheet(stylesheet: &mut Stylesheet, can_i_use: &CanIUse, our_rules: &AgentNameAndVersionSet)
 {
-	name.parse().unwrap()
+	CompositeCssRulesAutoprefixer::new(can_i_use, our_rules).autoprefix_stylesheet(stylesheet)
 }

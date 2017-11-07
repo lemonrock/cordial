@@ -16,7 +16,7 @@ impl PropertyDeclarationAutoprefixer for PropertyNamePropertyDeclarationAutopref
 {
 	fn autoprefix<H: HasPropertyDeclarations<I>, I: HasImportance>(&self, property_declarations: &mut H, parent_vendor_prefix: Option<&VendorPrefix>)
 	{
-		let mut list = property_declarations.property_declarations_vec_mut();
+		let list = property_declarations.property_declarations_vec_mut();
 		
 		let mut index = 0;
 		while index != list.len()

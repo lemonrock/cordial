@@ -13,12 +13,12 @@
 
 extern crate base64;
 extern crate brotli2;
-extern crate caniuse_serde;
 extern crate chardet;
 extern crate chrono;
 extern crate clap;
 extern crate comrak;
-extern crate css;
+extern crate css_autoprefix;
+extern crate css_purify;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
 extern crate engiffen;
@@ -26,7 +26,6 @@ extern crate futures;
 extern crate gif;
 extern crate guetzli_sys;
 extern crate handlebars;
-extern crate html5ever;
 extern crate hyper;
 extern crate image;
 extern crate libc;
@@ -74,7 +73,6 @@ use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
 use ::handlebars::Handlebars;
-use ::html5ever::rcdom::RcDom;
 use ::hyper::mime;
 use ::hyper::mime::Mime;
 use ::hyper::mime::Name;
@@ -111,7 +109,6 @@ use ::url::Url;
 
 pub(crate) mod domain;
 pub(crate) mod hjson;
-pub(crate) mod purify;
 pub(crate) mod webserver;
 pub(crate) mod woff;
 pub(crate) mod xmlExtra;

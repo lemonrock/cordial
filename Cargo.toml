@@ -34,13 +34,14 @@ chardet = "0.2.3"
 chrono = "0.4.0"
 clap = "2.26.0"
 comrak = "0.2.2"
+css-autoprefix = "0.0.2"
+css-purify = "0.0.0"
 daemonize = "0.2.3"
-engiffen = "0.8.0"
+engiffen = "0.8.1"
 futures = "0.1.15"
 gif = "0.9.2"
 guetzli-sys = "0.0.3"
 handlebars = "0.29"
-html5ever = "0.20.0"
 hyper = "0.11.2"
 hyper-rustls = "0.11.0"
 image = "0.15.0"
@@ -84,9 +85,6 @@ xml-rs = "0.6.1"
 zero85 = "0.2.0"
 zopfli = "0.3.6"
 
-caniuse-serde = "0.0.5"
-css = "0.0.13"
-
 [target.'cfg(unix)'.dependencies]
 nix = "0.9.0"
 
@@ -95,7 +93,6 @@ dpdk-unix = "0.0.1"
 
 [patch.crates-io]
 hyper = { git = "https://github.com/lemonrock/hyper", branch = "cow" }
-engiffen = { git = "https://github.com/lemonrock/engiffen", branch = "public-image" }
 
 [dependencies.ordermap]
 version = "0.2.11"

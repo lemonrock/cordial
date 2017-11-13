@@ -14,6 +14,7 @@ use super::webserver::requestHandlerFactories::*;
 use self::compression::*;
 use self::daemon::*;
 use self::engiffen::*;
+use self::html::*;
 use self::inputFormats::*;
 use self::people::*;
 use self::pipelines::*;
@@ -91,6 +92,7 @@ use ::xml::writer::EventWriter;
 pub(crate) mod compression;
 pub(crate) mod daemon;
 pub(crate) mod engiffen;
+pub(crate) mod html;
 pub(crate) mod images;
 pub(crate) mod inputFormats;
 pub(crate) mod people;
@@ -100,7 +102,6 @@ pub(crate) mod rss;
 pub(crate) mod siteMap;
 
 
-include!("Abstract.rs");
 include!("Configuration.rs");
 include!("DiscoverResources.rs");
 include!("FromStringOrNumber.rs");

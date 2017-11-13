@@ -105,7 +105,6 @@ pub(crate) mod siteMap;
 
 include!("Configuration.rs");
 include!("DiscoverResources.rs");
-include!("FromStringOrNumber.rs");
 include!("generateHeaders.rs");
 include!("HtmlVariant.rs");
 include!("ResourcePipeline.rs");
@@ -115,5 +114,4 @@ include!("ResourceReference.rs");
 include!("ResourceTemplates.rs");
 include!("ServerSocket.rs");
 include!("Settings.rs");
-include!("StringOrNumberVisitor.rs");
 include!("UrlTag.rs");

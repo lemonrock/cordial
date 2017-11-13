@@ -3,13 +3,8 @@
 
 
 use super::*;
-use ::daemonize::Daemonize;
-use ::daemonize::Group;
-use ::daemonize::User;
 
 
-include!("Daemon.rs");
-include!("FromStringOrNumber.rs");
-include!("GroupNewType.rs");
-include!("StringOrNumberVisitor.rs");
-include!("UserNewType.rs");
+include!("ResourceReference.rs");
+include!("UrlTag.rs");
+

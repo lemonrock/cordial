@@ -3,6 +3,7 @@
 
 
 use super::*;
+use ::woff2_sys::convertTtfToWoff2;
 
 
 include!("CssInputFormat.rs");

@@ -20,8 +20,8 @@ pub(crate) enum Pipeline
 	{
 		#[serde(default = "Pipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
 		#[serde(default)] input_format: HtmlInputFormat,
-		
 		#[serde(default)] is_leaf: bool,
+		#[serde(default = "Pipeline::amp_relative_root_url_default")] amp_relative_root_url: Option<String>,
 		
 		// open graph, RSS, schema.org
 		publication_date: SystemTime,
@@ -250,7 +250,7 @@ impl Pipeline
 				Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType), headers, body, None, canBeCompressed)])
 			}
 			
-			&mut html { max_age_in_seconds, is_leaf, .. } =>
+			&mut html { max_age_in_seconds, is_leaf, ref amp_relative_root_url, .. } =>
 			{
 				const CanBeCompressed: bool = true;
 				
@@ -265,6 +265,34 @@ impl Pipeline
 				{
 					languageData.url(resourceRelativeUrl)?
 				};
+				
+				let mut result = Vec::with_capacity(2);
+				
+				let regularHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::Canonical, configuration, CanBeCompressed, max_age_in_seconds, false, &inputCanonicalUrl)?;
+				let pjaxHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::PJAX, configuration, CanBeCompressed, max_age_in_seconds, false, &inputCanonicalUrl)?;
+				
+				let regularBody = Vec::new();
+				let pjaxBody = Vec::new();
+				
+				if let &Some(ref amp_relative_root_url) = amp_relative_root_url
+				{
+					let baseAmpUrl = Url::parse(amp_relative_root_url).context("invalid AMP relative root URL".to_owned())?;
+					let ampUrl = baseAmpUrl.join(inputCanonicalUrl.as_str()).context("invalid combination of AMP relative root URL joined with input canonical URL".to_owned())?;
+					let ampHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::AMP, configuration, CanBeCompressed, max_age_in_seconds, false, &ampUrl)?;
+					let ampBody = Vec::new();
+					
+					result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
+				}
+				
+				result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
+				
+				
+				panic!("Implement regularBody, pjaxBody and ampBody");
+				
+				Ok(result)
+				
+				
+				
 				
 				/*
 				
@@ -293,6 +321,8 @@ impl Pipeline
 					
 					Discover images and videos to add to site maps
 					
+					Add to RSS feed
+					
 					JSON to pass to handlebars
 						- all the stuff we do for CssInputFormat
 						- document
@@ -306,11 +336,9 @@ impl Pipeline
 				
 //				let mut result = Vec::with_capacity(2);
 //
-//				let regularHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
-//				let pjaxHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::PJAX, configuration, canBeCompressed, max_age_in_seconds, false)?;
 //				//result.push((unversionedUrl, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 //
-//				let ampHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::AMP, deploymentVersion, localization, CanBeCompressed, max_age_in_seconds, false)?;
+//
 //				// have to adjust unversionedUrl URL for amp
 //
 //				Add to WebPageSiteMaps; detect videos and images  (see https://developers.google.com/webmasters/videosearch/sitemaps)
@@ -318,10 +346,13 @@ impl Pipeline
 
 				//
 				
+				// RSS: Best practice is to embed a full RSS article, not a summary.
+				// RSS: Not all items should be published.
+				
 				//let synopsisHtml = markdown_to_html(&rssItemLanguageVariant.webPageSynopsisMarkdown, markdownOptions);
 				
-//				Ok(result)
-				panic!("Implement me");
+				
+				
 			}
 			
 			&mut font { max_age_in_seconds, is_downloadable, ref utf8_xml_metadata, ref woff1_private_data, woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf, input_format, .. } =>
@@ -521,5 +552,11 @@ impl Pipeline
 	fn woff2_brotli_quality_default() -> u8
 	{
 		11
+	}
+	
+	#[inline(always)]
+	fn amp_relative_root_url_default() -> Option<String>
+	{
+		Some("/amp".to_owned())
 	}
 }

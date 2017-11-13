@@ -59,9 +59,33 @@
 
 	http_keep_alive: true
 
+	enable_hsts_preloading_for_production: false
+
 	resource:
 	{
-		pipeline: md
+		pipeline: html
+		{
+			max_age_in_seconds: 0
+			input_format: markdown
+			is_leaf: false
+			publication_date: 2011-07-14T19:43
+			// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
+			// empty modifications imply use of publication date
+			modifications:
+			{
+				// "some-date": {en: "What was changed"}
+			}
+			expiration_date: null
+			abstracts:
+			{
+				en:
+				{
+					title: Hello World
+					description: This is a description, used in meta-tags and OpenGraph.
+					extract: A markdown extract, to be used where a paragraph or synopsis is needed.
+				}
+			}
+		}
 
 		headers:
 		{
@@ -88,11 +112,6 @@
 			"Strict-Transport-Security": max-age=63072000;includeSubDomains;preload
 		}
 
-		sass:
-		{
-			precision: 5
-		}
-
 		compression:
 		{
 			gzip:
@@ -108,23 +127,13 @@
 				compressMode: utf8
 			}
 		}
-	}
 
-#	settings: {
-#		google: {
-#			analytics: GA-123-4567
-#		}
-#		pjax: {
-#			version: 0
-#		}
-#		favicon: {
-#			version: 0
-#		}
+		is_data_uri: false
 	}
 
 	localization:
 	{
-		language_tool_base_url: //hello/world
+		language_tool_base_url: "http://hello/world"
 		primary_iso_639_1_alpha_2_language_code: en
 		languages:
 		[
@@ -154,4 +163,180 @@
 			}
 		]
 	}
+
+	robots:
+	{
+		headers:
+		{
+		}
+
+		max_age_in_seconds: 60
+
+		compression:
+		{
+			gzip:
+			{
+				iterations: 15
+
+				# Set to 0 for infinite
+				maximum_block_splits: 15
+			}
+
+			brotli:
+			{
+				compressMode: utf8
+			}
+		}
+
+		groups:
+		[
+		]
+
+		generate_yandex_primary_host: false
+	}
+
+	sitemap:
+	{
+		headers:
+		{
+		}
+
+		max_age_in_seconds: 60
+
+		compression:
+		{
+			gzip:
+			{
+				iterations: 15
+
+				# Set to 0 for infinite
+				maximum_block_splits: 15
+			}
+
+			brotli:
+			{
+				compressMode: utf8
+			}
+		}
+	}
+
+	// Defaults to 'null'
+	rss:
+	{
+		// These are resource references
+		stylesheets:
+		[
+		]
+
+		external_stylesheet_mime_type: text/css
+
+		title:
+		{
+			en: Title of RSS Channel in English
+		}
+
+		description:
+		{
+			en: Description of RSS Channel in English
+		}
+
+		// These are resource references
+		image_url:
+		{
+			internal:
+			[
+				"/rss-channel-image"
+				default
+			]
+		}
+
+		image_alt:
+		{
+			en: Image alt text in English, typically the same as title above.
+		}
+
+		image_tooltip:
+		{
+			en: Image tooltip in English.
+		}
+
+		copyright:
+		{
+			en: Coypright © 2017 My Company. All rights reserved.
+		}
+
+		// May change to a back-reference to an users list
+		managing_editor:
+		{
+			full_name: Raphael James Cohn
+			email: rss_managing_editor@stormmq.com
+		}
+
+		// May change to a back-reference to an users list
+		web_master:
+		{
+			full_name: Raphael James Cohn
+			email: rss_web_master@stormmq.com
+		}
+
+		categories:
+		[
+		]
+
+		feedly:
+		{
+			png_cover_image:
+			{
+				internal:
+				[
+					"/rss-feedly-png-cover-image"
+					default
+				]
+			}
+			svg_icon:
+			{
+				internal:
+				[
+					"/rss-feedly-svg-icon"
+					default
+				]
+			}
+			svg_logo:
+			{
+				internal:
+				[
+					"/rss-feedly-svg-logo"
+					default
+				]
+			}
+			accent_color: 00FF00
+			related: true
+			google_analytics: inherit
+		}
+
+		headers:
+		{
+		}
+
+		// Matches BBC as of Sep 2017.
+		max_age_in_seconds: 900
+
+		compression:
+		{
+			gzip:
+			{
+				iterations: 15
+
+				# Set to 0 for infinite
+				maximum_block_splits: 15
+			}
+
+			brotli:
+			{
+				compressMode: utf8
+			}
+		}
+	}
+
+	google_analytics: GA-123-4567
 }

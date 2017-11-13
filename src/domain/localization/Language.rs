@@ -8,7 +8,7 @@ pub(crate) struct Language
 {
 	iso_3166_1_alpha_2_country_code: String,
 	language_tool_long_code: String,
-	#[serde(default = "Language::host_default")] host: String,
+	#[serde(default = "Language::host_default")] pub(crate) host: String,
 	#[serde(default)] relative_root_url: RelativeRootUrl,
 }
 

@@ -7,7 +7,7 @@
 pub(crate) struct Localization
 {
 	#[serde(with = "url_serde", default = "Localization::language_tool_base_url_default")] language_tool_base_url: Url,
-	#[serde(default = "Localization::primary_iso_639_1_alpha_2_language_code_default")] primary_iso_639_1_alpha_2_language_code: String,
+	#[serde(default = "Localization::primary_iso_639_1_alpha_2_language_code_default")] pub(crate) primary_iso_639_1_alpha_2_language_code: String,
 	#[serde(default = "Localization::languages_default")] languages: HashMap<String, Language>,
 }
 

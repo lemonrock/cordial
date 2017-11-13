@@ -70,6 +70,7 @@ extern crate zopfli;
 
 use self::domain::*;
 use self::domain::images::*;
+use self::domain::localization::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;

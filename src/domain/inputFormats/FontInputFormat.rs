@@ -85,10 +85,10 @@ impl FontInputFormat
 				woffNumberOfIterations @ 0 ... 5000 => woffNumberOfIterations,
 				_ => 5000,
 			};
-			let woffUrl = languageData.url(&ResourcePipeline::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
+			let woffUrl = languageData.url(&replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
 			let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
-			urls.push((woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(ResourcePipeline::mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
+			urls.push((woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
 		}
 		
 		// woff2
@@ -99,21 +99,21 @@ impl FontInputFormat
 				quality @ 1 ... 11 => quality,
 				_ => 11,
 			};
-			let woff2Url = languageData.url(&ResourcePipeline::replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
+			let woff2Url = languageData.url(&replaceFileNameExtension(resourceRelativeUrl, ".woff2"))?;
 			let woff2Headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woff2Url)?;
 			let woff2Body = match convertTtfToWoff2(&ttfBytes, utf8_xml_metadata, woff2BrotliQuality, !woff2_disallow_transforms)
 			{
 				Err(()) => return Err(CordialError::Configuration("Could not encode font to WOFF2".to_owned())),
 				Ok(body) => body,
 			};
-			urls.push((woff2Url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(ResourcePipeline::mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
+			urls.push((woff2Url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
 		}
 		
 		if include_ttf
 		{
 			let ttfUrl = languageData.url(resourceRelativeUrl)?;
 			let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
-			urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(ResourcePipeline::mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
+			urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
 		}
 		
 		Ok(urls)

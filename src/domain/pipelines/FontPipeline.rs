@@ -5,9 +5,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct FontPipeline
 {
-	#[serde(default = "ResourcePipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
-	#[serde(default = "ResourcePipeline::is_downloadable_false_default")] is_downloadable: bool,
-	#[serde(default = "ResourcePipeline::is_versioned_true_default")] is_versioned: bool,
+	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
+	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<FontInputFormat>,
 	
@@ -26,9 +26,9 @@ impl Default for FontPipeline
 	{
 		Self
 		{
-			max_age_in_seconds: ResourcePipeline::max_age_in_seconds_long_default(),
-			is_downloadable: ResourcePipeline::is_downloadable_false_default(),
-			is_versioned: ResourcePipeline::is_versioned_true_default(),
+			max_age_in_seconds: max_age_in_seconds_long_default(),
+			is_downloadable: is_downloadable_false_default(),
+			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			input_format: None,
 			

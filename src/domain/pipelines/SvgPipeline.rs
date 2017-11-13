@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct SvgPipeline
 {
-	#[serde(default = "ResourcePipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
-	#[serde(default = "ResourcePipeline::is_downloadable_false_default")] is_downloadable: bool,
-	#[serde(default = "ResourcePipeline::is_versioned_true_default")] is_versioned: bool,
+	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
+	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] do_not_optimize: bool, // Exists solely because of potential bugs in svg optimizer
 	
@@ -23,9 +23,9 @@ impl Default for SvgPipeline
 	{
 		Self
 		{
-			max_age_in_seconds: ResourcePipeline::max_age_in_seconds_long_default(),
-			is_downloadable: ResourcePipeline::is_downloadable_false_default(),
-			is_versioned: ResourcePipeline::is_versioned_true_default(),
+			max_age_in_seconds: max_age_in_seconds_long_default(),
+			is_downloadable: is_downloadable_false_default(),
+			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			do_not_optimize: false,
 		}
@@ -51,7 +51,7 @@ impl Pipeline for SvgPipeline
 	{
 		const CanBeCompressed: bool = true;
 		
-		let url = languageData.url(&ResourcePipeline::replaceFileNameExtension(resourceRelativeUrl, ".svg"))?;
+		let url = languageData.url(&replaceFileNameExtension(resourceRelativeUrl, ".svg"))?;
 		
 		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
 		let body = if self.do_not_optimize
@@ -62,6 +62,6 @@ impl Pipeline for SvgPipeline
 		{
 			inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 		};
-		Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(ResourcePipeline::mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
 	}
 }

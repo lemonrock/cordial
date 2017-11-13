@@ -7,11 +7,18 @@ use self::ProcessingPriority::*;
 use self::UrlTag::*;
 
 
+include!("appendFileNameExtension.rs");
 include!("CssPipeline.rs");
 include!("GifAnimationPipeline.rs");
 include!("FontPipeline.rs");
 include!("HtmlPipeline.rs");
+include!("is_downloadable_false_default.rs");
+include!("is_versioned_true_default.rs");
+include!("max_age_in_seconds_long_default.rs");
+include!("mimeType.rs");
 include!("Pipeline.rs");
 include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");
+include!("replaceFileNameExtension.rs");
 include!("SvgPipeline.rs");
+include!("withoutFileNameExtension.rs");

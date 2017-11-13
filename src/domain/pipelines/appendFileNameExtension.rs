@@ -2,13 +2,11 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::pipelines::mimeType;
-use super::pipelines::replaceFileNameExtension;
-use ::woff2_sys::convertTtfToWoff2;
-
-
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("InputFormat.rs");
+#[inline(always)]
+pub(crate) fn appendFileNameExtension<'a>(withoutFileNameExtension: &str, extension: &str) -> String
+{
+	let mut string = String::with_capacity(withoutFileNameExtension.len() + extension.len());
+	string.push_str(withoutFileNameExtension.as_ref());
+	string.push_str(extension);
+	string
+}

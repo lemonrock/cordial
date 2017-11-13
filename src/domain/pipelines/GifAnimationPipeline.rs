@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct GifAnimationPipeline
 {
-	#[serde(default = "ResourcePipeline::max_age_in_seconds_long_default")] max_age_in_seconds: u32,
-	#[serde(default = "ResourcePipeline::is_downloadable_false_default")] is_downloadable: bool,
-	#[serde(default = "ResourcePipeline::is_versioned_true_default")] is_versioned: bool,
+	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
+	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<ImageInputFormat>,
 	
@@ -27,9 +27,9 @@ impl Default for GifAnimationPipeline
 	{
 		Self
 		{
-			max_age_in_seconds: ResourcePipeline::max_age_in_seconds_long_default(),
-			is_downloadable: ResourcePipeline::is_downloadable_false_default(),
-			is_versioned: ResourcePipeline::is_versioned_true_default(),
+			max_age_in_seconds: max_age_in_seconds_long_default(),
+			is_downloadable: is_downloadable_false_default(),
+			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			input_format: None,
 			img_sizes: None,
@@ -60,6 +60,6 @@ impl Pipeline for GifAnimationPipeline
 		const CanNotBeCompressed: bool = false;
 		
 		let engiffenPipeline = Engiffen::new(inputContentFilePath, &self.source_set, &self.quantizer, self.loops, self.input_format);
-		engiffenPipeline.process(ResourcePipeline::withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, self.max_age_in_seconds, self.is_downloadable, url))
+		engiffenPipeline.process(withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, self.max_age_in_seconds, self.is_downloadable, url))
 	}
 }

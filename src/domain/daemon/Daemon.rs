@@ -8,7 +8,7 @@ pub(crate) struct Daemon
 	#[serde(default)] user: Option<UserNewType>,
 	#[serde(default)] group: Option<GroupNewType>,
 	#[serde(default = "Daemon::http_socket_default")] http_socket: ServerSocket,
-	#[serde(default = "Daemon::https_socket_default")] https_socket: ServerSocket,
+	#[serde(default = "Daemon::https_socket_default")] pub(crate) https_socket: ServerSocket,
 	#[serde(default = "Daemon::pid_file_default")] pid_file: PathBuf,
 }
 

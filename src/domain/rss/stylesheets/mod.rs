@@ -3,15 +3,8 @@
 
 
 use super::*;
-use self::stylesheets::*;
 
 
-pub(crate) mod stylesheets;
-
-
-include!("RssChannel.rs");
-include!("RssFeedlyChannel.rs");
-include!("RssFeedlyChannelGoogleAnalyticsCode.rs");
-include!("RssImage.rs");
-include!("RssItem.rs");
-include!("RssItemLanguageVariant.rs");
+include!("MediaType.rs");
+include!("MimeNewType.rs");
+include!("StylesheetLink.rs");

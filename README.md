@@ -36,7 +36,7 @@ It also does a lot more to create a great experience for your users:-
 	* Images can vary by language
 	* Images are always converted and compressed to the best possible format using the latest optimizations (eg guetzli)
 * All assets are minified and compressed using Brotli and Zopfli;
-* Unnecessary CSS rules are stripped;
+* Unnecessary CSS rules are stripped, CSS is auto-prefixed and invalid CSS detected before it is served;
 * Support for SEO is trivial;
 * Text is always spell-checked and grammar-checked
 * HTTP OPTIONS support is built-in
@@ -49,6 +49,7 @@ It also does a lot more to create a great experience for your users:-
 * configuration can have production (and other) environment overrides, and separate secrets from data
 * everything can go in source control
 * HTTP headers can be generated using templates
+* CSS is auto-prefixed, stripped and validated
 
 [cordial] is intended to be secure:-
 
@@ -91,7 +92,7 @@ The license for this project is AGPL-3.0.
 ## TODO
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
 * Redirect for leaf URLs to index URLs (eg '/en' to '/en/')
-* Markdown / Handlebars / HTML minify / purifycss
+* Markdown / Handlebars / HTML minify
 * Spellchecking using [languagetool](https://www.languagetool.org/)
 * Error Templates / Content
 	* 400 Bad Request - display a page very similar to 404 Not Found
@@ -117,7 +118,6 @@ The license for this project is AGPL-3.0.
 	* GIF
 		* engiffen
 	* CSS
-		* Simple minifications
 		* Embedding images into the stylesheet as data-uris
 			* But nothing like cssembed for rust...
 	* CSS extensions

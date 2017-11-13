@@ -49,7 +49,7 @@ impl InputFormat for CssInputFormat
 impl CssInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
 	{
 		let format = match option
 		{
@@ -67,24 +67,41 @@ impl CssInputFormat
 				}
 			}
 		};
-		format.processCss(inputContentFilePath, precision, configuration, handlebars)
+		let cssString = format.processCss(inputContentFilePath, precision, configuration, handlebars)?;
+		Self::validateCssAndAutoprefix(inputContentFilePath, &cssString, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, regional_usages)
 	}
 	
 	#[inline(always)]
-	fn processCss(&self, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>) -> Result<Vec<u8>, CordialError>
+	fn processCss(&self, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>) -> Result<String, CordialError>
 	{
 		use self::CssInputFormat::*;
 		
 		match *self
 		{
-			css => Ok(inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?),
+			css => Ok(inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?),
 			sass => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, handlebars, true),
 			scss => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, handlebars, false),
 		}
 	}
 	
 	#[inline(always)]
-	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>, isSass: bool) -> Result<Vec<u8>, CordialError>
+	fn validateCssAndAutoprefix(inputContentFilePath: &Path, cssString: &str, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
+	{
+		match Stylesheet::parse(cssString)
+		{
+			Err(error) => Err(CordialError::InvalidFile(inputContentFilePath.to_path_buf(), format!("CSS '{:?}' at line (one-based) {:?}, text {}", error.error, error.location, error.slice))),
+			Ok(mut stylesheet) =>
+			{
+				let regional_usages: Vec<&RegionalUsage> = regional_usages.iter().map(|regional_usages| regional_usages.regional_usage()).collect();
+				let (can_i_use, choices) = sensible_choices(maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, &regional_usages);
+				autoprefix_stylesheet(&mut stylesheet, &can_i_use, &choices);
+				Ok(stylesheet.to_bytes(false))
+			}
+		}
+	}
+	
+	#[inline(always)]
+	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>, isSass: bool) -> Result<String, CordialError>
 	{
 		let options = ::sass_rs::Options
 		{
@@ -110,7 +127,7 @@ impl CssInputFormat
 		match ::sass_rs::compile_string(&sassInput, options)
 		{
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
-			Ok(css) => Ok(css.as_bytes().to_owned()),
+			Ok(css) => Ok(css),
 		}
 	}
 	

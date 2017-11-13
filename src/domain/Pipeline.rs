@@ -92,6 +92,10 @@ pub(crate) enum Pipeline
 		#[serde(default)] input_format: Option<CssInputFormat>,
 		#[serde(default = "Pipeline::precision_default")] precision: u8,
 		#[serde(default)] is_template: bool,
+		
+		#[serde(default = "Pipeline::maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default")] maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16,
+		#[serde(default = "Pipeline::minimum_usage_threshold_default")] minimum_usage_threshold: UsagePercentage,
+		#[serde(default = "Pipeline::regional_usages_default")] regional_usages: Vec<RegionalUsages>,
 	},
 	
 	svg
@@ -262,6 +266,19 @@ impl Pipeline
 					languageData.url(resourceRelativeUrl)?
 				};
 				
+				/*
+				
+					There is a markdown blob that will go into a <main></main>
+						(We could support multiple markdown blobs)
+						- Needs extension functions for
+							- svgbob
+							- internal URLs (documents)
+							- external URLs
+				*/
+				
+				
+				
+				
 //				let mut result = Vec::with_capacity(2);
 //
 //				let regularHeaders = generateHeaders(headerTemplates, languageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, false)?;
@@ -297,7 +314,7 @@ impl Pipeline
 				Ok(result)
 			}
 			
-			&mut css { max_age_in_seconds, is_downloadable, input_format, precision, is_template, .. } =>
+			&mut css { max_age_in_seconds, is_downloadable, input_format, precision, is_template, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, ref regional_usages, .. } =>
 			{
 				const CanBeCompressed: bool = true;
 				
@@ -313,7 +330,7 @@ impl Pipeline
 				{
 					None
 				};
-				let body = CssInputFormat::toCss(input_format, inputContentFilePath, precision, configuration, handlebars)?;
+				let body = CssInputFormat::toCss(input_format, inputContentFilePath, precision, configuration, handlebars, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, &regional_usages[..])?;
 				
 				Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
 			}
@@ -419,6 +436,30 @@ impl Pipeline
 	fn precision_default() -> u8
 	{
 		5
+	}
+	
+	#[inline(always)]
+	fn maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default() -> u16
+	{
+		const FirefoxCycleLengthInWeeks: u16 = 6;
+		const FirefoxCyclesPerYear: u16 = (52 / FirefoxCycleLengthInWeeks + 1);
+		
+		(FirefoxCyclesPerYear + 2) * FirefoxCycleLengthInWeeks
+	}
+	
+	#[inline(always)]
+	fn minimum_usage_threshold_default() -> UsagePercentage
+	{
+		UsagePercentage::OnePerMille
+	}
+	
+	#[inline(always)]
+	fn regional_usages_default() -> Vec<RegionalUsages>
+	{
+		vec!
+		[
+			RegionalUsages::WorldWide,
+		]
 	}
 	
 	#[inline(always)]

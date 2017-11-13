@@ -11,6 +11,7 @@ use super::webserver::UpdatableTlsServerConfigurationFactory;
 use super::webserver::Webserver;
 use super::webserver::requestHandlers::*;
 use super::webserver::requestHandlerFactories::*;
+use self::compression::*;
 use self::daemon::*;
 use self::engiffen::*;
 use self::pipelines::*;
@@ -87,6 +88,7 @@ use ::xml::writer::EmitterConfig;
 use ::xml::writer::EventWriter;
 
 
+pub(crate) mod compression;
 pub(crate) mod daemon;
 pub(crate) mod engiffen;
 pub(crate) mod pipelines;
@@ -96,9 +98,6 @@ pub(crate) mod siteMap;
 
 
 include!("Abstract.rs");
-include!("Brotli.rs");
-include!("BrotliCompressionMode.rs");
-include!("Compression.rs");
 include!("Configuration.rs");
 include!("CssInputFormat.rs");
 include!("DiscoverResources.rs");
@@ -108,7 +107,6 @@ include!("FromStringOrNumber.rs");
 include!("HtmlInputFormat.rs");
 include!("InputFormat.rs");
 include!("generateHeaders.rs");
-include!("Gzip.rs");
 include!("HtmlVariant.rs");
 include!("FontInputFormat.rs");
 include!("ImageAbstract.rs");

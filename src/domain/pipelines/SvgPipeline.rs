@@ -48,7 +48,7 @@ impl Pipeline for SvgPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		
@@ -63,6 +63,6 @@ impl Pipeline for SvgPipeline
 		{
 			inputContentFilePath.fileContentsAsACleanedSvgFrom()?
 		};
-		Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
 	}
 }

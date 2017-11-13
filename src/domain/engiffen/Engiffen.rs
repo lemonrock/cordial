@@ -28,7 +28,7 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn process<F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn process<F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let images = self.inputContentFolderPath.fileContentsInFolder(|filePath|
 		{
@@ -150,7 +150,7 @@ impl<'a> Engiffen<'a>
 			
 			let headers = headerGenerator(&url)?;
 			
-			result.push((url, urlTags, ContentType(mime::IMAGE_GIF), headers, body, None, false));
+			result.push((url, urlTags, StatusCode::Ok, ContentType(mime::IMAGE_GIF), headers, body, None, false));
 			
 			sourceSetIndex += 1;
 		}

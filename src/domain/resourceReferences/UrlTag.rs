@@ -14,5 +14,7 @@ pub(crate) enum UrlTag
 	height_image(u32),
 	width_height_image(u32, u32),
 	
+	redirect,
 	amp,
+	amp_redirect,
 }

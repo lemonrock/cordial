@@ -3,50 +3,110 @@
 
 
 #[derive(Debug, Clone)]
-pub(crate) struct RegularAndPjaxStaticResponse
+pub(crate) enum RegularAndPjaxStaticResponse
 {
-	regular: StaticResponse,
-	pjax: Option<StaticResponse>,
-	entityTag: String,
+	Regular
+	{
+		response: StaticResponse,
+		entityTag: String,
+	},
+	
+	WithPjax
+	{
+		response: StaticResponse,
+		entityTag: String,
+		pjax: StaticResponse,
+	},
+	
+	Unadorned
+	{
+		response: StaticResponse,
+		entityTag: String,
+	}
 }
 
 impl RegularAndPjaxStaticResponse
 {
 	#[inline(always)]
-	pub(crate) fn regular(regular: StaticResponse) -> Self
+	pub(crate) fn regular(response: StaticResponse) -> Self
 	{
-		Self::both(regular, None)
+		RegularAndPjaxStaticResponse::Regular
+		{
+			entityTag: response.entityTag(),
+			response,
+		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn both(regular: StaticResponse, pjax: Option<StaticResponse>) -> Self
+	pub(crate) fn both(response: StaticResponse, pjax: Option<StaticResponse>) -> Self
 	{
-		let entityTag = regular.entityTag();
+		let entityTag = response.entityTag();
 		
-		Self
+		if let Some(pjax) = pjax
 		{
-			regular,
-			pjax,
-			entityTag,
+			RegularAndPjaxStaticResponse::WithPjax
+			{
+				response,
+				entityTag,
+				pjax
+			}
+		}
+		else
+		{
+			RegularAndPjaxStaticResponse::Regular
+			{
+				response,
+				entityTag,
+			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn unadorned(response: StaticResponse) -> Self
+	{
+		RegularAndPjaxStaticResponse::Unadorned
+		{
+			entityTag: response.entityTag(),
+			response,
+		}
+	}
+	
+	#[inline(always)]
+	fn response(&self) -> &StaticResponse
+	{
+		use self::RegularAndPjaxStaticResponse::*;
+		
+		match *self
+		{
+			Regular { ref response, .. } => response,
+			WithPjax { ref response, .. } => response,
+			Unadorned { ref response, .. } => response,
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn entityTag<'a>(&'a self) -> &'a str
 	{
-		&self.entityTag
+		use self::RegularAndPjaxStaticResponse::*;
+		
+		match *self
+		{
+			Regular { ref entityTag, .. } => entityTag,
+			WithPjax { ref entityTag, .. } => entityTag,
+			Unadorned { ref entityTag, .. } => entityTag,
+		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn contentMimeType<'a>(&'a self) -> &'a Mime
 	{
-		&self.regular.contentType.0
+		&self.response().contentType.0
 	}
 	
 	#[inline(always)]
 	pub(crate) fn toDataUri(&self) -> Url
 	{
-		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.regular.uncompressedBody, STANDARD));
+		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.response().uncompressedBody, STANDARD));
 		Url::parse(&dataUriString).unwrap()
 	}
 	
@@ -59,13 +119,22 @@ impl RegularAndPjaxStaticResponse
 	#[inline(always)]
 	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
-		if isPjax && self.pjax.is_some()
+		use self::RegularAndPjaxStaticResponse::*;
+		
+		match *self
 		{
-			self.pjax.as_ref().unwrap().staticResponse(isHead, preferredEncoding, &self.entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
-		}
-		else
-		{
-			self.regular.staticResponse(isHead, preferredEncoding, &self.entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+			Regular { ref response, ref entityTag } => response.respondAssumingResourceIs200Ok(isHead, preferredEncoding, entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range),
+			
+			WithPjax { ref response, ref entityTag, ref pjax } => if isPjax
+			{
+				pjax.respondAssumingResourceIs200Ok(isHead, preferredEncoding, entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+			}
+			else
+			{
+				response.respondAssumingResourceIs200Ok(isHead, preferredEncoding, entityTag, lastModified, ifMatch, ifUnmodifiedSince, ifNoneMatch, ifModifiedSince, ifRange, range)
+			},
+			
+			Unadorned { ref response, .. } => response.rawResponse(isHead),
 		}
 	}
 }

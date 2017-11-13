@@ -94,7 +94,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -154,7 +154,7 @@ impl<'a> ImageSourceSet<'a>
 			{
 				urlTags.insert(largest_image, jsonValue.clone());
 			}
-			urls.push((url, urlTags, contentType.clone(), headers, body, None, false));
+			urls.push((url, urlTags, StatusCode::Ok, contentType.clone(), headers, body, None, false));
 			index += 1;
 		}
 		Ok(urls)

@@ -50,7 +50,7 @@ impl StaticResponse
 	}
 	
 	#[inline(always)]
-	fn staticResponse(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
+	fn respondAssumingResourceIs200Ok(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		// Order of evaluation: https://tools.ietf.org/html/rfc7232#section-6
 		
@@ -190,6 +190,24 @@ impl StaticResponse
 		else
 		{
 			response.set_body(body.to_owned());
+		}
+		
+		response
+	}
+	
+	#[inline(always)]
+	fn rawResponse(&self, isHead: bool) -> Response
+	{
+		let response = Response::common_headers(self.statusCode.clone(), self.contentType.clone());
+		let mut response = response.with_header(ContentLength(self.uncompressedBody.len() as u64));
+		
+		if isHead
+		{
+			response.set_body(Body::empty());
+		}
+		else
+		{
+			response.set_body(self.uncompressedBody.to_owned());
 		}
 		
 		response

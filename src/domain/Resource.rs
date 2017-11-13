@@ -185,7 +185,7 @@ impl Resource
 				let result = self.execute(&inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
 				
 				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
-				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
+				for (mut url, urlTagAndJsonValuePairs, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
 					debug_assert!(!urlTagAndJsonValuePairs.is_empty(), "urlTags is empty");
 					
@@ -212,11 +212,18 @@ impl Resource
 							None
 						};
 						
-						RegularAndPjaxStaticResponse::both(StaticResponse::new(StatusCode::Ok, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
+						RegularAndPjaxStaticResponse::both(StaticResponse::new(statusCode, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
 					}
 					else
 					{
-						RegularAndPjaxStaticResponse::regular(StaticResponse::new(StatusCode::Ok, contentType, regularHeaders, regularBody, regularCompressed))
+						if statusCode == StatusCode::Ok
+						{
+							RegularAndPjaxStaticResponse::regular(StaticResponse::new(statusCode, contentType, regularHeaders, regularBody, regularCompressed))
+						}
+						else
+						{
+							RegularAndPjaxStaticResponse::unadorned(StaticResponse::new(statusCode, contentType, regularHeaders, regularBody, None))
+						}
 					};
 					
 					if isVersioned
@@ -344,7 +351,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline

@@ -76,42 +76,57 @@ impl Pipeline for HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
+		const RedirectsCanNotBeCompressed: bool = false;
 		
-		let inputCanonicalUrl = if self.is_leaf
+		let nonLeafUrl = languageData.url(resourceRelativeUrl)?;
+		let leafUrl =
 		{
 			let mut leafPath = String::with_capacity(resourceRelativeUrl.len() + 1);
 			leafPath.push_str(resourceRelativeUrl);
 			leafPath.push('/');
 			languageData.url(&leafPath)?
+		};
+		
+		let (inputCanonicalUrl, redirectUrl) = if self.is_leaf
+		{
+			(leafUrl, nonLeafUrl)
 		}
 		else
 		{
-			languageData.url(resourceRelativeUrl)?
+			(nonLeafUrl, leafUrl)
 		};
 		
-		let mut result = Vec::with_capacity(2);
+		let mut result = Vec::with_capacity(4);
 		
 		let regularHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 		let pjaxHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 		
+		fn redirectHeaders(url: &Url) -> Vec<(String, String)>
+		{
+			let mut headers = Vec::new();
+			
+			headers.push(("Cache-Control".to_owned(), format!("{}", commonCacheControlHeader(31536000))));
+			headers.push(("Location".to_owned(), url.as_str().to_owned()));
+			
+			headers.shrink_to_fit();
+			headers
+		}
 		
 		
 		
 		let regularBody = Vec::new();
 		let pjaxBody = Vec::new();
 		
-		
-		
-		
-		
 		if let Some(ref amp_relative_root_url) = self.amp_relative_root_url
 		{
 			let baseAmpUrl = Url::parse(amp_relative_root_url).context("invalid AMP relative root URL".to_owned())?;
 			let ampUrl = baseAmpUrl.join(inputCanonicalUrl.as_str()).context("invalid combination of AMP relative root URL joined with input canonical URL".to_owned())?;
+			let ampRedirectUrl = baseAmpUrl.join(redirectUrl.as_str()).context("invalid combination of AMP relative root URL joined with input redirect URL".to_owned())?;
 			let ampHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
+			
 			
 			
 			
@@ -119,12 +134,68 @@ impl Pipeline for HtmlPipeline
 			
 			
 			
-			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
+			result.push((ampRedirectUrl, hashmap! { amp_redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), redirectHeaders(&ampUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
+			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
 		}
 		
-		result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
+		result.push((redirectUrl, hashmap! { redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), redirectHeaders(&inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
+		result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
+		
+		/*
+		
+		CommonResponses::
+		
+	
+	#[inline(always)]
+	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self
+	{
+		Self::static_txt_response(isHead, StatusCode::MovedPermanently, "")
+		.with_header(commonCacheControlHeader(31536000))
+		.with_header(Location::new(url.as_ref().to_owned()))
+	}
 		
 		
+		<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Bootstrap - Content moved</title>
+    <link rel="canonical" href="{{ page.redirect.to }}">
+    <meta http-equiv="refresh" content="0; url={{ page.redirect.to }}">
+    <style>
+      html {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        text-align: center;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      h1 {
+        margin-top: 0;
+        margin-bottom: .5rem;
+      }
+      a {
+        color: #007bff;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Redirecting…</h1>
+    <a href="{{ page.redirect.to }}">Click here if you are not redirected</a>
+    <script>window.location="{{ page.redirect.to }}";</script>
+  </body>
+</html>
+
+		
+		
+		*/
 		
 		//xxx: Automatic redirect URLs
 		panic!("Implement regularBody, pjaxBody and ampBody");

@@ -3,15 +3,15 @@
 
 
 use super::*;
-use ::engiffen::Gif;
-use ::engiffen::Quantizer;
 use ::image::GenericImage;
-use ::gif::SetParameter;
+use ::image::jpeg::JPEGEncoder;
 
 
-include!("Engiffen.rs");
-include!("EngiffenDisposal.rs");
-include!("EngiffenFrame.rs");
-include!("EngiffenLoops.rs");
-include!("EngiffenQuantizer.rs");
-include!("EngiffenSource.rs");
+include!("ImageAbstract.rs");
+include!("ImageCrop.rs");
+include!("ImageInputFormat.rs");
+include!("ImageScale.rs");
+include!("ImageSourceSet.rs");
+include!("ImageSourceSetEntry.rs");
+include!("ImageTransformation.rs");
+include!("ImageTransformationFilterType.rs");

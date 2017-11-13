@@ -10,6 +10,7 @@ pub(crate) struct RawPipeline
 	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
+	
 	#[serde(default)] can_be_compressed: Option<bool>, // default is to use filename
 	#[serde(default)] mime_type: Option<String>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
 }
@@ -46,7 +47,7 @@ impl Pipeline for RawPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let inputCanonicalUrl = languageData.url(resourceRelativeUrl)?;
 		

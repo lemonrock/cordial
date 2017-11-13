@@ -63,28 +63,135 @@
 
 	resource:
 	{
-		pipeline: html
+		pipeline: raw
+
+		// 'defaults' for each pipeline type, which can then be overridden
+		css:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+			input_format: null
+
+			precision: 5
+			is_template: false
+			maximum_release_age_from_can_i_use_database_last_updated_in_weeks: 66
+			// 0.1%, 1‰
+			minimum_usage_threshold: 0.1
+			regional_usages:
+			[
+				WorldWide
+			]
+		}
+
+		font:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+			input_format: null
+
+			utf8_xml_metadata:
+			[
+			]
+			woff1_private_data:
+			[
+			]
+			woff1_iterations: 15
+			woff2_brotli_quality: 11
+			woff2_disallow_transforms: false
+			include_ttf: false
+		}
+
+		gif_animation:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+			input_format: null
+
+			img_sizes: null
+			source_set
+			[
+			]
+			quantizer: {"neu_quant": [1]}
+			loops: infinite
+		}
+
+		html:
 		{
 			max_age_in_seconds: 0
-			input_format: markdown
+			input_format: null
 			is_leaf: false
-			publication_date: 2011-07-14T19:43
-			// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
-			// empty modifications imply use of publication date
+			// Specify 'null' to disable AMP page generation
+			amp_relative_root_url: "/amp"
+			publication_date: null
 			modifications:
 			{
-				// "some-date": {en: "What was changed"}
 			}
 			expiration_date: null
 			abstracts:
 			{
 				en:
 				{
-					title: Hello World
-					description: This is a description, used in meta-tags and OpenGraph.
-					extract: A markdown extract, to be used where a paragraph or synopsis is needed.
+					title: An example title in English
+					description: Used in meta-description and any tooltips or captions.
+					extract: A handlebars / markdown template for summaries and synopsis.
 				}
 			}
+		}
+
+		raster_image:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+			input_format: null
+
+			// Outputs JPEG if specified
+			jpeg_quality: null
+
+			// Make this false to prefer guetzli JPEG compression, which compresses more but is very slow indeed.
+			jpeg_speed_over_compression: true
+
+			transformations:
+			[
+			]
+
+			// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
+			img_sizes: null
+			img_srcset:
+			[
+			]
+		}
+
+		raw:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+
+			// default is to use filename to determine compressibility
+			can_be_compressed: null
+
+			// default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
+			mime_type: null
+		}
+
+		svg:
+		{
+			max_age_in_seconds: 31536000
+			is_downloadable: false
+			is_versioned: true
+			language_aware: false
+
+			// Exists solely because of potential bugs in svg optimizer
+			do_not_optimize: false
 		}
 
 		headers:

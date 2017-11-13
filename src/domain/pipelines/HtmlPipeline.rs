@@ -9,19 +9,21 @@ pub(crate) struct HtmlPipeline
 	#[serde(default = "HtmlPipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
 	#[serde(default)] input_format: HtmlInputFormat,
 	#[serde(default)] is_leaf: bool,
+	
+	// Specify None to prevent AMP pages being generated.
 	#[serde(default = "HtmlPipeline::amp_relative_root_url_default")] amp_relative_root_url: Option<String>,
 	
 	// open graph, RSS, schema.org
-	publication_date: SystemTime,
+	#[serde(default)] publication_date: Option<DateTime<Utc>>,
 	
 	// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
 	// empty modifications imply use of publication date
-	#[serde(default)] modifications: BTreeMap<SystemTime, HashMap<String, String>>,
+	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<String, String>>,
 	
 	// open graph
-	#[serde(default)] expiration_date: Option<SystemTime>,
+	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
 	
-	abstracts: HashMap<String, Abstract>,
+	#[serde(default)] abstracts: HashMap<String, Abstract>,
 	/*
 	{
 		en:
@@ -32,6 +34,25 @@ pub(crate) struct HtmlPipeline
 		}
 	}
 	*/
+}
+
+impl Default for HtmlPipeline
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			max_age_in_seconds: Self::max_age_in_seconds_none_default(),
+			input_format: Default::default(),
+			is_leaf: false,
+			amp_relative_root_url: Self::amp_relative_root_url_default(),
+			publication_date: None,
+			modifications: Default::default(),
+			expiration_date: None,
+			abstracts: Default::default(),
+		}
+	}
 }
 
 impl Pipeline for HtmlPipeline
@@ -55,7 +76,7 @@ impl Pipeline for HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		
@@ -104,6 +125,8 @@ impl Pipeline for HtmlPipeline
 		result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 		
 		
+		
+		//xxx: Automatic redirect URLs
 		panic!("Implement regularBody, pjaxBody and ampBody");
 		
 		Ok(result)

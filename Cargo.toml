@@ -31,7 +31,7 @@ codegen-units = 1
 base64 = "0.6.0"
 brotli2 = "0.3.0"
 chardet = "0.2.3"
-chrono = "0.4.0"
+chrono = { version = "0.4", features = ["serde"] }
 clap = "2.26.0"
 comrak = "0.2.2"
 css-autoprefix = "0.0.5"

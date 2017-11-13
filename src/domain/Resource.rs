@@ -7,6 +7,13 @@
 pub(crate) struct Resource
 {
 	#[serde(default)] pipeline: ResourcePipeline,
+	#[serde(default)] css: CssPipeline,
+	#[serde(default)] font: FontPipeline,
+	#[serde(default)] gif_animation: GifAnimationPipeline,
+	#[serde(default)] html: HtmlPipeline,
+	#[serde(default)] raster_image: RasterImagePipeline,
+	#[serde(default)] raw: RawPipeline,
+	#[serde(default)] svg: SvgPipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
 	#[serde(default)] is_data_uri: bool,
@@ -24,12 +31,6 @@ impl Resource
 	pub(crate) fn resourceRelativeUrl(&self) -> &str
 	{
 		&self.resourceRelativeUrl
-	}
-	
-	#[inline(always)]
-	pub(crate) fn hasProcessingPriority(&self, processingPriority: ProcessingPriority) -> bool
-	{
-		self.pipeline.processingPriority() == processingPriority
 	}
 	
 	#[inline(always)]
@@ -51,6 +52,12 @@ impl Resource
 				}
 			}
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn hasProcessingPriority(&self, processingPriority: ProcessingPriority) -> bool
+	{
+		self.processingPriority() == processingPriority
 	}
 	
 	#[inline(always)]
@@ -84,7 +91,7 @@ impl Resource
 	#[inline(always)]
 	fn urlKey<'a>(&self, primary_iso_639_1_alpha_2_language_code: &'a str, iso_639_1_alpha_2_language_code: Option<&'a str>) -> &'a str
 	{
-		let (isForPrimaryLanguageOnly, _isVersioned) = self.pipeline.is();
+		let (isForPrimaryLanguageOnly, _isVersioned) = self.is();
 		if isForPrimaryLanguageOnly
 		{
 			primary_iso_639_1_alpha_2_language_code
@@ -132,7 +139,7 @@ impl Resource
 		
 		self.canonicalParentFolderPath = canonicalParentFolderPath;
 		self.resourceInputName = resourceInputName.to_owned();
-		self.resourceInputContentFileNamesWithExtension = self.pipeline.resourceInputContentFileNamesWithExtension(resourceInputName);
+		self.resourceInputContentFileNamesWithExtension = self.resourceInputContentFileNamesWithExtension(resourceInputName);
 		self.resourceRelativeUrl = resourceRelativeUrl(&parentHierarchy, resourceInputName);
 	}
 	
@@ -144,7 +151,7 @@ impl Resource
 		
 		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
-			let (isVersioned, isForPrimaryLanguageOnly) = self.pipeline.is();
+			let (isVersioned, isForPrimaryLanguageOnly) = self.is();
 			
 			if !isPrimaryLanguage && isForPrimaryLanguageOnly
 			{
@@ -175,7 +182,7 @@ impl Resource
 				
 				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
 				
-				let result = self.pipeline.execute(&inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
+				let result = self.execute(&inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
 				
 				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
 				for (mut url, urlTagAndJsonValuePairs, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
@@ -286,5 +293,69 @@ impl Resource
 		}
 		
 		CordialError::couldNotFindResourceContentFile(self, primaryLanguage, language)
+	}
+	
+	#[inline(always)]
+	fn processingPriority(&self) -> ProcessingPriority
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.processingPriority(),
+			font => self.font.processingPriority(),
+			gif_animation => self.gif_animation.processingPriority(),
+			html => self.html.processingPriority(),
+			raster_image => self.raster_image.processingPriority(),
+			raw => self.raw.processingPriority(),
+			svg => self.svg.processingPriority(),
+		}
+	}
+	
+	#[inline(always)]
+	fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.resourceInputContentFileNamesWithExtension(resourceInputName),
+			font => self.font.resourceInputContentFileNamesWithExtension(resourceInputName),
+			gif_animation => self.gif_animation.resourceInputContentFileNamesWithExtension(resourceInputName),
+			html => self.html.resourceInputContentFileNamesWithExtension(resourceInputName),
+			raster_image => self.raster_image.resourceInputContentFileNamesWithExtension(resourceInputName),
+			raw => self.raw.resourceInputContentFileNamesWithExtension(resourceInputName),
+			svg => self.svg.resourceInputContentFileNamesWithExtension(resourceInputName),
+		}
+	}
+	
+	#[inline(always)]
+	fn is<'a>(&self) -> (bool, bool)
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.is(),
+			font => self.font.is(),
+			gif_animation => self.gif_animation.is(),
+			html => self.html.is(),
+			raster_image => self.raster_image.is(),
+			raw => self.raw.is(),
+			svg => self.svg.is(),
+		}
+	}
+	
+	#[inline(always)]
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			font => self.font.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			gif_animation => self.gif_animation.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			html => self.html.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raster_image => self.raster_image.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raw => self.raw.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			svg => self.svg.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+		}
 	}
 }

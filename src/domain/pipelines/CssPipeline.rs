@@ -11,9 +11,9 @@ pub(crate) struct CssPipeline
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<CssInputFormat>,
+	
 	#[serde(default = "CssPipeline::precision_default")] precision: u8,
 	#[serde(default)] is_template: bool,
-	
 	#[serde(default = "CssPipeline::maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default")] maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16,
 	#[serde(default = "CssPipeline::minimum_usage_threshold_default")] minimum_usage_threshold: UsagePercentage,
 	#[serde(default = "CssPipeline::regional_usages_default")] regional_usages: Vec<RegionalUsages>,
@@ -61,7 +61,7 @@ impl Pipeline for CssPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		

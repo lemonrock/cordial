@@ -10,6 +10,7 @@ pub(crate) struct SvgPipeline
 	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
+	
 	#[serde(default)] do_not_optimize: bool, // Exists solely because of potential bugs in svg optimizer
 	
 	// TODO: Add option to add height, width if missing
@@ -47,7 +48,7 @@ impl Pipeline for SvgPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&mut self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		

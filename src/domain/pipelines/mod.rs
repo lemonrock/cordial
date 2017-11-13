@@ -2,4 +2,16 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub type CommonMarkAndGitHubFlavouredMarkdown = String;
+use super::*;
+use self::ProcessingPriority::*;
+use self::UrlTag::*;
+
+
+include!("CssPipeline.rs");
+include!("GifAnimationPipeline.rs");
+include!("FontPipeline.rs");
+include!("HtmlPipeline.rs");
+include!("Pipeline.rs");
+include!("RasterImagePipeline.rs");
+include!("RawPipeline.rs");
+include!("SvgPipeline.rs");

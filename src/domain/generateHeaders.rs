@@ -83,7 +83,6 @@ pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &Has
 			({
 				"environment": &configuration.environment,
 				"html_variant": htmlVariant,
-				"variant_path_with_trailing_slash": htmlVariant.pathWithTrailingSlash(),
 				"our_language": ourLanguage,
 				"localization": localization,
 				"other_languages": otherLanguages,

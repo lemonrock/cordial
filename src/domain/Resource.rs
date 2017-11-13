@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct Resource
 {
-	#[serde(default)] pipeline: Pipeline,
+	#[serde(default)] pipeline: ResourcePipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
 	#[serde(default)] is_data_uri: bool,

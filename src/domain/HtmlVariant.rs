@@ -10,30 +10,11 @@ pub(crate) enum HtmlVariant
 	PJAX,
 }
 
-impl HtmlVariant
+impl Default for HtmlVariant
 {
 	#[inline(always)]
-	fn pathWithTrailingSlash(self) -> Option<&'static str>
+	fn default() -> Self
 	{
-		use self::HtmlVariant::*;
-		match self
-		{
-			Canonical => None,
-			AMP => Some("amp/"),
-			PJAX => None,
-		}
-	}
-	
-	#[inline(always)]
-	fn appendToUrl(self, baseUrl: Url) -> Url
-	{
-		if let Some(pathWithTrailingSlash) = self.pathWithTrailingSlash()
-		{
-			baseUrl.join(pathWithTrailingSlash).unwrap()
-		}
-		else
-		{
-			baseUrl
-		}
+		HtmlVariant::Canonical
 	}
 }

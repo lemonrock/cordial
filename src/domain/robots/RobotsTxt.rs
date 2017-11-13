@@ -32,7 +32,7 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
+	pub(crate) fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
 		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName).context(PathBuf::from("robots.txt"))?;

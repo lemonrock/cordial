@@ -12,6 +12,7 @@ use super::webserver::Webserver;
 use super::webserver::requestHandlers::*;
 use super::webserver::requestHandlerFactories::*;
 use self::pipelines::*;
+use self::robots::*;
 use ::base64::encode_config as base64Encode;
 use ::base64::URL_SAFE_NO_PAD;
 use ::css_autoprefix::autoprefix_stylesheet;
@@ -86,6 +87,7 @@ use ::xml::writer::EventWriter;
 
 
 pub(crate) mod pipelines;
+pub(crate) mod robots;
 
 
 include!("Abstract.rs");
@@ -129,9 +131,6 @@ include!("ResourcePipeline.rs");
 include!("ProcessingPriority.rs");
 include!("RelativeRootUrl.rs");
 include!("Resource.rs");
-include!("RobotDirective.rs");
-include!("RobotGroup.rs");
-include!("RobotsTxt.rs");
 include!("ResourceReference.rs");
 include!("ResourceTemplates.rs");
 include!("RssChannel.rs");

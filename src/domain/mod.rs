@@ -14,6 +14,7 @@ use super::webserver::requestHandlerFactories::*;
 use self::engiffen::*;
 use self::pipelines::*;
 use self::robots::*;
+use self::rss::*;
 use ::base64::encode_config as base64Encode;
 use ::base64::URL_SAFE_NO_PAD;
 use ::css_autoprefix::autoprefix_stylesheet;
@@ -87,6 +88,7 @@ use ::xml::writer::EventWriter;
 pub(crate) mod engiffen;
 pub(crate) mod pipelines;
 pub(crate) mod robots;
+pub(crate) mod rss;
 
 
 include!("Abstract.rs");
@@ -126,12 +128,6 @@ include!("RelativeRootUrl.rs");
 include!("Resource.rs");
 include!("ResourceReference.rs");
 include!("ResourceTemplates.rs");
-include!("RssChannel.rs");
-include!("RssFeedlyChannel.rs");
-include!("RssFeedlyChannelGoogleAnalyticsCode.rs");
-include!("RssImage.rs");
-include!("RssItem.rs");
-include!("RssItemLanguageVariant.rs");
 include!("ServerSocket.rs");
 include!("Settings.rs");
 include!("SiteMap.rs");

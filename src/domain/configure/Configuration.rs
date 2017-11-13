@@ -10,16 +10,16 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default)] enable_hsts_preloading_for_production: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
-	#[serde(default)] localization: Localization,
+	#[serde(default)] pub(crate) localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] sitemap: SiteMap,
 	#[serde(default)] rss: Option<RssChannel>,
 	#[serde(default)] google_analytics: Option<String>,
-	#[serde(default, skip_deserializing)] inputFolderPath: PathBuf,
+	#[serde(default, skip_deserializing)] pub(crate) inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
-	#[serde(default, skip_deserializing)] environment: String,
-	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] deploymentDate: SystemTime,
-	#[serde(default, skip_deserializing)] deploymentVersion: String,
+	#[serde(default, skip_deserializing)] pub(crate) environment: String,
+	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] pub(crate) deploymentDate: SystemTime,
+	#[serde(default, skip_deserializing)] pub(crate) deploymentVersion: String,
 }
 
 impl Default for Configuration
@@ -401,7 +401,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
+	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, visitor: F) -> Result<(), CordialError>
 	{
 		self.localization.visitLanguagesWithPrimaryFirst(visitor)
 	}

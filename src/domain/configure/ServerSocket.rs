@@ -6,13 +6,13 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ServerSocket
 {
-	socket: SocketAddr,
-	#[serde(default)] time_to_live: u32,
-	#[serde(default)] only_v6: bool,
-	#[serde(default)] reuse_address: bool,
-	#[serde(default)] reuse_port: bool,
-	#[serde(default)] backlog: i32,
-	#[serde(default)] linger: Option<Duration>,
+	pub(crate) socket: SocketAddr,
+	#[serde(default)] pub(crate) time_to_live: u32,
+	#[serde(default)] pub(crate) only_v6: bool,
+	#[serde(default)] pub(crate) reuse_address: bool,
+	#[serde(default)] pub(crate) reuse_port: bool,
+	#[serde(default)] pub(crate) backlog: i32,
+	#[serde(default)] pub(crate) linger: Option<Duration>,
 }
 
 impl ServerSocket

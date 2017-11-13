@@ -38,9 +38,6 @@ use ::hyper::header::ContentType;
 use ::hyper::mime::Mime;
 use ::hyper::mime::TEXT_CSS;
 use ::mktemp::Temp;
-use ::net2::TcpBuilder;
-use ::net2::TcpListenerExt;
-use ::net2::unix::UnixTcpBuilderExt;
 use ::ordermap::OrderMap;
 use ::rustls::ServerConfig;
 use ::rustls::ServerSessionMemoryCache;
@@ -66,7 +63,6 @@ use ::std::mem::transmute;
 use ::std::net::*;
 use ::std::ops::Deref;
 use ::std::ops::DerefMut;
-use ::std::os::unix::fs::FileTypeExt;
 use ::std::path::Path;
 use ::std::path::PathBuf;
 use ::std::path::Component::Normal;
@@ -87,6 +83,7 @@ use ::xml::writer::EventWriter;
 
 
 pub(crate) mod compression;
+pub(crate) mod configure;
 pub(crate) mod daemon;
 pub(crate) mod engiffen;
 pub(crate) mod html;
@@ -101,13 +98,8 @@ pub(crate) mod rss;
 pub(crate) mod siteMap;
 
 
-include!("Configuration.rs");
-include!("DiscoverResources.rs");
 include!("generateHeaders.rs");
 include!("HtmlVariant.rs");
 include!("ResourcePipeline.rs");
 include!("ProcessingPriority.rs");
 include!("Resource.rs");
-include!("ResourceTemplates.rs");
-include!("ServerSocket.rs");
-include!("Settings.rs");

@@ -11,6 +11,7 @@ use super::webserver::UpdatableTlsServerConfigurationFactory;
 use super::webserver::Webserver;
 use super::webserver::requestHandlers::*;
 use super::webserver::requestHandlerFactories::*;
+use self::engiffen::*;
 use self::pipelines::*;
 use self::robots::*;
 use ::base64::encode_config as base64Encode;
@@ -26,9 +27,6 @@ use ::chrono::Utc;
 use ::daemonize::Daemonize;
 use ::daemonize::Group;
 use ::daemonize::User;
-use ::engiffen::Gif;
-use ::engiffen::Quantizer;
-use ::gif::SetParameter;
 use ::handlebars::Handlebars;
 use ::hyper::StatusCode;
 use ::hyper::header::ContentType;
@@ -86,6 +84,7 @@ use ::xml::writer::EmitterConfig;
 use ::xml::writer::EventWriter;
 
 
+pub(crate) mod engiffen;
 pub(crate) mod pipelines;
 pub(crate) mod robots;
 
@@ -99,12 +98,6 @@ include!("CssInputFormat.rs");
 include!("Daemon.rs");
 include!("DiscoverResources.rs");
 include!("EMailAddress.rs");
-include!("Engiffen.rs");
-include!("EngiffenDisposal.rs");
-include!("EngiffenFrame.rs");
-include!("EngiffenLoops.rs");
-include!("EngiffenQuantizer.rs");
-include!("EngiffenSource.rs");
 include!("FullName.rs");
 include!("FromStringOrNumber.rs");
 include!("HtmlInputFormat.rs");

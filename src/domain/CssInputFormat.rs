@@ -49,7 +49,7 @@ impl InputFormat for CssInputFormat
 impl CssInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<(&mut Handlebars, Option<&LanguageData>, bool)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
 	{
 		let format = match option
 		{
@@ -67,20 +67,64 @@ impl CssInputFormat
 				}
 			}
 		};
-		let cssString = format.processCss(inputContentFilePath, precision, configuration, handlebars)?;
+		let raw = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+		let input = Self::preProcessWithHandlebars(raw, configuration, handlebars)?;
+		let cssString = format.processCss(inputContentFilePath, precision, configuration, input)?;
 		Self::validateCssAndAutoprefix(inputContentFilePath, &cssString, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, regional_usages)
 	}
 	
 	#[inline(always)]
-	fn processCss(&self, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>) -> Result<String, CordialError>
+	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, handlebars: Option<(&mut Handlebars, Option<&LanguageData>, bool)>) -> Result<String, CordialError>
+	{
+		if let Some((handlebars, languageData, canBeCompressed)) = handlebars
+		{
+			let localization = &configuration.localization;
+			let deploymentVersion = &configuration.deploymentVersion;
+			
+			let (ourLanguage, otherLanguages) = match languageData
+			{
+				None => (None, None),
+				Some(&LanguageData { iso_639_1_alpha_2_language_code, language }) =>
+				{
+					let mut ourLanguage = HashMap::with_capacity(2);
+					ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code);
+					ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
+					(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
+				}
+			};
+			
+			let json = &json!
+			({
+				"environment": &configuration.environment,
+				"our_language": ourLanguage,
+				"localization": localization,
+				"other_languages": otherLanguages,
+				"can_be_compressed": canBeCompressed,
+				"deployment_date": configuration.deploymentDate,
+				"deployment_version": deploymentVersion,
+			});
+			
+			handlebars.register_escape_fn(::handlebars::no_escape);
+			let rendered = handlebars.template_render(&raw, json)?;
+			handlebars.unregister_escape_fn();
+			Ok(rendered)
+		}
+		else
+		{
+			Ok(raw)
+		}
+	}
+	
+	#[inline(always)]
+	fn processCss(&self, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, input: String) -> Result<String, CordialError>
 	{
 		use self::CssInputFormat::*;
 		
 		match *self
 		{
-			css => Ok(inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?),
-			sass => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, handlebars, true),
-			scss => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, handlebars, false),
+			css => Ok(input),
+			sass => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, true),
+			scss => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, false),
 		}
 	}
 	
@@ -101,7 +145,7 @@ impl CssInputFormat
 	}
 	
 	#[inline(always)]
-	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<&mut Handlebars>, isSass: bool) -> Result<String, CordialError>
+	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, sassInput: &str, isSass: bool) -> Result<String, CordialError>
 	{
 		let options = ::sass_rs::Options
 		{
@@ -109,19 +153,6 @@ impl CssInputFormat
 			precision: precision as usize,
 			indented_syntax: isSass,
 			include_paths: Self::findSassImportPaths(configuration)?,
-		};
-		
-		let content = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		let sassInput = if let Some(handlebars) = handlebars
-		{
-			handlebars.register_escape_fn(::handlebars::no_escape);
-			let sassInput = handlebars.template_render(&content, &json!({}))?;
-			handlebars.unregister_escape_fn();
-			sassInput
-		}
-		else
-		{
-			content
 		};
 		
 		match ::sass_rs::compile_string(&sassInput, options)

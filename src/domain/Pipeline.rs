@@ -274,6 +274,31 @@ impl Pipeline
 							- svgbob
 							- internal URLs (documents)
 							- external URLs
+					
+					So we need a set of templates
+					
+					Take HTML and run it through languagetool
+					
+					Take HTML and minify it
+					
+					Take HTML and extract PJAX page for it (use css selector for 'main' unless another selector is given)
+					
+					Take HTML and generate AMP page
+					
+					Open problem: How do we minify CSS?
+						
+						- minifying CSS common to several pages is quite challenging
+						
+						- if we embed CSS into our document, AMP-style, then we need to be careful also embedding repeated images into the CSS
+					
+					Discover images and videos to add to site maps
+					
+					JSON to pass to handlebars
+						- all the stuff we do for CssInputFormat
+						- document
+							title
+							
+					
 				*/
 				
 				
@@ -324,7 +349,7 @@ impl Pipeline
 				
 				let handlebars = if is_template
 				{
-					Some(handlebars)
+					Some((handlebars, ifLanguageAwareLanguageData, CanBeCompressed))
 				}
 				else
 				{

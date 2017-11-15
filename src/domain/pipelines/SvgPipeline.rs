@@ -164,7 +164,9 @@ impl SvgPipeline
 		use ::svgdom::types::Length;
 		use ::svgdom::types::LengthUnit;
 		
-		match document.root().attributes().get_value(attributeName)
+		let root = document.root();
+		let attributes = root.attributes();
+		match attributes.get_value(attributeName)
 		{
 			None => None,
 			Some(&AttributeValue::Length(Length { num, unit })) => if num > 0.0

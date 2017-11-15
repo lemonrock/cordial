@@ -114,17 +114,6 @@ impl Pipeline for HtmlPipeline
 		
 		let inputCanonicalUrl = self.canonicalUrl(languageData, resourceRelativeUrl)?;
 		
-		{
-			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
-			
-			let regularHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
-			
-			let pjaxHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
-			let pjaxBody = Self::extractNodes(&self.pjax_css_selector, &document, "pjax_css_selector", regularBody.len())?;
-			
-			result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
-		}
-		
 		if let Some(ref amp_template) = self.amp_template
 		{
 			let ampUrl = self.ampUrl(languageData, resourceRelativeUrl)?;
@@ -137,6 +126,17 @@ impl Pipeline for HtmlPipeline
 			let ampBody = ampDocument.minify_to_bytes(false);
 			
 			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
+		}
+		
+		{
+			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
+			
+			let regularHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
+			
+			let pjaxHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
+			let pjaxBody = Self::extractNodes(&self.pjax_css_selector, &document, "pjax_css_selector", regularBody.len())?;
+			
+			result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 		}
 		
 		Ok(result)
@@ -345,23 +345,24 @@ impl HtmlPipeline
 		const PreserveProcessingInstructions: bool = false;
 		
 		let mut writer = Vec::with_capacity(capacityGuess);
-		let mut serializer = UltraMinifyingHtmlSerializer::new(html_head_and_body_tags_are_optional, PreserveComments, PreserveProcessingInstructions, &mut writer);
-		
-		match parse_css_selector(selector)
 		{
-			Err(_) => return Err(CordialError::Configuration(format!("CSS {} {} was invalid", selectorName, selector))),
-			Ok(selector) => document.find_all_matching_child_nodes_depth_first_excluding_this_one(&selector, &mut |node|
+			let mut serializer = UltraMinifyingHtmlSerializer::new(html_head_and_body_tags_are_optional, PreserveComments, PreserveProcessingInstructions, &mut writer);
+			
+			match parse_css_selector(selector)
 			{
-				const collapse_whitespace: bool = true;
-				const flush_when_serialized: bool = false;
-				if serializer.serialize_node(node, collapse_whitespace, flush_when_serialized).is_err()
+				Err(_) => return Err(CordialError::Configuration(format!("CSS {} {} was invalid", selectorName, selector))),
+				Ok(selector) => document.find_all_matching_child_nodes_depth_first_excluding_this_one(&selector, &mut |node|
 				{
-					//return Err(CordialError::Configuration("Could not serialize node - is this even possible?".to_owned()));
-				}
-				false
-			}),
-		};
-		
+					const collapse_whitespace: bool = true;
+					const flush_when_serialized: bool = false;
+					if serializer.serialize_node(node, collapse_whitespace, flush_when_serialized).is_err()
+					{
+						//return Err(CordialError::Configuration("Could not serialize node - is this even possible?".to_owned()));
+					}
+					false
+				}),
+			};
+		}
 		writer.shrink_to_fit();
 		
 		Ok(writer)

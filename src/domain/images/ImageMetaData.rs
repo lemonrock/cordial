@@ -70,7 +70,8 @@ impl ImageMetaData
 	
 	pub(crate) fn siteMapWebPageImage(&self, internal_resource_url: &str, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &BTreeMap<String, Resource>) -> Result<SiteMapWebPageImage, CordialError>
 	{
-		let url = match self.resourceReference(internal_resource_url).url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		let resource = self.resourceReference(internal_resource_url);
+		let url = match resource.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", &internal_resource_url))),
 			Some(url) => url,

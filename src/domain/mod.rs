@@ -50,6 +50,7 @@ use ::serde_json::value::Value as JsonValue;
 use ::std::ascii::AsciiExt;
 use ::std::borrow::Cow;
 use ::std::cell::Cell;
+use ::std::cell::RefCell;
 use ::std::collections::BTreeMap;
 use ::std::collections::BTreeSet;
 use ::std::collections::HashMap;

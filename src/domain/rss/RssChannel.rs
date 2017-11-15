@@ -40,12 +40,12 @@ impl RssChannel
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}
 		
-		let resource = resources.get(&self.image_url).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{}'", &self.image_url)))?;
+		let resource = resources.get(&self.image_url).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{}'", &self.image_url)))?.try_borrow()?;
+		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{}'", &self.image_url)))?;
 		let (imageUrl, imageJsonValue) = resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageUrlTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{}'", Self::ImageUrlTag, &self.image_url)))?;
+		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
 		let imageWidth = imageJsonValue.u32("width")?;
 		let imageHeight = imageJsonValue.u32("height")?;
-		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{}'", &self.image_url)))?;
-		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
 		let image_alt = &imageAbstract.alt;
 		let image_tooltip = &imageAbstract.title;
 		

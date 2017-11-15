@@ -148,7 +148,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, mut resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Responses, CordialError>
+	fn renderResources(&self, resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Responses, CordialError>
 	{
 		let mut newResources = Responses::new(self.deploymentDate, ourHostNames);
 		let mut siteMapWebPages = self.languagesHashMap();
@@ -156,11 +156,12 @@ impl Configuration
 		
 		for processingPriority in ProcessingPriority::All.iter()
 		{
-			for resource in resources.values_mut()
+			for resource in resources.values()
 			{
-				if resource.hasProcessingPriority(*processingPriority)
+				let hasProcessingPriority = resource.borrow().hasProcessingPriority(*processingPriority);
+				if hasProcessingPriority
 				{
-					resource.render(&resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
+					resource.borrow_mut().render(&resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
 			}
 		}

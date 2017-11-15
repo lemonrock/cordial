@@ -27,12 +27,12 @@ pub(crate) struct ImageMetaData
 
 impl ImageMetaData
 {
-	pub(crate) fn find<'a>(internal_resource_url: &str, resources: &'a Resources) -> Option<&'a Self>
+	pub(crate) fn find<'a>(internal_resource_url: &str, resources: &'a Resources) -> Result<Option<&'a Self>, CordialError>
 	{
 		match resources.get(internal_resource_url)
 		{
-			None => None,
-			Some(resource) => resource.imageMetaData(),
+			None => Ok(None),
+			Some(resource) => Ok(resource.try_borrow()?.imageMetaData()),
 		}
 	}
 	
@@ -71,13 +71,13 @@ impl ImageMetaData
 	pub(crate) fn siteMapWebPageImage(&self, internal_resource_url: &str, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
 	{
 		let resource = self.resourceReference(internal_resource_url);
-		let url = match resource.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		let url = match resource.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)?
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", &internal_resource_url))),
 			Some(url) => url,
 		};
 		
-		let licenseUrl = match self.license_url.url(primary_iso_639_1_alpha_2_language_code, None, resources)
+		let licenseUrl = match self.license_url.url(primary_iso_639_1_alpha_2_language_code, None, resources)?
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for license url '{:?}'", &self.license_url))),
 			Some(url) => url,
@@ -112,7 +112,7 @@ impl ImageMetaData
 		
 		let resourceReference = self.resourceReference(internal_resource_url);
 		
-		match resourceReference.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		match resourceReference.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)?
 		{
 			None => Err(CordialError::Configuration(format!("Could not find article image for RSS feed for '{:?}'", internal_resource_url))),
 			

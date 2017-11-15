@@ -36,7 +36,7 @@ impl RssFeedlyChannel
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
-		if let Some(url) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		if let Some(Some(url)) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
 		{
 			let attributes =
 			[
@@ -45,12 +45,12 @@ impl RssFeedlyChannel
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(url) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		if let Some(Some(url)) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
 		}
 		
-		if let Some(url) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
+		if let Some(Some(url)) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
 		}

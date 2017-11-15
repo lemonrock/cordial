@@ -2,4 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) type Resources = BTreeMap<String, Resource>;
+pub(crate) type Resources = BTreeMap<String, RefCell<Resource>>;

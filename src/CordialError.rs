@@ -160,6 +160,14 @@ quick_error!
 			from()
 		}
 		
+		SelfReferencingResource(cause: ::std::cell::BorrowError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Resource borrows a resource that directly or indirectly references itself, eg an HTML page with a image resource url which is itself; {}", cause)
+			from()
+		}
+		
 		Other(cause: Box<::std::error::Error>)
 		{
 			cause(&**cause)

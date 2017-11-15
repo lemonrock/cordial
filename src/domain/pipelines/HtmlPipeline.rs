@@ -99,7 +99,7 @@ impl Pipeline for HtmlPipeline
 		let htmlFromMarkdown = self.renderMarkdown(inputContentFilePath)?;
 		let abstract_ = self.abstract_(languageData)?;
 		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
-		let articleImage = self.articleImage(resources);
+		let articleImage = self.articleImage(resources)?;
 		
 		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, articleImage, resources, languageData);
 		
@@ -369,15 +369,15 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'a>(&'a self, resources: &'a Resources) -> Option<(&'a str, &'a ImageMetaData)>
+	fn articleImage<'a>(&'a self, resources: &'a Resources) -> Result<Option<(&'a str, &'a ImageMetaData)>, CordialError>
 	{
 		if let Some(ref article_image) = self.article_image
 		{
-			ImageMetaData::find(article_image, resources).map(|metadata| (article_image.as_str(), metadata))
+			Ok(ImageMetaData::find(article_image, resources)?.map(|metadata| (article_image.as_str(), metadata)))
 		}
 		else
 		{
-			None
+			Ok(None)
 		}
 	}
 	

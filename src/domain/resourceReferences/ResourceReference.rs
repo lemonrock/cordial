@@ -14,17 +14,17 @@ impl ResourceReference
 {
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn url<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Option<&'a Url>
+	pub(crate) fn url<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Result<Option<&'a Url>, CordialError>
 	{
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => Some(url),
+			absolute(ref url) => Ok(Some(url)),
 			internal(ref resourceRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceRelativeUrl)
 				{
-					None => None,
+					None => Ok(None),
 					Some(resource) =>
 					{
 						let urlTag = match urlTag
@@ -32,7 +32,7 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						resource.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag)
+						Ok(resource.try_borrow()?.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag))
 					}
 				}
 			}
@@ -41,17 +41,17 @@ impl ResourceReference
 	
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Option<(&'a Url, Option<Rc<JsonValue>>)>
+	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Result<Option<(&'a Url, Option<Rc<JsonValue>>)>, CordialError>
 	{
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => Some((url, None)),
+			absolute(ref url) => Ok(Some((url, None))),
 			internal(ref resourceRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceRelativeUrl)
 				{
-					None => None,
+					None => Ok(None),
 					Some(resource) =>
 					{
 						let urlTag = match urlTag
@@ -59,10 +59,10 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						match resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag)
+						match resource.try_borrow()?.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag)
 						{
-							None => None,
-							Some((url, jsonValue)) => Some((url, Some(jsonValue)))
+							None => Ok(None),
+							Some((url, jsonValue)) => Ok(Some((url, Some(jsonValue)))),
 						}
 					}
 				}
@@ -72,17 +72,17 @@ impl ResourceReference
 	
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>
+	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Result<Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>, CordialError>
 	{
 		use self::ResourceReference::*;
 		match *self
 		{
-			absolute(ref url) => Some((url, None)),
+			absolute(ref url) => Ok(Some((url, None))),
 			internal(ref resourceRelativeUrl, urlTag) =>
 			{
 				match resources.get(resourceRelativeUrl)
 				{
-					None => None,
+					None => Ok(None),
 					Some(resource) =>
 					{
 						let urlTag = match urlTag
@@ -90,10 +90,10 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag, newResponses)
+						match resource.try_borrow()?.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag, newResponses)
 						{
-							None => None,
-							Some((url, response)) => Some((url, Some(response)))
+							None => Ok(None),
+							Some((url, response)) => Ok(Some((url, Some(response)))),
 						}
 					}
 				}

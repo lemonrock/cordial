@@ -52,6 +52,6 @@ include!("HttpsStaticRequestHandler.rs");
 include!("PreferredEncoding.rs");
 include!("RequestHandler.rs");
 include!("RegularAndPjaxStaticResponse.rs");
-include!("Resources.rs");
+include!("Responses.rs");
 include!("StaticResponse.rs");
 include!("StaticResponseVersions.rs");

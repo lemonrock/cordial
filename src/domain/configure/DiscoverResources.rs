@@ -6,12 +6,12 @@ pub(crate) struct DiscoverResources
 {
 	prefix: PathBuf,
 	resourceTemplates: ResourceTemplates,
-	resources: BTreeMap<String, Resource>,
+	resources: Resources,
 }
 
 impl DiscoverResources
 {
-	pub(crate) fn discover(configuration: &Configuration, inputFolderPath: &Path) -> Result<BTreeMap<String, Resource>, CordialError>
+	pub(crate) fn discover(configuration: &Configuration, inputFolderPath: &Path) -> Result<Resources, CordialError>
 	{
 		let prefix = inputFolderPath.join("root");
 		let mut this = Self

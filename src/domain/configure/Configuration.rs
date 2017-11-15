@@ -63,12 +63,12 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResources: Arc<Resources>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
+	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
 		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
 		
-		configuration.finishReconfigure(oldResources)
+		configuration.finishReconfigure(oldResponses)
 	}
 	
 	#[inline(always)]
@@ -78,7 +78,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn finishReconfigure(self, oldResources: Arc<Resources>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
+	fn finishReconfigure(self, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
 		let ourHostNames = self.ourHostNames()?;
 		
@@ -86,7 +86,7 @@ impl Configuration
 		(
 			(
 				self.tlsServerConfiguration()?,
-				self.httpsStaticRequestHandler(&ourHostNames, oldResources)?,
+				self.httpsStaticRequestHandler(&ourHostNames, oldResponses)?,
 				self.httpRedirectToHttpsRequestHandler(ourHostNames),
 				self,
 			)
@@ -112,13 +112,13 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResources: Arc<Resources>) -> Result<HttpsStaticRequestHandler, CordialError>
+	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResponses: Arc<Responses>) -> Result<HttpsStaticRequestHandler, CordialError>
 	{
 		let mut handlebars = self.registerHandlebarsTemplates()?;
 		
-		let mut resources = self.discoverResources()?;
+		let resources = self.discoverResources()?;
 		
-		let newResources = self.renderResources(&mut resources, &oldResources, &ourHostNames, &mut handlebars)?;
+		let newResources = self.renderResources(resources, &oldResponses, &ourHostNames, &mut handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production))
 	}
 	
@@ -142,15 +142,15 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn discoverResources(&self) -> Result<BTreeMap<String, Resource>, CordialError>
+	fn discoverResources(&self) -> Result<Resources, CordialError>
 	{
 		DiscoverResources::discover(&self, &self.inputFolderPath)
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, resources: &mut BTreeMap<String, Resource>, oldResources: &Arc<Resources>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Resources, CordialError>
+	fn renderResources(&self, mut resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Responses, CordialError>
 	{
-		let mut newResources = Resources::new(self.deploymentDate, ourHostNames);
+		let mut newResources = Responses::new(self.deploymentDate, ourHostNames);
 		let mut siteMapWebPages = self.languagesHashMap();
 		let mut rssItems = self.languagesHashMap();
 		
@@ -160,30 +160,30 @@ impl Configuration
 			{
 				if resource.hasProcessingPriority(*processingPriority)
 				{
-					resource.render(resources, &mut newResources, oldResources, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
+					resource.render(&resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
 			}
 		}
 		
-		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResources, handlebars, &siteMapWebPages)?;
+		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResponses, handlebars, &siteMapWebPages)?;
 		
-		self.renderRssFeeds(&mut newResources, oldResources, handlebars, &rssItems, &resources)?;
+		self.renderRssFeeds(&mut newResources, oldResponses, handlebars, &rssItems, &resources)?;
 		
-		newResources.addAnythingThatIsDiscontinued(oldResources);
+		newResources.addAnythingThatIsDiscontinued(oldResponses);
 		
 		Ok(newResources)
 	}
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
 		self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.site_map.renderResource(languageData, handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
+			self.site_map.renderResource(languageData, handlebars, self, newResponses, oldResponses, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
 			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso_639_1_alpha_2_language_code));
 			
 			Ok(())
@@ -193,14 +193,14 @@ impl Configuration
 		
 		for (hostName, siteMapIndexUrlsAndListOfLanguageUrls) in robotsTxtByHostName.iter()
 		{
-			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, newResources, oldResources)?;
+			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, newResponses, oldResponses)?;
 		}
 		
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn renderRssFeeds(&self, newResources: &mut Resources, oldResources: &Arc<Resources>, handlebars: &mut Handlebars, rssItems: &HashMap<String, Vec<RssItem>>, resources: &BTreeMap<String, Resource>) -> Result<(), CordialError>
+	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<String, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
 	{
 		if let Some(rss) = self.rss.as_ref()
 		{
@@ -209,7 +209,7 @@ impl Configuration
 			self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
 				let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
-				rss.renderResource(languageData, handlebars, self, newResources, oldResources, rssItems, primary_iso_639_1_alpha_2_language_code, resources, googleAnalytics)
+				rss.renderResource(languageData, handlebars, self, newResponses, oldResponses, rssItems, primary_iso_639_1_alpha_2_language_code, resources, googleAnalytics)
 			})
 		}
 		else

@@ -34,7 +34,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlAndResource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag, newResources: &'b Resources) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
+	pub(crate) fn urlAndResource<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag, newResponses: &'b Responses) -> Option<(&'a Url, &'a RegularAndPjaxStaticResponse)>
 	{
 		match self.url(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, urlTag)
 		{
@@ -48,7 +48,7 @@ impl Resource
 				}
 				else
 				{
-					Some((url, newResources.getLatestResponse(url).expect("BUG: newResources resource missing")))
+					Some((url, newResponses.getLatestResponse(url).expect("BUG: Response resource missing")))
 				}
 			}
 		}
@@ -144,7 +144,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, resources: &BTreeMap<String, Resource>, newResources: &mut Resources, oldResources: &Arc<Resources>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
 	{
 		#[inline(always)]
 		fn getOrDefault<'a, T>(map: &'a mut HashMap<String, Vec<T>>, iso_639_1_alpha_2_language_code: &str) -> &'a mut Vec<T>
@@ -241,7 +241,7 @@ impl Resource
 					}
 					else
 					{
-						newResources.addResource(url, newResponse, oldResources.clone());
+						newResponses.addResponse(url, newResponse, oldResponses.clone());
 					}
 				}
 			}
@@ -365,7 +365,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline

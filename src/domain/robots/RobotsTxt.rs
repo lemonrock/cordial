@@ -32,7 +32,7 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	pub(crate) fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, resources: &mut Resources, oldResources: &Arc<Resources>) -> Result<(), CordialError>
+	pub(crate) fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, newRespones: &mut Responses, oldResponses: &Arc<Responses>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
 		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName).context(PathBuf::from("robots.txt"))?;
@@ -42,7 +42,7 @@ impl RobotsTxt
 		
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
 		let response = StaticResponse::new(StatusCode::Ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));
-		resources.addResource(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResources.clone());
+		newRespones.addResponse(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResponses.clone());
 		
 		Ok(())
 	}

@@ -9,7 +9,7 @@ pub(crate) struct Settings
 	inputFolderPath: PathBuf,
 	outputFolderPath: PathBuf,
 	isDaemon: bool,
-	oldResources: Arc<Resources>,
+	oldResponses: Arc<Responses>,
 }
 
 impl Settings
@@ -25,7 +25,7 @@ impl Settings
 			inputFolderPath,
 			outputFolderPath,
 			isDaemon,
-			oldResources: Arc::new(Resources::empty(SystemTime::now()))
+			oldResponses: Arc::new(Responses::empty(SystemTime::now()))
 		}
 	}
 	
@@ -34,7 +34,7 @@ impl Settings
 	{
 		let (serverConfig, httpsStaticRequestHandler, httpRedirectToHttpsRequestHandler, configuration) = self.justConfigurationReconfigure()?;
 		
-		self.oldResources = httpsStaticRequestHandler.resources();
+		self.oldResponses = httpsStaticRequestHandler.responses();
 		
 		let updatableTlsServerConfigurationFactory = UpdatableTlsServerConfigurationFactory::new(serverConfig);
 		let httpRequestHandlerFactory = UpdatableRequestHandlerFactory::new(httpRedirectToHttpsRequestHandler);
@@ -52,7 +52,7 @@ impl Settings
 	{
 		let (serverConfig, httpsStaticRequestHandler, httpRedirectToHttpsRequestHandler, _configuration) = self.justConfigurationReconfigure()?;
 		
-		self.oldResources = httpsStaticRequestHandler.resources();
+		self.oldResponses = httpsStaticRequestHandler.responses();
 		
 		updatableTlsServerConfigurationFactory.update(serverConfig);
 		httpRequestHandlerFactory.update(httpRedirectToHttpsRequestHandler);
@@ -63,7 +63,7 @@ impl Settings
 	#[inline(always)]
 	fn justConfigurationReconfigure(&self) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Configuration), CordialError>
 	{
-		Configuration::reconfigure(&self.environment, &self.inputFolderPath, &self.outputFolderPath, self.oldResources.clone())
+		Configuration::reconfigure(&self.environment, &self.inputFolderPath, &self.outputFolderPath, self.oldResponses.clone())
 	}
 	
 	#[inline(always)]

@@ -100,6 +100,7 @@ pub(crate) mod siteMap;
 
 include!("generateHeaders.rs");
 include!("HtmlVariant.rs");
-include!("ResourcePipeline.rs");
 include!("ProcessingPriority.rs");
 include!("Resource.rs");
+include!("ResourcePipeline.rs");
+include!("Resources.rs");

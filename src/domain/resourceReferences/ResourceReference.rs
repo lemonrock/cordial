@@ -14,7 +14,7 @@ impl ResourceReference
 {
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn url<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<&'a Url>
+	pub(crate) fn url<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Option<&'a Url>
 	{
 		use self::ResourceReference::*;
 		match *self
@@ -41,7 +41,7 @@ impl ResourceReference
 	
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a Url, Option<Rc<JsonValue>>)>
+	pub(crate) fn urlAndJsonValue<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources) -> Option<(&'a Url, Option<Rc<JsonValue>>)>
 	{
 		use self::ResourceReference::*;
 		match *self
@@ -72,7 +72,7 @@ impl ResourceReference
 	
 	/// NOTE: The URL returned may be a data: or http: URL as well as a https: URL.
 	#[inline(always)]
-	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>
+	pub(crate) fn urlAndResponse<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Option<(&'a Url, Option<&'a RegularAndPjaxStaticResponse>)>
 	{
 		use self::ResourceReference::*;
 		match *self
@@ -90,7 +90,7 @@ impl ResourceReference
 							None => UrlTag::default,
 							Some(urlTag) => urlTag,
 						};
-						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag, newResources)
+						match resource.urlAndResource(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlTag, newResponses)
 						{
 							None => None,
 							Some((url, response)) => Some((url, Some(response)))

@@ -23,7 +23,7 @@ impl RssChannel
 	const ImageUrlTag: UrlTag = UrlTag::primary_image;
 	
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
+	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
@@ -71,7 +71,7 @@ impl RssChannel
 		
 		for stylesheet in self.stylesheets.iter()
 		{
-			let data = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)?;
+			let data = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResponses)?;
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
@@ -158,7 +158,7 @@ impl RssChannel
 		let xmlMimeType = "text/xml; charset=utf-8".parse().unwrap();
 		let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, bodyUncompressed, Some(bodyCompressed));
 		
-		newResources.addResource(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResources.clone());
+		newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
 		
 		Ok(())
 	}

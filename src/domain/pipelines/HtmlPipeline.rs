@@ -94,7 +94,7 @@ impl Pipeline for HtmlPipeline
 	// TODO: JSON/handlebars: Article Image
 	
 	#[inline(always)]
-	fn execute(&self, resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let htmlFromMarkdown = self.renderMarkdown(inputContentFilePath)?;
 		let abstract_ = self.abstract_(languageData)?;
@@ -237,7 +237,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &BTreeMap<String, Resource>, languageData: &LanguageData) -> Result<(), CordialError>
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		if self.site_map
 		{
@@ -271,7 +271,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &BTreeMap<String, Resource>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
 	{
 		if self.rss
 		{
@@ -369,7 +369,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'a>(&'a self, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a str, &'a ImageMetaData)>
+	fn articleImage<'a>(&'a self, resources: &'a Resources) -> Option<(&'a str, &'a ImageMetaData)>
 	{
 		if let Some(ref article_image) = self.article_image
 		{

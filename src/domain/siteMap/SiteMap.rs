@@ -27,7 +27,7 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResources: &mut Resources, oldResources: &Arc<Resources>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
@@ -73,12 +73,12 @@ impl SiteMap
 						{
 							let namespace = &namespace;
 							let emptyAttributes = &emptyAttributes;
-							let resources = &mut *newResources;
+							let resources = &mut *newResponses;
 							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move |eventWriter|
 							{
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
 								
-								let lastModifiedHttpDate = resources.addResource(url, currentResponse, oldResources.clone());
+								let lastModifiedHttpDate = resources.addResponse(url, currentResponse, oldResponses.clone());
 								let lastModifiedTimeStamp: DateTime<Utc> = DateTime::from(SystemTime::from(lastModifiedHttpDate));
 								
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
@@ -100,7 +100,7 @@ impl SiteMap
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
 			
 			siteMapIndexUrls.insert(unversionedCanonicalUrl.clone());
-			newResources.addResource(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResources.clone());
+			newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
 			
 			index += 1;
 		}

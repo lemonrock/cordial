@@ -5,7 +5,7 @@
 #[derive(Debug)]
 pub(crate) struct HttpsStaticRequestHandler
 {
-	resources: Arc<Resources>,
+	responses: Arc<Responses>,
 	httpKeepAlive: bool,
 	hstsPreloadingEnabledForProduction: bool,
 }
@@ -17,7 +17,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 	#[inline(always)]
 	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool
 	{
-		self.resources.isNotOneOfOurHostNames(hostName)
+		self.responses.isNotOneOfOurHostNames(hostName)
 	}
 	
 	#[inline(always)]
@@ -114,7 +114,7 @@ impl RequestHandler for HttpsStaticRequestHandler
 					Response::options(methods(), None)
 				}
 			},
-			Head | Get  => self.resources.response(isHead, hostName, path, query, requestHeaders),
+			Head | Get  => self.responses.response(isHead, hostName, path, query, requestHeaders),
 			_ => Response::method_not_allowed(methods()),
 		};
 		
@@ -134,19 +134,19 @@ impl RequestHandler for HttpsStaticRequestHandler
 impl HttpsStaticRequestHandler
 {
 	#[inline(always)]
-	pub(crate) fn new(resources: Resources, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool) -> Self
+	pub(crate) fn new(responses: Responses, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool) -> Self
 	{
 		Self
 		{
-			resources: Arc::new(resources),
+			responses: Arc::new(responses),
 			httpKeepAlive,
 			hstsPreloadingEnabledForProduction,
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn resources(&self) -> Arc<Resources>
+	pub(crate) fn responses(&self) -> Arc<Responses>
 	{
-		self.resources.clone()
+		self.responses.clone()
 	}
 }

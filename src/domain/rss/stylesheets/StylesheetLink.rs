@@ -18,9 +18,9 @@ impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Result<String, CordialError>
+	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
 	{
-		if let Some((url, response)) = self.url.urlAndResponse(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, newResources)
+		if let Some((url, response)) = self.url.urlAndResponse(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, newResponses)
 		{
 			let result = if let Some(response) = response
 			{

@@ -3,13 +3,13 @@
 
 
 #[derive(Debug)]
-pub(crate) struct Resources
+pub(crate) struct Responses
 {
 	resourcesByHostNameAndPathAndQueryString: HashMap<String, Trie<String, StaticResponseVersions>>,
 	deploymentDate: HttpDate,
 }
 
-impl Resources
+impl Responses
 {
 	#[inline(always)]
 	pub(crate) fn empty(deploymentDate: SystemTime) -> Self
@@ -35,12 +35,12 @@ impl Resources
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addResource(&mut self, url: Url, currentResponse: RegularAndPjaxStaticResponse, oldResources: Arc<Resources>) -> HttpDate
+	pub(crate) fn addResponse(&mut self, url: Url, currentResponse: RegularAndPjaxStaticResponse, oldResponses: Arc<Responses>) -> HttpDate
 	{
 		let hostName = url.host_str().unwrap();
 		let path = url.path().to_owned();
 		let currentVersionAsQuery = url.query();
-		let (previousLastModifiedAndPreviousResponse, previousVersionAsQuery) = oldResources.previous(hostName, &path);
+		let (previousLastModifiedAndPreviousResponse, previousVersionAsQuery) = oldResponses.previous(hostName, &path);
 		
 		use self::StaticResponseVersions::*;
 		let staticResponseVersions = match previousLastModifiedAndPreviousResponse
@@ -135,11 +135,11 @@ impl Resources
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addAnythingThatIsDiscontinued(&mut self, oldResources: &Arc<Self>)
+	pub(crate) fn addAnythingThatIsDiscontinued(&mut self, oldResponses: &Arc<Self>)
 	{
 		use self::StaticResponseVersions::*;
 		
-		for (hostName, trie) in oldResources.resourcesByHostNameAndPathAndQueryString.iter()
+		for (hostName, trie) in oldResponses.resourcesByHostNameAndPathAndQueryString.iter()
 		{
 			let ourTrieByPath = self.resourcesByHostNameAndPathAndQueryString.get_mut(hostName).unwrap();
 			

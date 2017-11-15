@@ -25,7 +25,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
 	#[serde(default)] abstracts: HashMap<String, Abstract>,
 	// a resource URL; if missing, then rss should be set to false
-	#[serde(default)] article_image: Option<String>,
+	#[serde(default)] article_image: Option<UrlWithTag>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
 	#[serde(default = "HtmlPipeline::amp_template_default")] amp_template: Option<String>,
 	// Handlebars template default
@@ -101,12 +101,12 @@ impl Pipeline for HtmlPipeline
 		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
 		let articleImage = self.articleImage(resources)?;
 		
-		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, articleImage, resources, languageData);
+		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, &articleImage, resources, languageData);
 		
-		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
 		let regularBody = document.minify_to_bytes(true);
 		
-		self.addRssItem(configuration, rssItems, resourceRelativeUrl, articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
+		self.addRssItem(configuration, rssItems, resourceRelativeUrl, &articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
 		
 		const CanBeCompressed: bool = true;
 		
@@ -122,7 +122,7 @@ impl Pipeline for HtmlPipeline
 			
 			let ampHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
 			
-			let ampDocument = self.renderHandlebarsTemplateToHtml(amp_template, &htmlFromMarkdown, languageData, articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+			let ampDocument = self.renderHandlebarsTemplateToHtml(amp_template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
 			let ampBody = ampDocument.minify_to_bytes(false);
 			
 			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
@@ -237,12 +237,12 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		if self.site_map
 		{
 			let mut images = vec![];
-			if let Some((imageResourceUrl, articleImage)) = articleImage
+			if let &Some((imageResourceUrl, ref articleImage)) = articleImage
 			{
 				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?);
 			};
@@ -271,7 +271,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
 	{
 		if self.rss
 		{
@@ -286,8 +286,8 @@ impl HtmlPipeline
 						languageSpecificUrl: self.canonicalUrl(languageData, resourceRelativeUrl)?,
 						primaryImage: match articleImage
 						{
-							None => None,
-							Some((imageResourceUrl, articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?)
+							&None => None,
+							&Some((imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?)
 						},
 					},
 					lastModificationDate: lastModificationDateOrPublicationDate,
@@ -369,15 +369,33 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'a>(&'a self, resources: &'a Resources) -> Result<Option<(&'a str, &'a ImageMetaData)>, CordialError>
+	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(&'this UrlWithTag, Ref<'resources, ImageMetaData>)>, CordialError>
 	{
-		if let Some(ref article_image) = self.article_image
+		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
 		{
-			Ok(ImageMetaData::find(article_image, resources)?.map(|metadata| (article_image.as_str(), metadata)))
+			let resourceRef = resourceRefCell.try_borrow()?;
+			if resourceRef.imageMetaData().is_none()
+			{
+				return Ok(None);
+			}
+			
+			Ok(Some(Ref::map(resourceRef, |resource| resource.imageMetaData().unwrap())))
 		}
-		else
+		
+		match self.article_image
 		{
-			Ok(None)
+			None => Ok(None),
+			Some(ref urlWithTag) =>
+			{
+				let resourceRefCellOption: Option<&RefCell<Resource>> = resources.get(&urlWithTag.resource);
+				let resourceRefCell = match resourceRefCellOption
+				{
+					None => return Ok(None),
+					Some(resourceRefCell) => resourceRefCell,
+				};
+				
+				Ok(x(resourceRefCell)?.map(|metadata| (urlWithTag, metadata)))
+			}
 		}
 	}
 	
@@ -389,15 +407,15 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: Option<(&str, &ImageMetaData)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
 	{
 		let html =
 		{
 			let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 			let imageAbstract = match articleImage
 			{
-				None => None,
-				Some((_, imageMetaData)) => Some(imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?),
+				&None => None,
+				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?),
 			};
 			handlebars.template_render(template, &json!
 			({

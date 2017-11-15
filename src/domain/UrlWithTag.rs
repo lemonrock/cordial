@@ -2,9 +2,22 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
+#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) struct UrlWithTag
+{
+	pub(crate) resource: String,
+	pub(crate) tag: UrlTag,
+}
 
-
-include!("ResourceReference.rs");
-include!("UrlTag.rs");
-
+impl UrlWithTag
+{
+	#[inline(always)]
+	pub(crate) fn new<S: Into<String>>(resource: S, tag: UrlTag) -> Self
+	{
+		Self
+		{
+			resource: resource.into(),
+			tag,
+		}
+	}
+}

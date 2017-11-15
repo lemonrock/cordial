@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RssFeedlyChannel
 {
-	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: ResourceReference,
+	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: UrlWithTag,
+	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: UrlWithTag,
+	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: UrlWithTag,
 	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: String, // eg 00FF00
 	#[serde(default = "RssFeedlyChannel::related_default")] related: bool,
 	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: Option<RssFeedlyChannelGoogleAnalyticsCode>,
@@ -36,23 +36,25 @@ impl RssFeedlyChannel
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
-		if let Some(Some(url)) = self.png_cover_image.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
+		let iso_639_1_alpha_2_language_code = Some(iso_639_1_alpha_2_language_code);
+		
+		if let Some(Some(urlData)) = resources.urlData(&self.png_cover_image, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
 		{
 			let attributes =
 			[
-				Attribute::new(Name::local("image"), url.as_str()),
+				Attribute::new(Name::local("image"), urlData.urlOrDataUri.as_str()),
 			];
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(Some(url)) = self.svg_icon.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
+		if let Some(Some(urlData)) = resources.urlData(&self.svg_icon, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.urlOrDataUri.as_str())?;
 		}
 		
-		if let Some(Some(url)) = self.svg_logo.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources).ok()
+		if let Some(Some(urlData)) = resources.urlData(&self.svg_logo, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.urlOrDataUri.as_str())?;
 		}
 		
 		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", &self.accent_color)?;
@@ -92,21 +94,21 @@ impl RssFeedlyChannel
 	}
 	
 	#[inline(always)]
-	fn png_cover_image_default() -> ResourceReference
+	fn png_cover_image_default() -> UrlWithTag
 	{
-		ResourceReference::internal("/cover.png".to_owned(), Some(UrlTag::largest_image))
+		UrlWithTag::new("/cover.png", UrlTag::largest_image)
 	}
 	
 	#[inline(always)]
-	fn svg_icon_default() -> ResourceReference
+	fn svg_icon_default() -> UrlWithTag
 	{
-		ResourceReference::internal("/favicon.svg".to_owned(), Some(UrlTag::default))
+		UrlWithTag::new("/favicon.svg", UrlTag::default)
 	}
 	
 	#[inline(always)]
-	fn svg_logo_default() -> ResourceReference
+	fn svg_logo_default() -> UrlWithTag
 	{
-		ResourceReference::internal("/organization-logo.svg".to_owned(), Some(UrlTag::default))
+		UrlWithTag::new("/organization-logo.svg", UrlTag::default)
 	}
 	
 	#[inline(always)]

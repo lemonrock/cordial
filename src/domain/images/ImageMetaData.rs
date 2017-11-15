@@ -8,7 +8,7 @@ pub(crate) struct ImageMetaData
 {
 	pub(crate) abstracts: HashMap<String, ImageAbstract>,
 	
-	pub(crate) license_url: ResourceReference,
+	pub(crate) license_url: UrlWithTag,
 	
 	pub(crate) credit: FullName,
 	
@@ -27,15 +27,6 @@ pub(crate) struct ImageMetaData
 
 impl ImageMetaData
 {
-	pub(crate) fn find<'a>(internal_resource_url: &str, resources: &'a Resources) -> Result<Option<&'a Self>, CordialError>
-	{
-		match resources.get(internal_resource_url)
-		{
-			None => Ok(None),
-			Some(resource) => Ok(resource.try_borrow()?.imageMetaData()),
-		}
-	}
-	
 	#[inline(always)]
 	pub(crate) fn abstract_(&self, iso_639_1_alpha_2_language_code: &str) -> Result<&ImageAbstract, CordialError>
 	{
@@ -68,19 +59,18 @@ impl ImageMetaData
 		}
 	}
 	
-	pub(crate) fn siteMapWebPageImage(&self, internal_resource_url: &str, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	pub(crate) fn siteMapWebPageImage(&self, internalImage: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
 	{
-		let resource = self.resourceReference(internal_resource_url);
-		let url = match resource.url(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)?
+		let url = match resources.urlData(internalImage, primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code))?
 		{
-			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", &internal_resource_url))),
-			Some(url) => url,
+			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", internalImage))),
+			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
 		};
 		
-		let licenseUrl = match self.license_url.url(primary_iso_639_1_alpha_2_language_code, None, resources)?
+		let licenseUrl = match resources.urlData(&self.license_url, primary_iso_639_1_alpha_2_language_code, None)?
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for license url '{:?}'", &self.license_url))),
-			Some(url) => url,
+			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
 		};
 		
 		match self.abstracts.get(primary_iso_639_1_alpha_2_language_code)
@@ -88,17 +78,17 @@ impl ImageMetaData
 			None => Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primary_iso_639_1_alpha_2_language_code))),
 			Some(ref abstract_) => Ok(SiteMapWebPageImage
 			{
-				url: url.clone(),
+				url,
 				caption: abstract_.caption.clone(),
 				geographicLocation: abstract_.geographic_location.clone(),
 				title: abstract_.title.clone(),
-				licenseUrl: licenseUrl.clone(),
+				licenseUrl,
 			})
 		}
 	}
 	
 	// TODO: add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
-	pub(crate) fn rssImage(&self, internal_resource_url: &str, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<RssImage, CordialError>
+	pub(crate) fn rssImage(&self, internalImage: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<RssImage, CordialError>
 	{
 		let alt = match self.abstracts.get(iso_639_1_alpha_2_language_code)
 		{
@@ -110,39 +100,29 @@ impl ImageMetaData
 			Some(ref abstract_) => &abstract_.alt
 		};
 		
-		let resourceReference = self.resourceReference(internal_resource_url);
-		
-		match resourceReference.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)?
+		match resources.urlData(internalImage, primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code))?
 		{
-			None => Err(CordialError::Configuration(format!("Could not find article image for RSS feed for '{:?}'", internal_resource_url))),
+			None => Err(CordialError::Configuration(format!("Could not find article image for RSS feed for '{:?}'", internalImage))),
 			
-			Some((url, jsonValue)) =>
+			Some(urlData) =>
 			{
-				match jsonValue
-				{
-					None => Err(CordialError::Configuration(format!("Could not find article image JSON for RSS feed for '{:?}'", internal_resource_url))),
-					Some(jsonValue) =>
+				let jsonValue = &urlData.jsonValue;
+				
+				Ok
+				(
+					RssImage
 					{
-						Ok(RssImage
-						{
-							width: jsonValue.u32("width")?,
-							height: jsonValue.u32("height")?,
-							url: url.clone(),
-							fileSize: jsonValue.u64("size")?,
-							mimeType: jsonValue.mime("mime")?,
-							alt: alt.clone(),
-							credit: self.credit.clone(),
-							iso_639_1_alpha_2_language_code: iso_639_1_alpha_2_language_code.to_owned(),
-						})
+						width: jsonValue.u32("width")?,
+						height: jsonValue.u32("height")?,
+						url: urlData.urlOrDataUri.deref().clone(),
+						fileSize: jsonValue.u64("size")?,
+						mimeType: jsonValue.mime("mime")?,
+						alt: alt.clone(),
+						credit: self.credit.clone(),
+						iso_639_1_alpha_2_language_code: iso_639_1_alpha_2_language_code.to_owned(),
 					}
-				}
+				)
 			}
 		}
-	}
-	
-	#[inline(always)]
-	fn resourceReference(&self, internal_resource_url: &str) -> ResourceReference
-	{
-		ResourceReference::internal(internal_resource_url.to_owned(), Some(UrlTag::largest_image))
 	}
 }

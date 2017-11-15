@@ -169,7 +169,7 @@ impl Responses
 	}
 	
 	#[inline(always)]
-	pub fn getLatestResponse<'a>(&'a self, url: &Url) -> Option<&'a RegularAndPjaxStaticResponse>
+	pub(crate) fn getLatestResponse<'a>(&'a self, url: &Url) -> Option<&'a RegularAndPjaxStaticResponse>
 	{
 		match url.host_str()
 		{

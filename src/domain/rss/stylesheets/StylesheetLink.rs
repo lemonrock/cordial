@@ -8,10 +8,8 @@
 #[derive(Deserialize, Debug, Clone)]
 pub struct StylesheetLink
 {
-	url: ResourceReference,
-	// #[serde(default = "StylesheetLink::media_default")] media: Option<MediaQuery>,
+	#[serde(default = "StylesheetLink::url_default")] url: UrlWithTag,
 	#[serde(default = "StylesheetLink::media_default")] media: Option<String>,
-	#[serde(default = "StylesheetLink::external_url_mime_type_hint_default")] external_url_mime_type_hint: MimeNewType,
 }
 
 impl StylesheetLink
@@ -20,26 +18,18 @@ impl StylesheetLink
 	#[inline(always)]
 	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
 	{
-		if let Some((url, response)) = self.url.urlAndResponse(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, newResponses)?
+		if let Some((urlData, contentMimeTypeWithoutParameters)) = resources.urlDataWithContentMimeTypeWithoutParameters(&self.url, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, newResponses)?
 		{
-			let result = if let Some(response) = response
-			{
-				self.formatXmlString(&response.contentMimeTypeWithoutParameters(), url)
-			}
-			else
-			{
-				self.formatXmlString(&self.external_url_mime_type_hint, url)
-			};
-			Ok(result)
+			Ok(self.formatXmlString(&urlData.urlOrDataUri, &contentMimeTypeWithoutParameters))
 		}
 		else
 		{
-			Err(CordialError::Configuration(format!("Could not find internal URL for {:?}", &self.url)))
+			Err(CordialError::Configuration(format!("Could not find a url-response pair for {:?}", &self.url)))
 		}
 	}
 	
 	#[inline(always)]
-	fn formatXmlString(&self, mimeType: &Mime, url: &Url) -> String
+	fn formatXmlString(&self, url: &Url, mimeType: &Mime) -> String
 	{
 		match self.media
 		{
@@ -49,23 +39,14 @@ impl StylesheetLink
 	}
 	
 	#[inline(always)]
-	fn media_default() -> Option<String>
+	fn url_default() -> UrlWithTag
 	{
-		Some("all".to_string())
-//		Some
-//		(
-//			MediaQuery
-//			{
-//				qualifier: None,
-//				media_type: MediaQueryType::All,
-//				expressions: vec![],
-//			}
-//		)
+		UrlWithTag::new("/rss.css", UrlTag::default)
 	}
 	
 	#[inline(always)]
-	fn external_url_mime_type_hint_default() -> MimeNewType
+	fn media_default() -> Option<String>
 	{
-		MimeNewType("text/css; charset=utf-8".parse().unwrap())
+		Some("all".to_string())
 	}
 }

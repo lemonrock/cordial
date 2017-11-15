@@ -11,7 +11,7 @@ pub(crate) struct RssChannel
 	#[serde(default)] compression: Compression,
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
 	#[serde(default)] details: HashMap<String, RssChannelLanguageSpecific>,
-	#[serde(default = "RssChannel::image_url_default")] image_url: String,
+	#[serde(default = "RssChannel::image_url_default")] image_url: UrlWithTag,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] categories: Vec<String>,
@@ -40,12 +40,13 @@ impl RssChannel
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}
 		
-		let resource = resources.get(&self.image_url).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{}'", &self.image_url)))?.try_borrow()?;
-		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{}'", &self.image_url)))?;
-		let (imageUrl, imageJsonValue) = resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageUrlTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{}'", Self::ImageUrlTag, &self.image_url)))?;
+		let resource = resources.get(&self.image_url.resource).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
+		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{:?}'", &self.image_url)))?;
+		let urlData = resource.urlData(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageUrlTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageUrlTag, &self.image_url)))?;
+		let imageUrl = urlData.urlOrDataUri.deref();
 		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
-		let imageWidth = imageJsonValue.u32("width")?;
-		let imageHeight = imageJsonValue.u32("height")?;
+		let imageWidth = urlData.jsonValue.u32("width")?;
+		let imageHeight = urlData.jsonValue.u32("height")?;
 		let image_alt = &imageAbstract.alt;
 		let image_tooltip = &imageAbstract.title;
 		
@@ -189,9 +190,9 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn image_url_default() -> String
+	fn image_url_default() -> UrlWithTag
 	{
-		"/organization-logo.png".to_owned()
+		UrlWithTag::new("/organization-logo.png", UrlTag::default)
 	}
 	
 	#[inline(always)]

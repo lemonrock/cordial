@@ -39,7 +39,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn generate(&mut self, imageSourceSetEntries: &[ImageSourceSetEntry]) -> Result<(), CordialError>
+	pub(crate) fn add(&mut self, imageSourceSetEntries: &[ImageSourceSetEntry]) -> Result<(), CordialError>
 	{
 		for imageSourceSetEntry in imageSourceSetEntries.iter()
 		{
@@ -130,6 +130,8 @@ impl<'a> ImageSourceSet<'a>
 				({
 					"width": width,
 					"height": height,
+					"mime": contentType.0.as_ref().to_owned(),
+					"size": body.len() as u64,
 				})
 			);
 			

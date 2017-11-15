@@ -9,9 +9,11 @@ use ::image::jpeg::JPEGEncoder;
 
 include!("ImageAbstract.rs");
 include!("ImageCrop.rs");
-include!("ImageInputFormat.rs");
+include!("ImageMetaData.rs");
 include!("ImageScale.rs");
 include!("ImageSourceSet.rs");
 include!("ImageSourceSetEntry.rs");
 include!("ImageTransformation.rs");
 include!("ImageTransformationFilterType.rs");
+include!("Length.rs");
+include!("MediaQueryAndLength.rs");

@@ -4,12 +4,14 @@
 
 use super::*;
 use self::stylesheets::*;
+use ::std::str::from_utf8_unchecked;
 
 
 pub(crate) mod stylesheets;
 
 
 include!("RssChannel.rs");
+include!("RssChannelLanguageSpecific.rs");
 include!("RssFeedlyChannel.rs");
 include!("RssFeedlyChannelGoogleAnalyticsCode.rs");
 include!("RssImage.rs");

@@ -2,14 +2,11 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::pipelines::mimeType;
-use super::pipelines::replaceFileNameExtension;
-use ::woff2_sys::convertTtfToWoff2;
-
-
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub(crate) struct MediaQueryAndLength
+{
+	//media: MediaQuery,
+	media: String,
+	length: Length,
+}

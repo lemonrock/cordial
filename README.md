@@ -81,6 +81,7 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 * Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
+* RSS items are currently full, not partial, and are put in the `<description>` tag of the feed rather than `<content type="html">`.
 
 
 ## Licensing
@@ -91,8 +92,6 @@ The license for this project is AGPL-3.0.
 
 ## TODO
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
-* Redirect for leaf URLs to index URLs (eg '/en' to '/en/')
-* Markdown / Handlebars / HTML minify
 * Spellchecking using [languagetool](https://www.languagetool.org/)
 * Error Templates / Content
 	* 400 Bad Request - display a page very similar to 404 Not Found
@@ -101,53 +100,41 @@ The license for this project is AGPL-3.0.
 * Web server
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
-* combined pipelines, ie one pipeline feeds into another
-	* eg [svgbob](https://crates.io/crates/svgbob) - ASCII to SVG
+* Additional Markdown plugins
 	* eg <https://crates.io/crates/mon-artist> - ASCII to SVG
 	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG
 	* eg [comic](https://crates.io/crates/comic)
 	* eg [qrcode](https://crates.io/crates/qrcode)
 	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
+	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
+	* [memenhancer](https://github.com/ivanceras/memenhancer)
 * Formats
 	* SVG
 		- adjust or set or remove width & height in document
-		- support source set generation, also needed for Feedly
-	* HTML
-		* extract PJAX automatically with CSS selectors
-		* Explore using [spongedown](https://ivanceras.github.io/spongedown/) because it allows creating charts and emoji faces; builds on [comrak](https://crates.io/crates/comrak), a commonmark and GitHub Flavoured Markdown renderer
-	* GIF
-		* engiffen
+		- support source set generation
+		- minify when within an HTML document
+		- https://www.freepik.com/
 	* CSS
 		* Embedding images into the stylesheet as data-uris
 			* But nothing like cssembed for rust...
-	* CSS extensions
-		* something akin to css-embed for
-			* images (particularly when used as sprites)
-			* font-faces
-				* webfont creation (may be problematic for AMP)
-		* https://github.com/purifycss/purifycss
 	* SVG to PNG - for organization-logo (feedly, google) and favicon
 	* Favicon
 		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
-	* [kuchiki](https://crates.io/crates/kuchiki) or [scraper](https://crates.io/crates/scraper) for manipulating HTML & XML with CSS selectors or [select](https://crates.io/crates/select)
+	* HTML
+		* Add images (and videos) within web page to SiteMap.xml, not just article image.
 * Modify zopfli crate to allow specifying options
 * RSS
+	* Validate that Feedly PNG and SVG images are PNG and SVG.
+	* Consider adding an `<img>` with an image source set to the HTML content, with the necessary Feedly class
+		* <https://blog.feedly.com/10-ways-to-optimize-your-feed-for-feedly/>
 	* ?Register with Feedly, InoReader, Bazqux, The Older Reader and Feedbin?
 	* Support itunes extensions for podcasts
-	* <https://blog.feedly.com/10-ways-to-optimize-your-feed-for-feedly/>
 * SEO
 * Fonts
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* Use Fontello's curl API to support Icon font creation
-* SVG & Markdown extensions
-	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
-	* svgbob
-	* comic (ascii faces to SVG)
-	* csv table from spongedown
-	* [memenhancer](https://github.com/ivanceras/memenhancer)
-* Image transformations need a variant of Borrow or Cow
 
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly

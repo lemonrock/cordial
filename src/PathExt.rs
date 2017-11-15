@@ -53,8 +53,6 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>;
 	
-	fn fileContentsAsACleanedSvgFrom(&self) -> Result<Vec<u8>, CordialError>;
-	
 	fn createFileWithByteContents(&self, bytes: &[u8]) -> io::Result<()>;
 	
 	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>;
@@ -444,54 +442,6 @@ impl PathExt for Path
 		
 		let x = rsaPrivateKeys.drain(..).next().unwrap();
 		Ok(x)
-	}
-	
-	fn fileContentsAsACleanedSvgFrom(&self) -> Result<Vec<u8>, CordialError>
-	{
-		use ::svgcleaner::CleaningOptions as SvgCleanOptions;
-		use ::svgcleaner::cleaner::clean_doc as svgDocumentCleaner;
-		
-		self.createParentFolderForFilePath().context(self)?;
-		
-		let (document, svgString) = self.fileContentsAsSvgDocument()?;
-		
-		use ::svgdom::WriteOptions as SvgWriteOptions;
-		use ::svgdom::WriteOptionsPaths as SvgWriteOptionsPaths;
-		static MinifyingWriteOptions: SvgWriteOptions = SvgWriteOptions
-		{
-			indent: ::svgdom::Indent::None,
-			use_single_quote: false,
-			trim_hex_colors: true,
-			write_hidden_attributes: false,
-			remove_leading_zero: true,
-			paths: SvgWriteOptionsPaths
-			{
-				use_compact_notation: true,
-				join_arc_to_flags: false,  // Apparently this optimisation is not properly implemented by some SVG viewers
-				remove_duplicated_commands: true,
-				use_implicit_lineto_commands: true,
-			},
-			simplify_transform_matrices: true,
-		};
-		
-		// NOTE: write options aren't used by this method but are required...
-		if let Err(error) = svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions)
-		{
-			return Err(CordialError::CouldNotCleanSvg(self.to_path_buf(), error));
-		}
-		
-		let mut buffer = Vec::with_capacity(svgString.len());
-		::svgcleaner::cleaner::write_buffer(&document, &MinifyingWriteOptions, &mut buffer);
-		
-		// Write out the smaller of the original or cleaned
-		if buffer.len() > svgString.len()
-		{
-			Ok(svgString.as_bytes().to_owned())
-		}
-		else
-		{
-			Ok(buffer)
-		}
 	}
 	
 	fn createParentFolderForFilePath(&self) -> io::Result<()>

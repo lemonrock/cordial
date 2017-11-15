@@ -143,52 +143,49 @@ impl Resource
 		self.resourceRelativeUrl = resourceRelativeUrl(&parentHierarchy, resourceInputName);
 	}
 	
-	// SiteMap, RSS hash maps are by language ISO code
 	#[inline(always)]
-	pub(crate) fn render(&mut self, newResources: &mut Resources, oldResources: &Arc<Resources>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPages: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItems: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, resources: &BTreeMap<String, Resource>, newResources: &mut Resources, oldResources: &Arc<Resources>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
 	{
+		#[inline(always)]
+		fn getOrDefault<'a, T>(map: &'a mut HashMap<String, Vec<T>>, iso_639_1_alpha_2_language_code: &str) -> &'a mut Vec<T>
+		{
+			map.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096))
+		}
+		
 		let primaryLanguage = configuration.localization.primaryLanguage()?;
 		
 		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
-			let (isVersioned, isForPrimaryLanguageOnly) = self.is();
+			let (isVersioned, isLanguageAware) = self.is();
 			
-			if !isPrimaryLanguage && isForPrimaryLanguageOnly
+			let isLanguageAgnosticSoProcessOnlyForPrimaryLanguage = !isLanguageAware;
+			
+			if isLanguageAgnosticSoProcessOnlyForPrimaryLanguage && !isPrimaryLanguage
 			{
 			}
 			else
 			{
-				let ifLanguageAwareLanguageData = if isForPrimaryLanguageOnly
-				{
-					Some(languageData)
-				}
-				else
-				{
-					None
-				};
-				
-				let inputContentFilePath = if isForPrimaryLanguageOnly
-				{
-					self.languageNeutralInputContentFilePath(primaryLanguage, None)?
-				}
-				else
-				{
-					self.inputContentFilePath(primaryLanguage, Some(languageData.language))?
-				};
-				
 				let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 				
-				let mut siteMapWebPages = siteMapWebPages.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
+				let result =
+				{
+					let (ifLanguageAwareLanguageData, inputContentFilePath) = if isLanguageAware
+					{
+						(Some(languageData), self.inputContentFilePath(primaryLanguage, Some(languageData.language))?)
+					}
+					else
+					{
+						(None, self.languageNeutralInputContentFilePath(primaryLanguage, None)?)
+					};
+					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso_639_1_alpha_2_language_code);
+					let mut rssItems = getOrDefault(rssItemsByLanguage, iso_639_1_alpha_2_language_code);
+					
+					self.execute(resources, &inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?
+				};
 				
-				let mut rssItems = rssItems.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| Vec::with_capacity(4096));
-				
-				let result = self.execute(&inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?;
-				
-				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::new());
+				let urls = self.urls.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert_with(|| HashMap::with_capacity(8));
 				for (mut url, urlTagAndJsonValuePairs, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
-					debug_assert!(!urlTagAndJsonValuePairs.is_empty(), "urlTags is empty");
-					
 					let hasPjax = pjax.is_some();
 					
 					let regularCompressed = if canBeCompressed
@@ -231,6 +228,7 @@ impl Resource
 						url.set_query(Some(&format!("v={}", newResponse.entityTag())));
 					}
 					
+					debug_assert!(!urlTagAndJsonValuePairs.is_empty(), "urlTags is empty");
 					for (urlTag, jsonValue) in urlTagAndJsonValuePairs.iter()
 					{
 						urls.insert(*urlTag, (url.clone(), jsonValue.clone()));
@@ -303,6 +301,22 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn imageMetaData(&self) -> Option<&ImageMetaData>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.imageMetaData(),
+			font => self.font.imageMetaData(),
+			gif_animation => self.gif_animation.imageMetaData(),
+			html => self.html.imageMetaData(),
+			raster_image => self.raster_image.imageMetaData(),
+			raw => self.raw.imageMetaData(),
+			svg => self.svg.imageMetaData(),
+		}
+	}
+	
+	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
 		use self::ResourcePipeline::*;
@@ -351,18 +365,18 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
-			css => self.css.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			font => self.font.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			gif_animation => self.gif_animation.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			html => self.html.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raster_image => self.raster_image.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raw => self.raw.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			svg => self.svg.execute(inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			css => self.css.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			font => self.font.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			html => self.html.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raw => self.raw.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			svg => self.svg.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
 		}
 	}
 }

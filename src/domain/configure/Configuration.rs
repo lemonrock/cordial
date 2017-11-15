@@ -12,7 +12,7 @@ pub(crate) struct Configuration
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	#[serde(default)] pub(crate) localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
-	#[serde(default)] sitemap: SiteMap,
+	#[serde(default)] site_map: SiteMap,
 	#[serde(default)] rss: Option<RssChannel>,
 	#[serde(default)] google_analytics: Option<String>,
 	#[serde(default, skip_deserializing)] pub(crate) inputFolderPath: PathBuf,
@@ -36,7 +36,7 @@ impl Default for Configuration
 			resource_template: None,
 			localization: Localization::default(),
 			robots: RobotsTxt::default(),
-			sitemap: SiteMap::default(),
+			site_map: SiteMap::default(),
 			rss: None,
 			google_analytics: None,
 			inputFolderPath: PathBuf::default(),
@@ -69,6 +69,12 @@ impl Configuration
 		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
 		
 		configuration.finishReconfigure(oldResources)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
+	{
+		&self.localization.primary_iso_639_1_alpha_2_language_code
 	}
 	
 	#[inline(always)]
@@ -154,7 +160,7 @@ impl Configuration
 			{
 				if resource.hasProcessingPriority(*processingPriority)
 				{
-					resource.render(&mut newResources, oldResources, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
+					resource.render(resources, &mut newResources, oldResources, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
 			}
 		}
@@ -177,7 +183,7 @@ impl Configuration
 		self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.sitemap.renderResource(languageData, handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
+			self.site_map.renderResource(languageData, handlebars, self, newResources, oldResources, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
 			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso_639_1_alpha_2_language_code));
 			
 			Ok(())
@@ -380,12 +386,6 @@ impl Configuration
 	fn ourHostNames(&self) -> Result<HashSet<String>, CordialError>
 	{
 		self.localization.serverHostNames()
-	}
-	
-	#[inline(always)]
-	fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
-	{
-		&self.localization.primary_iso_639_1_alpha_2_language_code
 	}
 	
 	#[inline(always)]

@@ -7,6 +7,7 @@
 pub(crate) enum UrlTag
 {
 	default,
+	
 	smallest_image,
 	largest_image,
 	primary_image,

@@ -11,10 +11,14 @@ pub(crate) struct SvgPipeline
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	
-	#[serde(default)] do_not_optimize: bool, // Exists solely because of potential bugs in svg optimizer
+	#[serde(default)] metadata: Option<ImageMetaData>,
 	
-	// TODO: Add option to add height, width if missing
-	// TODO: Add alternative output formats, eg ICO and PNG, with multiple sizes
+	// Exists solely because of potential bugs in svg optimizer
+	#[serde(default)] do_not_optimize: bool,
+	
+	// Responsive tips: https://useiconic.com/guides/using-iconic-responsively
+	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
+	// Or individual image files, with width/height pre-set
 }
 
 impl Default for SvgPipeline
@@ -28,6 +32,7 @@ impl Default for SvgPipeline
 			is_downloadable: is_downloadable_false_default(),
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
+			metadata: None,
 			do_not_optimize: false,
 		}
 	}
@@ -35,6 +40,12 @@ impl Default for SvgPipeline
 
 impl Pipeline for SvgPipeline
 {
+	#[inline(always)]
+	fn imageMetaData(&self) -> Option<&ImageMetaData>
+	{
+		self.metadata.as_ref()
+	}
+	
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
@@ -48,21 +59,132 @@ impl Pipeline for SvgPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
-		const CanBeCompressed: bool = true;
-		
 		let url = languageData.url(&replaceFileNameExtension(resourceRelativeUrl, ".svg"))?;
 		
+		const CanBeCompressed: bool = true;
 		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
+		
+		let (document, svgString) = inputContentFilePath.fileContentsAsSvgDocument()?;
+		
+		let width = Self::svgDimensionInPixels(&document, "width").unwrap_or(0);
+		let height = Self::svgDimensionInPixels(&document, "height").unwrap_or(0);
+		
 		let body = if self.do_not_optimize
 		{
-			inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?
+			svgString.into_bytes()
 		}
 		else
 		{
-			inputContentFilePath.fileContentsAsACleanedSvgFrom()?
+			Self::fileContentsAsACleanedSvgFrom(inputContentFilePath, document, svgString)?
 		};
-		Ok(vec![(url, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
+		
+		let mimeType = mimeType("image/svg+xml");
+		
+		let jsonValue = Rc::new
+		(
+			json!
+			({
+				"width": width,
+				"height": height,
+				"mime": mimeType.as_ref().to_owned(),
+				"size": body.len() as u64,
+			})
+		);
+		
+		let tags = hashmap!
+		{
+			default => jsonValue.clone(),
+			
+			smallest_image => jsonValue.clone(),
+			largest_image => jsonValue.clone(),
+			primary_image => jsonValue.clone(),
+			width_image(width) => jsonValue.clone(),
+			height_image(height) => jsonValue.clone(),
+			width_height_image(width, height) => jsonValue.clone(),
+		};
+		
+		Ok(vec![(url, tags, StatusCode::Ok, ContentType(mimeType), headers, body, None, CanBeCompressed)])
+	}
+}
+
+impl SvgPipeline
+{
+	fn fileContentsAsACleanedSvgFrom(inputContentFilePath: &Path, document: ::svgdom::Document, svgString: String) -> Result<Vec<u8>, CordialError>
+	{
+		use ::svgcleaner::CleaningOptions as SvgCleanOptions;
+		use ::svgcleaner::cleaner::clean_doc as svgDocumentCleaner;
+		use ::svgdom::WriteOptions as SvgWriteOptions;
+		use ::svgdom::WriteOptionsPaths as SvgWriteOptionsPaths;
+		use ::svgcleaner::cleaner::write_buffer;
+		
+		static MinifyingWriteOptions: SvgWriteOptions = SvgWriteOptions
+		{
+			indent: ::svgdom::Indent::None,
+			use_single_quote: false,
+			trim_hex_colors: true,
+			write_hidden_attributes: false,
+			remove_leading_zero: true,
+			paths: SvgWriteOptionsPaths
+			{
+				use_compact_notation: true,
+				join_arc_to_flags: false,  // Apparently this optimisation is not properly implemented by some SVG viewers
+				remove_duplicated_commands: true,
+				use_implicit_lineto_commands: true,
+			},
+			simplify_transform_matrices: true,
+		};
+		
+		// NOTE: write options aren't used by this method but are required...
+		if let Err(error) = svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions)
+		{
+			return Err(CordialError::CouldNotCleanSvg(inputContentFilePath.to_path_buf(), error));
+		}
+		
+		let mut buffer = Vec::with_capacity(svgString.len());
+		write_buffer(&document, &MinifyingWriteOptions, &mut buffer);
+		
+		// Write out the smaller of the original or cleaned
+		let result = if buffer.len() > svgString.len()
+		{
+			svgString.as_bytes().to_owned()
+		}
+		else
+		{
+			buffer
+		};
+		
+		Ok(result)
+	}
+	
+	fn svgDimensionInPixels(document: &::svgdom::Document, attributeName: &str) -> Option<u32>
+	{
+		use ::svgdom::AttributeValue;
+		use ::svgdom::types::Length;
+		use ::svgdom::types::LengthUnit;
+		
+		match document.root().attributes().get_value(attributeName)
+		{
+			None => None,
+			Some(&AttributeValue::Length(Length { num, unit })) => if num > 0.0
+			{
+				match unit
+				{
+					LengthUnit::None | LengthUnit::Px => Some(num as u32),
+					LengthUnit::In => Some((num * 96.0) as u32),
+					LengthUnit::Cm => Some((num * 96.0 / 2.54) as u32),
+					LengthUnit::Mm => Some((num * 9.6 / 2.54) as u32),
+					LengthUnit::Pt => Some((num * 16.0) as u32),
+					LengthUnit::Pc => Some((num * 96.0/72.0) as u32),
+					_ => None,
+				}
+			}
+			else
+			{
+				None
+			},
+			_ => None,
+		}
 	}
 }

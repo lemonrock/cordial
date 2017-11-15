@@ -12,9 +12,9 @@ pub(crate) struct GifAnimationPipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<ImageInputFormat>,
 	
-	// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
-	#[serde(default)] img_sizes: Option<String>,
+	#[serde(default)] metadata: Option<ImageMetaData>,
 	#[serde(default)] source_set: Vec<EngiffenSource>,
+	
 	#[serde(default)] quantizer: EngiffenQuantizer,
 	#[serde(default)] loops: EngiffenLoops,
 }
@@ -31,7 +31,7 @@ impl Default for GifAnimationPipeline
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			input_format: None,
-			img_sizes: None,
+			metadata: None,
 			source_set: Default::default(),
 			quantizer: Default::default(),
 			loops: Default::default(),
@@ -41,6 +41,12 @@ impl Default for GifAnimationPipeline
 
 impl Pipeline for GifAnimationPipeline
 {
+	#[inline(always)]
+	fn imageMetaData(&self) -> Option<&ImageMetaData>
+	{
+		self.metadata.as_ref()
+	}
+	
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
@@ -54,11 +60,11 @@ impl Pipeline for GifAnimationPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
-		const CanNotBeCompressed: bool = false;
+		let engiffen = Engiffen::new(inputContentFilePath, &self.source_set, &self.quantizer, self.loops, self.input_format);
 		
-		let engiffenPipeline = Engiffen::new(inputContentFilePath, &self.source_set, &self.quantizer, self.loops, self.input_format);
-		engiffenPipeline.process(withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, self.max_age_in_seconds, self.is_downloadable, url))
+		const CanNotBeCompressed: bool = false;
+		engiffen.process(withoutFileNameExtension(resourceRelativeUrl), languageData, |url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, self.max_age_in_seconds, self.is_downloadable, url))
 	}
 }

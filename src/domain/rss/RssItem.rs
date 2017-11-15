@@ -5,22 +5,19 @@
 #[derive(Debug, Clone)]
 pub(crate) struct RssItem
 {
-	pub(crate) rssItemLanguageVariants: HashMap<String, RssItemLanguageVariant>,
-	pub(crate) publicationDate: SystemTime,
+	pub(crate) rssItemLanguageVariant: RssItemLanguageVariant,
+	pub(crate) lastModificationDate: Option<DateTime<Utc>>,
 	pub(crate) author: EMailAddress,
-	pub(crate) categories: Vec<String>,
+	pub(crate) categories: BTreeSet<String>,
 }
 
 impl RssItem
 {
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
 	{
-		let rssItemLanguageVariant = match self.rssItemLanguageVariants.get(iso_639_1_alpha_2_language_code)
-		{
-			None => return Ok(()),
-			Some(rssItemLanguageVariants) => rssItemLanguageVariants,
-		};
+		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
 		
 		let versionAttributes =
 		[
@@ -30,7 +27,7 @@ impl RssItem
 		{
 			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("title"), &rssItemLanguageVariant.webPageDescription)?;
 			
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("description"), &rssItemLanguageVariant.webPageUsefulContentHtml)?;
+			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("description"), unsafe { from_utf8_unchecked(&rssItemLanguageVariant.webPageUsefulContentHtml) })?;
 			
 			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", rssItemLanguageVariant.languageSpecificUrl.as_ref())?;
 			
@@ -45,48 +42,55 @@ impl RssItem
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "category", category)?;
 			}
 			
-			let publicationDateTime: DateTime<Utc> = DateTime::from(self.publicationDate);
-			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubData", &publicationDateTime.to_rfc2822())?;
+			if let Some(lastModificationDate) = self.lastModificationDate
+			{
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubData", &lastModificationDate.to_rfc2822())?;
+			}
 			
 			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "author", &self.author.to_string())?;
+			
 			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, "dc", "creator", &self.author.full_name)?;
 			
-			let fileSize = format!("{}", rssItemLanguageVariant.primaryImage.fileSize);
-			let width = format!("{}", rssItemLanguageVariant.primaryImage.width);
-			let height = format!("{}", rssItemLanguageVariant.primaryImage.height);
-			
-			let enclosureAttributes =
-			[
-				Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
-				Attribute::new(Name::local("length"), &fileSize),
-				Attribute::new(Name::local("type"), rssItemLanguageVariant.primaryImage.mimeType.as_ref()),
-			];
-			eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
-			
-			let contentAttributes =
-			[
-				Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
-				Attribute::new(Name::local("medium"), "image"),
-				Attribute::new(Name::local("height"), &height),
-				Attribute::new(Name::local("width"), &width),
-				Attribute::new(Name::local("fileSize"), &fileSize),
-				Attribute::new(Name::local("type"), rssItemLanguageVariant.primaryImage.mimeType.as_ref()),
-				Attribute::new(Name::local("lang"), iso_639_1_alpha_2_language_code),
-			];
-			eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
+			if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
 			{
-				eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &rssItemLanguageVariant.primaryImage.alt)?;
+				let fileSize = format!("{}", primaryImage.fileSize);
+				let width = format!("{}", primaryImage.width);
+				let height = format!("{}", primaryImage.height);
 				
-				eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("credit", "media"), &rssItemLanguageVariant.primaryImage.credit)?;
-				
-				let thumbnailAttributes =
+				let enclosureAttributes =
 				[
-					Attribute::new(Name::local("width"), &width),
-					Attribute::new(Name::local("height"), &height),
-					Attribute::new(Name::local("url"), rssItemLanguageVariant.primaryImage.url.as_ref()),
+					Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
+					Attribute::new(Name::local("length"), &fileSize),
+					Attribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
 				];
-				eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
-			})
+				eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
+				
+				let contentAttributes =
+				[
+					Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
+					Attribute::new(Name::local("medium"), "image"),
+					Attribute::new(Name::local("height"), &height),
+					Attribute::new(Name::local("width"), &width),
+					Attribute::new(Name::local("fileSize"), &fileSize),
+					Attribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
+					Attribute::new(Name::local("lang"), &primaryImage.iso_639_1_alpha_2_language_code),
+				];
+				eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
+				{
+					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &primaryImage.alt)?;
+					
+					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("credit", "media"), &primaryImage.credit)?;
+					
+					let thumbnailAttributes =
+					[
+						Attribute::new(Name::local("width"), &width),
+						Attribute::new(Name::local("height"), &height),
+						Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
+					];
+					eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
+				})?;
+			}
+			Ok(())
 		})
 	}
 }

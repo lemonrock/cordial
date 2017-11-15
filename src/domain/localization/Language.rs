@@ -53,9 +53,27 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn baseUrl(&self, iso_639_1_alpha_2_language_code: &str) -> Result<Url, CordialError>
+	pub(crate) fn amp_relative_root_url(&self, iso_639_1_alpha_2_language_code: &str) -> Cow<'static, str>
 	{
-		let relative_root_url = self.relative_root_url(iso_639_1_alpha_2_language_code);
+		use self::RelativeRootUrl::*;
+		match self.relative_root_url
+		{
+			host => Cow::Borrowed("/amp/"),
+			iso => Cow::Owned(format!("/amp/{}/", iso_639_1_alpha_2_language_code))
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn baseUrl(&self, iso_639_1_alpha_2_language_code: &str, is_for_amp: bool) -> Result<Url, CordialError>
+	{
+		let relative_root_url = if is_for_amp
+		{
+			self.amp_relative_root_url(iso_639_1_alpha_2_language_code)
+		}
+		else
+		{
+			self.relative_root_url(iso_639_1_alpha_2_language_code)
+		};
 		let formattedUrl = format!("https://{}{}", &self.host, relative_root_url);
 		let parsed = Url::parse(&formattedUrl);
 		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relative_root_url, self.iso_3166_1_alpha_2_country_code()))?;

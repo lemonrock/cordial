@@ -3,13 +3,16 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Deserialize, Serialize, Default, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct ImageAbstract
 {
-	img_alt: String, // Will also supply Twitter OpenCard twitter:image:alt and Facebook OpenGraph og:image:alt
-	img_title: Option<String>, // Is effectively the tooltip
-	sitemap_title: Option<String>,
-	sitemap_caption: Option<String>,
-	sitemap_location: Option<String>, // Default will not output
-	#[serde(with = "url_serde")] sitemap_license: Option<Url>, // Will default to the site license
+	// Used in Image Site Map
+	// Is also effectively the tooltip as it is <img title="{}">...
+	#[serde(default)] pub(crate) title: String,
+	#[serde(default)] pub(crate) caption: String,
+	#[serde(default)] pub(crate) geographic_location: Option<String>,
+	
+	// Used in <img> tag and RSS feed
+	// Will also supply Twitter OpenCard twitter:image:alt and Facebook OpenGraph og:image:alt
+	#[serde(default)] pub(crate) alt: String,
 }

@@ -5,28 +5,15 @@
 #[derive(Debug, Clone)]
 pub(crate) struct SiteMapWebPage
 {
-	lastModified: DateTime<Utc>,
-	changeFrequency: SiteMapChangeFrequency,
-	priority: SiteMapPriority,
-	urlsByIsoLanguageCode: BTreeMap<String, Url>,
-	images: Vec<SiteMapWebPageImage>,
+	pub(crate) lastModified: Option<DateTime<Utc>>,
+	pub(crate) changeFrequency: SiteMapChangeFrequency,
+	pub(crate) priority: SiteMapPriority,
+	pub(crate) urlsByIsoLanguageCode: BTreeMap<String, Url>,
+	pub(crate) images: Vec<SiteMapWebPageImage>,
 }
 
 impl SiteMapWebPage
 {
-	#[inline(always)]
-	pub(crate) fn new(lastModified: SystemTime, changeFrequency: SiteMapChangeFrequency, priority: SiteMapPriority, urlsByIsoLanguageCode: BTreeMap<String, Url>, images: Vec<SiteMapWebPageImage>) -> Self
-	{
-		Self
-		{
-			lastModified: DateTime::from(lastModified),
-			changeFrequency,
-			priority,
-			urlsByIsoLanguageCode,
-			images
-		}
-	}
-	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: &str, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
@@ -40,7 +27,10 @@ impl SiteMapWebPage
 		eventWriter.writeWithinElement(Name::local("url"), namespace, emptyAttributes, |eventWriter|
 		{
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", locationUrl.unwrap().as_ref())?;
-			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &self.lastModified.to_rfc3339())?;
+			if let Some(lastModified) = self.lastModified
+			{
+				eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &lastModified.to_rfc3339())?;
+			}
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "changefreq", self.changeFrequency.as_str())?;
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "priority", self.priority.as_str())?;
 			

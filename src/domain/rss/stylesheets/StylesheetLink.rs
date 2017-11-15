@@ -1,32 +1,36 @@
 // This file is part of cordial. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT. No part of predicator, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
+
+// Should have MIME types of text/xsl or text/css, eg <?xml-stylesheet type="text/xsl" media="screen" href="/~d/styles/rss2full.xsl"?><?xml-stylesheet type="text/css" media="screen" href="http://feeds.feedburner.com/~d/styles/itemcontent.css"?>
+// Only seem to be used by Chrome
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
 pub struct StylesheetLink
 {
 	url: ResourceReference,
-	#[serde(default = "StylesheetLink::media_default")] media: Option<MediaType>,
-	#[serde(default = "StylesheetLink::external_url_mime_type_including_charset_if_desired_default")] external_url_mime_type_including_charset_if_desired: MimeNewType,
+	// #[serde(default = "StylesheetLink::media_default")] media: Option<MediaQuery>,
+	#[serde(default = "StylesheetLink::media_default")] media: Option<String>,
+	#[serde(default = "StylesheetLink::external_url_mime_type_hint_default")] external_url_mime_type_hint: MimeNewType,
 }
 
 impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Result<(&'a Url, Option<&'a MediaType>, Mime, Option<::hyper::mime::Name<'a>>), CordialError>
+	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a BTreeMap<String, Resource>, newResources: &'b Resources) -> Result<String, CordialError>
 	{
 		if let Some((url, response)) = self.url.urlAndResponse(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, newResources)
 		{
-			if let Some(response) = response
+			let result = if let Some(response) = response
 			{
-				Ok((url, self.media.as_ref(), response.contentMimeTypeWithoutParameters(), None))
+				self.formatXmlString(&response.contentMimeTypeWithoutParameters(), url)
 			}
 			else
 			{
-				let characterSet = self.external_url_mime_type_including_charset_if_desired.characterSet();
-				Ok((url, self.media.as_ref(), self.external_url_mime_type_including_charset_if_desired.withoutParameters(), characterSet))
-			}
+				self.formatXmlString(&self.external_url_mime_type_hint, url)
+			};
+			Ok(result)
 		}
 		else
 		{
@@ -35,13 +39,32 @@ impl StylesheetLink
 	}
 	
 	#[inline(always)]
-	fn media_default() -> Option<MediaType>
+	fn formatXmlString(&self, mimeType: &Mime, url: &Url) -> String
 	{
-		Some(MediaType::default())
+		match self.media
+		{
+			None => format!("type=\"{}\" href=\"{}\"", mimeType, url),
+			Some(ref mediaQuery) => format!("type=\"{}\" media=\"{}\" href=\"{}\"", mimeType, mediaQuery, url),
+		}
 	}
 	
 	#[inline(always)]
-	fn external_url_mime_type_including_charset_if_desired_default() -> MimeNewType
+	fn media_default() -> Option<String>
+	{
+		Some("all".to_string())
+//		Some
+//		(
+//			MediaQuery
+//			{
+//				qualifier: None,
+//				media_type: MediaQueryType::All,
+//				expressions: vec![],
+//			}
+//		)
+	}
+	
+	#[inline(always)]
+	fn external_url_mime_type_hint_default() -> MimeNewType
 	{
 		MimeNewType("text/css; charset=utf-8".parse().unwrap())
 	}

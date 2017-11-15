@@ -9,31 +9,29 @@ pub(crate) struct HtmlPipeline
 	#[serde(default = "HtmlPipeline::max_age_in_seconds_none_default")] max_age_in_seconds: u32,
 	#[serde(default)] input_format: HtmlInputFormat,
 	#[serde(default)] is_leaf: bool,
-	
-	// Specify None to prevent AMP pages being generated.
-	#[serde(default = "HtmlPipeline::amp_relative_root_url_default")] amp_relative_root_url: Option<String>,
-	
+	#[serde(default = "HtmlPipeline::redirect_nearly_identical_url_default")] redirect_nearly_identical_url: bool,
+	#[serde(default = "HtmlPipeline::site_map_default")] site_map: bool,
+	#[serde(default)] site_map_change_frequency: SiteMapChangeFrequency,
+	#[serde(default)] site_map_priority: SiteMapPriority,
+	#[serde(default = "HtmlPipeline::rss_default")] rss: bool,
+	#[serde(default)] rss_author: EMailAddress,
+	#[serde(default)] rss_categories: BTreeSet<String>,
 	// open graph, RSS, schema.org
 	#[serde(default)] publication_date: Option<DateTime<Utc>>,
-	
 	// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
 	// empty modifications imply use of publication date
 	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<String, String>>,
-	
 	// open graph
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
-	
 	#[serde(default)] abstracts: HashMap<String, Abstract>,
-	/*
-	{
-		en:
-		{
-			title: String,
-			description: String,
-			extract: String, // markdown / handlebars template
-		}
-	}
-	*/
+	// a resource URL; if missing, then rss should be set to false
+	#[serde(default)] article_image: Option<String>,
+	#[serde(default = "HtmlPipeline::template_default")] template: String,
+	#[serde(default = "HtmlPipeline::amp_template_default")] amp_template: Option<String>,
+	// Handlebars template default
+	#[serde(default = "HtmlPipeline::header_id_prefix_with_trailing_dash_default")] header_id_prefix_with_trailing_dash: String,
+	#[serde(default = "HtmlPipeline::pjax_css_selector_default")] pjax_css_selector: String,
+	#[serde(default = "HtmlPipeline::rss_css_selector_default")] rss_css_selector: String,
 }
 
 impl Default for HtmlPipeline
@@ -46,11 +44,23 @@ impl Default for HtmlPipeline
 			max_age_in_seconds: Self::max_age_in_seconds_none_default(),
 			input_format: Default::default(),
 			is_leaf: false,
-			amp_relative_root_url: Self::amp_relative_root_url_default(),
+			redirect_nearly_identical_url: Self::redirect_nearly_identical_url_default(),
+			site_map: Self::site_map_default(),
+			site_map_change_frequency: Default::default(),
+			site_map_priority: Default::default(),
+			rss: Self::rss_default(),
+			rss_author: Default::default(),
+			rss_categories: Default::default(),
 			publication_date: None,
 			modifications: Default::default(),
 			expiration_date: None,
 			abstracts: Default::default(),
+			article_image: None,
+			template: Self::template_default(),
+			amp_template: Self::amp_template_default(),
+			header_id_prefix_with_trailing_dash: Self::header_id_prefix_with_trailing_dash_default(),
+			pjax_css_selector: Self::pjax_css_selector_default(),
+			rss_css_selector: Self::rss_css_selector_default(),
 		}
 	}
 }
@@ -75,175 +85,61 @@ impl Pipeline for HtmlPipeline
 		(Self::is_versioned, Self::language_aware)
 	}
 	
+	// TODO: How do we minify CSS across mutliple HTML pages?
+	// TODO: Take HTML and generate AMP page
+	// TODO: Take HTML and run it through languagetool
+	// TODO: Validate length of title and description, content, etc
+	// TODO: Add images within web page to site map
+	// TODO: JSON/handlebars: deployment_version
+	// TODO: JSON/handlebars: Article Image
+	
 	#[inline(always)]
-	fn execute(&self, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &BTreeMap<String, Resource>, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
+		let htmlFromMarkdown = self.renderMarkdown(inputContentFilePath)?;
+		let abstract_ = self.abstract_(languageData)?;
+		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
+		let articleImage = self.articleImage(resources);
+		
+		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, articleImage, resources, languageData);
+		
+		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+		let regularBody = document.minify_to_bytes(true);
+		
+		self.addRssItem(configuration, rssItems, resourceRelativeUrl, articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
+		
 		const CanBeCompressed: bool = true;
-		const RedirectsCanNotBeCompressed: bool = false;
-		
-		let nonLeafUrl = languageData.url(resourceRelativeUrl)?;
-		let leafUrl =
-		{
-			let mut leafPath = String::with_capacity(resourceRelativeUrl.len() + 1);
-			leafPath.push_str(resourceRelativeUrl);
-			leafPath.push('/');
-			languageData.url(&leafPath)?
-		};
-		
-		let (inputCanonicalUrl, redirectUrl) = if self.is_leaf
-		{
-			(leafUrl, nonLeafUrl)
-		}
-		else
-		{
-			(nonLeafUrl, leafUrl)
-		};
 		
 		let mut result = Vec::with_capacity(4);
 		
-		let regularHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
-		let pjaxHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
+		let inputCanonicalUrl = self.canonicalUrl(languageData, resourceRelativeUrl)?;
 		
-		fn redirectHeaders(url: &Url) -> Vec<(String, String)>
 		{
-			let mut headers = Vec::new();
+			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
 			
-			headers.push(("Cache-Control".to_owned(), format!("{}", commonCacheControlHeader(31536000))));
-			headers.push(("Location".to_owned(), url.as_str().to_owned()));
+			let regularHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 			
-			headers.shrink_to_fit();
-			headers
+			let pjaxHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
+			let pjaxBody = Self::extractNodes(&self.pjax_css_selector, &document, "pjax_css_selector", regularBody.len())?;
+			
+			result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 		}
 		
-		
-		
-		let regularBody = Vec::new();
-		let pjaxBody = Vec::new();
-		
-		if let Some(ref amp_relative_root_url) = self.amp_relative_root_url
+		if let Some(ref amp_template) = self.amp_template
 		{
-			let baseAmpUrl = Url::parse(amp_relative_root_url).context("invalid AMP relative root URL".to_owned())?;
-			let ampUrl = baseAmpUrl.join(inputCanonicalUrl.as_str()).context("invalid combination of AMP relative root URL joined with input canonical URL".to_owned())?;
-			let ampRedirectUrl = baseAmpUrl.join(redirectUrl.as_str()).context("invalid combination of AMP relative root URL joined with input redirect URL".to_owned())?;
-			let ampHeaders = generateHeaders(handlebars, headerTemplates, Some(languageData), HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
+			let ampUrl = self.ampUrl(languageData, resourceRelativeUrl)?;
 			
+			self.addRedirect(true, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
 			
+			let ampHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
 			
+			let ampDocument = self.renderHandlebarsTemplateToHtml(amp_template, &htmlFromMarkdown, languageData, articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+			let ampBody = ampDocument.minify_to_bytes(false);
 			
-			let ampBody = Vec::new();
-			
-			
-			
-			result.push((ampRedirectUrl, hashmap! { amp_redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), redirectHeaders(&ampUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
 			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
 		}
 		
-		result.push((redirectUrl, hashmap! { redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), redirectHeaders(&inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
-		result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
-		
-		/*
-		
-		CommonResponses::
-		
-	
-	#[inline(always)]
-	fn old_permanent_redirect(isHead: bool, url: &Url) -> Self
-	{
-		Self::static_txt_response(isHead, StatusCode::MovedPermanently, "")
-		.with_header(commonCacheControlHeader(31536000))
-		.with_header(Location::new(url.as_ref().to_owned()))
-	}
-		
-		
-		<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Bootstrap - Content moved</title>
-    <link rel="canonical" href="{{ page.redirect.to }}">
-    <meta http-equiv="refresh" content="0; url={{ page.redirect.to }}">
-    <style>
-      html {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0;
-        width: 100vw;
-        height: 100vh;
-        text-align: center;
-      }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-      }
-      h1 {
-        margin-top: 0;
-        margin-bottom: .5rem;
-      }
-      a {
-        color: #007bff;
-        text-decoration: none;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Redirecting…</h1>
-    <a href="{{ page.redirect.to }}">Click here if you are not redirected</a>
-    <script>window.location="{{ page.redirect.to }}";</script>
-  </body>
-</html>
-
-		
-		
-		*/
-		
-		//xxx: Automatic redirect URLs
-		panic!("Implement regularBody, pjaxBody and ampBody");
-		
 		Ok(result)
-		
-		//let synopsisHtml = markdown_to_html(&rssItemLanguageVariant.webPageSynopsisMarkdown, markdownOptions);
-		
-		/*
-		
-			There is a markdown blob that will go into a <main></main>
-				- Needs extension functions for
-					- svgbob
-					- internal URLs (documents)
-					- external URLs
-			
-			So we need a set of templates
-			
-			Take HTML and run it through languagetool
-			
-			Take HTML and minify it
-			
-			Take HTML and extract PJAX page for it (use css selector for 'main' unless another selector is given)
-			
-			Take HTML and generate AMP page
-			
-			Open problem: How do we minify CSS?
-				
-				- minifying CSS common to several pages is quite challenging
-				
-				- if we embed CSS into our document, AMP-style, then we need to be careful also embedding repeated images into the CSS
-			
-			Discover images and videos to add to site maps
-			
-			Add to RSS feed
-			
-			JSON to pass to handlebars
-				- all the stuff we do for CssInputFormat
-				- document
-					title
-		Add to WebPageSiteMaps; detect videos and images  (see https://developers.google.com/webmasters/videosearch/sitemaps)
-		
-		Supporting video: https://www.html5rocks.com/en/tutorials/video/basics/
-		
-		// RSS: Best practice is to embed a full RSS article, not a summary.
-		// RSS: Not all items should be published.
-		
-		*/
 	}
 }
 
@@ -256,14 +152,325 @@ impl HtmlPipeline
 	const is_downloadable: bool = false;
 	
 	#[inline(always)]
+	fn addRedirect(&self, isForAmp: bool, result: &mut Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, languageData: &LanguageData, resourceRelativeUrl: &str, inputCanonicalUrl: &Url) -> Result<(), CordialError>
+	{
+		const RedirectsCanNotBeCompressed: bool = false;
+		
+		if self.redirect_nearly_identical_url
+		{
+			let redirectUrl = if isForAmp
+			{
+				self.ampRedirectUrl(languageData, resourceRelativeUrl)?
+			}
+			else
+			{
+				self.redirectUrl(languageData, resourceRelativeUrl)?
+			};
+			result.push((redirectUrl, hashmap! { redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), Self::redirectHeaders(inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
+		}
+		
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn redirectHeaders(url: &Url) -> Vec<(String, String)>
+	{
+		let mut headers = Vec::new();
+		
+		headers.push(("Cache-Control".to_owned(), format!("{}", commonCacheControlHeader(31536000))));
+		headers.push(("Location".to_owned(), url.as_str().to_owned()));
+		
+		headers.shrink_to_fit();
+		headers
+	}
+	
+	#[inline(always)]
+	fn canonicalUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	{
+		if self.is_leaf
+		{
+			languageData.leaf_url(resourceRelativeUrl)
+		}
+		else
+		{
+			languageData.url(resourceRelativeUrl)
+		}
+	}
+	
+	#[inline(always)]
+	fn redirectUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	{
+		if self.is_leaf
+		{
+			languageData.url(resourceRelativeUrl)
+		}
+		else
+		{
+			languageData.leaf_url(resourceRelativeUrl)
+		}
+	}
+	
+	#[inline(always)]
+	fn ampUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	{
+		if self.is_leaf
+		{
+			languageData.amp_leaf_url(resourceRelativeUrl)
+		}
+		else
+		{
+			languageData.amp_url(resourceRelativeUrl)
+		}
+	}
+	
+	#[inline(always)]
+	fn ampRedirectUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	{
+		if self.is_leaf
+		{
+			languageData.amp_url(resourceRelativeUrl)
+		}
+		else
+		{
+			languageData.amp_leaf_url(resourceRelativeUrl)
+		}
+	}
+	
+	#[inline(always)]
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &BTreeMap<String, Resource>, languageData: &LanguageData) -> Result<(), CordialError>
+	{
+		if self.site_map
+		{
+			let mut images = vec![];
+			if let Some((imageResourceUrl, articleImage)) = articleImage
+			{
+				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?);
+			};
+			
+			let mut urlsByIsoLanguageCode = BTreeMap::new();
+			configuration.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
+			{
+				let url = self.canonicalUrl(languageData, resourceRelativeUrl)?;
+				urlsByIsoLanguageCode.insert(languageData.iso_639_1_alpha_2_language_code.to_owned(), url);
+				Ok(())
+			});
+			
+			siteMapWebPages.push
+			(
+				SiteMapWebPage
+				{
+					lastModified: self.lastModificationDateOrPublicationDate(),
+					changeFrequency: self.site_map_change_frequency,
+					priority: self.site_map_priority,
+					urlsByIsoLanguageCode,
+					images
+				}
+			);
+		}
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: Option<(&str, &ImageMetaData)>, resources: &BTreeMap<String, Resource>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	{
+		if self.rss
+		{
+			rssItems.push
+			(
+				RssItem
+				{
+					rssItemLanguageVariant: RssItemLanguageVariant
+					{
+						webPageDescription: abstract_.description.to_owned(),
+						webPageUsefulContentHtml: Self::extractNodes(&self.rss_css_selector, &document, "rss_css_selector", capacityHint)?,
+						languageSpecificUrl: self.canonicalUrl(languageData, resourceRelativeUrl)?,
+						primaryImage: match articleImage
+						{
+							None => None,
+							Some((imageResourceUrl, articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?)
+						},
+					},
+					lastModificationDate: lastModificationDateOrPublicationDate,
+					author: self.rss_author.clone(),
+					categories: self.rss_categories.clone(),
+				}
+			);
+		}
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn lastModificationDateOrPublicationDate(&self) -> Option<DateTime<Utc>>
+	{
+		match self.modifications.keys().rev().next()
+		{
+			Some(date) => Some(*date),
+			None => self.publication_date
+		}
+	}
+	
+	#[inline(always)]
+	fn modifications(&self, iso_639_1_alpha_2_language_code: &str) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
+	{
+		let mut modifications = BTreeMap::new();
+		for (date, modificationTranslations) in self.modifications.iter()
+		{
+			let translation = match modificationTranslations.get(iso_639_1_alpha_2_language_code)
+			{
+				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso_639_1_alpha_2_language_code))),
+				Some(translation) => translation.as_str(),
+			};
+			
+			modifications.insert(*date, translation);
+		}
+		Ok(modifications)
+	}
+	
+	#[inline(always)]
+	fn abstract_(&self, languageData: &LanguageData) -> Result<&Abstract, CordialError>
+	{
+		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+		match self.abstracts.get(iso_639_1_alpha_2_language_code)
+		{
+			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(abstract_) => Ok(abstract_),
+		}
+	}
+	
+	#[inline(always)]
+	fn extractNodes(selector: &str, document: &RcDom, selectorName: &str, capacityGuess: usize) -> Result<Vec<u8>, CordialError>
+	{
+		const html_head_and_body_tags_are_optional: bool = true;
+		const PreserveComments: bool = false;
+		const PreserveProcessingInstructions: bool = false;
+		
+		let mut writer = Vec::with_capacity(capacityGuess);
+		let mut serializer = UltraMinifyingHtmlSerializer::new(html_head_and_body_tags_are_optional, PreserveComments, PreserveProcessingInstructions, &mut writer);
+		
+		match parse_css_selector(selector)
+		{
+			Err(_) => return Err(CordialError::Configuration(format!("CSS {} {} was invalid", selectorName, selector))),
+			Ok(selector) => document.find_all_matching_child_nodes_depth_first_excluding_this_one(&selector, &mut |node|
+			{
+				const collapse_whitespace: bool = true;
+				const flush_when_serialized: bool = false;
+				if serializer.serialize_node(node, collapse_whitespace, flush_when_serialized).is_err()
+				{
+					//return Err(CordialError::Configuration("Could not serialize node - is this even possible?".to_owned()));
+				}
+				false
+			}),
+		};
+		
+		writer.shrink_to_fit();
+		
+		Ok(writer)
+	}
+	
+	#[inline(always)]
+	fn articleImage<'a>(&'a self, resources: &'a BTreeMap<String, Resource>) -> Option<(&'a str, &'a ImageMetaData)>
+	{
+		if let Some(ref article_image) = self.article_image
+		{
+			ImageMetaData::find(article_image, resources).map(|metadata| (article_image.as_str(), metadata))
+		}
+		else
+		{
+			None
+		}
+	}
+	
+	#[inline(always)]
+	fn renderMarkdown(&self, inputContentFilePath: &Path) -> Result<Vec<u8>, CordialError>
+	{
+		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+		MarkdownParser::defaultishParse(&self.header_id_prefix_with_trailing_dash, &markdown)
+	}
+	
+	#[inline(always)]
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: Option<(&str, &ImageMetaData)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
+	{
+		let html =
+		{
+			let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+			let imageAbstract = match articleImage
+			{
+				None => None,
+				Some((_, imageMetaData)) => Some(imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?),
+			};
+			handlebars.template_render(template, &json!
+			({
+				"environment": &configuration.environment,
+				"our_language": languageData,
+				"localization": &configuration.localization,
+				"deployment_date": configuration.deploymentDate,
+				//"deployment_version": deploymentVersion,
+				
+				"markdown": htmlFromMarkdown,
+				"publication_date": self.publication_date,
+				"lastModificationDateOrPublicationDate": lastModificationDateOrPublicationDate,
+				"modifications": self.modifications(iso_639_1_alpha_2_language_code)?,
+				"expiration_date": self.expiration_date,
+				"abstract": abstract_,
+				"image_abstract": imageAbstract,
+				// TODO: Article Image
+			}))?
+		};
+		let document = RcDom::from_bytes_verified_and_stripped_of_comments_and_processing_instructions_and_with_a_sane_doc_type(html.as_bytes(), inputContentFilePath)?;
+		Ok(document)
+	}
+	
+	#[inline(always)]
 	fn max_age_in_seconds_none_default() -> u32
 	{
 		0
 	}
 	
 	#[inline(always)]
-	fn amp_relative_root_url_default() -> Option<String>
+	fn redirect_nearly_identical_url_default() -> bool
 	{
-		Some("/amp".to_owned())
+		true
+	}
+	
+	#[inline(always)]
+	fn rss_default() -> bool
+	{
+		true
+	}
+	
+	#[inline(always)]
+	fn site_map_default() -> bool
+	{
+		true
+	}
+	
+	#[inline(always)]
+	fn header_id_prefix_with_trailing_dash_default() -> String
+	{
+		"header-".to_owned()
+	}
+	
+	#[inline(always)]
+	fn pjax_css_selector_default() -> String
+	{
+		"main".to_owned()
+	}
+	
+	#[inline(always)]
+	fn rss_css_selector_default() -> String
+	{
+		"main".to_owned()
+	}
+	
+	#[inline(always)]
+	fn template_default() -> String
+	{
+		"article".to_owned()
+	}
+	
+	#[inline(always)]
+	fn amp_template_default() -> Option<String>
+	{
+		Some("amp-article".to_owned())
 	}
 }

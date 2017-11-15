@@ -6,17 +6,17 @@
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum SiteMapPriority
 {
-	Zero,
-	One,
-	Two,
-	Three,
-	Four,
-	Five,
-	Six,
-	Seven,
-	Eight,
-	Nine,
-	Ten,
+	zero,
+	one,
+	two,
+	three,
+	four,
+	five,
+	six,
+	seven,
+	eight,
+	nine,
+	ten,
 }
 
 impl Default for SiteMapPriority
@@ -24,7 +24,7 @@ impl Default for SiteMapPriority
 	#[inline(always)]
 	fn default() -> Self
 	{
-		SiteMapPriority::Five
+		SiteMapPriority::five
 	}
 }
 
@@ -36,17 +36,17 @@ impl SiteMapPriority
 		use self::SiteMapPriority::*;
 		match *self
 		{
-			Zero => "0.0",
-			One => "0.1",
-			Two => "0.2",
-			Three => "0.3",
-			Four => "0.4",
-			Five => "0.5",
-			Six => "0.6",
-			Seven => "0.7",
-			Eight => "0.8",
-			Nine => "0.9",
-			Ten => "1.0",
+			zero => "0.0",
+			one => "0.1",
+			two => "0.2",
+			three => "0.3",
+			four => "0.4",
+			five => "0.5",
+			six => "0.6",
+			seven => "0.7",
+			eight => "0.8",
+			nine => "0.9",
+			ten => "1.0",
 		}
 	}
 }

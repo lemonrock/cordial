@@ -6,7 +6,7 @@
 pub(crate) struct RssItemLanguageVariant
 {
 	pub(crate) webPageDescription: String, // eg HTML <meta name="description">, used for RSS title
-	pub(crate) webPageUsefulContentHtml: String,
+	pub(crate) webPageUsefulContentHtml: Vec<u8>,
 	pub(crate) languageSpecificUrl: Url,
-	pub(crate) primaryImage: RssImage,
+	pub(crate) primaryImage: Option<RssImage>,
 }

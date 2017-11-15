@@ -146,6 +146,20 @@ quick_error!
 			from()
 		}
 		
+		CouldNotFormatMarkdownToHtml
+		{
+			description("could not format markdown to HTML")
+			display("Could not format markdown to HTML")
+		}
+		
+		BadHtml(cause: ::css_purify::html5ever_ext::HtmlError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not read HTML because: {}", cause)
+			from()
+		}
+		
 		Other(cause: Box<::std::error::Error>)
 		{
 			cause(&**cause)

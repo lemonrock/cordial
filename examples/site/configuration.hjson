@@ -113,6 +113,20 @@
 			language_aware: false
 			input_format: null
 
+			metadata:
+			{
+				title: Joe's Dog Running,
+				caption: My friend Joe's dog can really run fast!
+				geographic_location: null
+				license_url:
+				{
+					external: ["https://creativecommons.org/"]
+				},
+
+				alt: An animation of a dog running
+				credit: Joe Bloggs
+			}
+
 			img_sizes: null
 			source_set
 			[
@@ -125,12 +139,41 @@
 		{
 			max_age_in_seconds: 0
 			input_format: null
+
+			// There is rarely a good reason to change this unless trying to match an existing site
 			is_leaf: false
-			// Specify 'null' to disable AMP page generation
-			amp_relative_root_url: "/amp"
+
+			// There is rarely a good reason to change this unless trying to match an existing site
+			// If a URL is, say '/my-page/', redirect '/my-page' to it
+			// If is_leaf is true, then '/my-page/' will redirect to '/my-age'
+			redirect_nearly_identical_url: true
+
+			// Publish AMP pages?
+			amp: true
+
+			// Publish in Site Map?
+			site_map: true
+			site_map_change_frequency: weekly
+			site_map_priority: five
+
+			// Publish in RSS feed?
+			rss: true
+			rss_author:
+			{
+				full_name: Joe Blogs
+				email: joe.blogs@example.com
+			}
+			rss_categories:
+			[
+			]
+
 			publication_date: null
 			modifications:
 			{
+				"2008-10-11":
+				{
+					en: Made a correction under the Editorial Code.
+				}
 			}
 			expiration_date: null
 			abstracts:
@@ -142,6 +185,8 @@
 					extract: A handlebars / markdown template for summaries and synopsis.
 				}
 			}
+			header_id_prefix_with_trailing_dash: header-
+
 		}
 
 		raster_image:
@@ -192,6 +237,10 @@
 
 			// Exists solely because of potential bugs in svg optimizer
 			do_not_optimize: false
+
+			// If SVG lacks width or height properties (or does not have absolute values for them greater than zero), these are supplied as the image's dimensions if asked for.
+			width: null
+			height: null
 		}
 
 		headers:
@@ -302,7 +351,7 @@
 		generate_yandex_primary_host: false
 	}
 
-	sitemap:
+	site_map:
 	{
 		headers:
 		{
@@ -328,49 +377,57 @@
 	}
 
 	// Defaults to 'null'
+	// rating, textInput, skipHours and skipDays are not generated
 	rss:
 	{
+		headers:
+		{
+		}
+
+		// Matches BBC as of Sep 2017.
+		max_age_in_seconds: 900
+
+		compression:
+		{
+			gzip:
+			{
+				iterations: 15
+
+				# Set to 0 for infinite
+				maximum_block_splits: 15
+			}
+
+			brotli:
+			{
+				compressMode: utf8
+			}
+		}
+
 		// These are resource references
 		stylesheets:
 		[
 		]
 
-		external_stylesheet_mime_type: text/css
+		details:
+		{
+			en:
+			{
+				title: Title of RSS Channel in English
+				description: Description of RSS Channel in English
+				copyright: Coypright © 2017 My Company. All rights reserved.
+			}
+		}
 
 		title:
 		{
-			en: Title of RSS Channel in English
+			en:
 		}
 
-		description:
 		{
-			en: Description of RSS Channel in English
+			en:
 		}
 
-		// These are resource references
-		image_url:
-		{
-			internal:
-			[
-				"/rss-channel-image"
-				default
-			]
-		}
-
-		image_alt:
-		{
-			en: Image alt text in English, typically the same as title above.
-		}
-
-		image_tooltip:
-		{
-			en: Image tooltip in English.
-		}
-
-		copyright:
-		{
-			en: Coypright © 2017 My Company. All rights reserved.
-		}
+		image_url: "/rss-channel-image"
 
 		// May change to a back-reference to an users list
 		managing_editor:
@@ -419,29 +476,6 @@
 			accent_color: 00FF00
 			related: true
 			google_analytics: inherit
-		}
-
-		headers:
-		{
-		}
-
-		// Matches BBC as of Sep 2017.
-		max_age_in_seconds: 900
-
-		compression:
-		{
-			gzip:
-			{
-				iterations: 15
-
-				# Set to 0 for infinite
-				maximum_block_splits: 15
-			}
-
-			brotli:
-			{
-				compressMode: utf8
-			}
 		}
 	}
 

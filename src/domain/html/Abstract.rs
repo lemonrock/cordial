@@ -3,10 +3,9 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct Abstract
 {
-	title: String,
-	description: String,  // used the meta description, caption (title) for links
-	extract: String, // Handlebars template => Markdown => html; used for summary
+	pub(crate) title: String,
+	pub(crate) description: String,
 }

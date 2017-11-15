@@ -2,22 +2,18 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-// Accurate as of Media Queries 4 (https://drafts.csswg.org/mediaqueries/#media-types)
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone)]
-pub enum MediaType
-{
-	all,
-	print,
-	screen,
-	speech,
-}
+use super::*;
+use ::comrak::ComrakOptions;
+use ::comrak::format_html;
+use ::comrak::parse_document;
+use ::comrak::nodes::{AstNode, NodeHtmlBlock, NodeValue};
+use ::csv::Reader;
+use ::std::str::from_utf8;
+use ::svgbob::Grid;
+use ::svgbob::Settings;
+use ::typed_arena::Arena;
 
-impl Default for MediaType
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		MediaType::screen
-	}
-}
+
+include!("AstNodeExt.rs");
+include!("MarkdownParser.rs");
+include!("MarkdownPlugin.rs");

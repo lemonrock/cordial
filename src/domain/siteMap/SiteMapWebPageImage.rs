@@ -5,11 +5,11 @@
 #[derive(Debug, Clone)]
 pub(crate) struct SiteMapWebPageImage
 {
-	url: Url,
-	caption: String,
-	geographicLocation: Option<String>,
-	title: String,
-	licenseUrl: Url,
+	pub(crate) url: Url,
+	pub(crate) caption: String,
+	pub(crate) geographicLocation: Option<String>,
+	pub(crate) title: String,
+	pub(crate) licenseUrl: Url,
 }
 
 impl SiteMapWebPageImage

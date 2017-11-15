@@ -5,6 +5,5 @@
 use super::*;
 
 
-include!("MediaType.rs");
 include!("MimeNewType.rs");
 include!("StylesheetLink.rs");

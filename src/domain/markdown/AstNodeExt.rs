@@ -2,14 +2,20 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::pipelines::mimeType;
-use super::pipelines::replaceFileNameExtension;
-use ::woff2_sys::convertTtfToWoff2;
+trait AstNodeExt<'a>
+{
+	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self)>(&'a self, nodeUser: &F);
+}
 
-
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
+impl<'a> AstNodeExt<'a> for AstNode<'a>
+{
+	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self)>(&'a self, nodeUser: &F)
+	{
+		nodeUser(self);
+		
+		for childNode in self.children()
+		{
+			childNode.useMarkdownAstNodeRecursively(nodeUser);
+		}
+	}
+}

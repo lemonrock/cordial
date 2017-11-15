@@ -7,8 +7,21 @@
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct EMailAddress
 {
-	pub(crate) full_name: FullName,
-	email: String,
+	#[serde(default = "EMailAddress::full_name_default")] pub(crate) full_name: FullName,
+	#[serde(default = "EMailAddress::email_default")] email: String,
+}
+
+impl Default for EMailAddress
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			full_name: Self::full_name_default(),
+			email: Self::email_default(),
+		}
+	}
 }
 
 impl EMailAddress
@@ -17,5 +30,17 @@ impl EMailAddress
 	pub(crate) fn to_string(&self) -> String
 	{
 		format!("{} ({})", self.email, self.full_name)
+	}
+	
+	#[inline(always)]
+	fn full_name_default() -> String
+	{
+		"webmaster@example.com".to_owned()
+	}
+	
+	#[inline(always)]
+	fn email_default() -> String
+	{
+		"Webmaster".to_owned()
 	}
 }

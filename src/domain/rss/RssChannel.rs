@@ -6,88 +6,48 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RssChannel
 {
-	// Should have MIME types of text/xsl or text/css, eg <?xml-stylesheet type="text/xsl" media="screen" href="/~d/styles/rss2full.xsl"?><?xml-stylesheet type="text/css" media="screen" href="http://feeds.feedburner.com/~d/styles/itemcontent.css"?>
-	// Only seem to be used by Chrome
-	#[serde(default)] stylesheets: Vec<StylesheetLink>,
-	#[serde(default = "RssChannel::external_stylesheet_mime_type_default")] external_stylesheet_mime_type: String,
-	title: HashMap<String, String>, // should default to home page or feed title; need access to web pages collection; by iso code
-	description: HashMap<String, String>, // by iso code
-	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
-	image_alt: HashMap<String, String>, // this is the img element's alt attribute; in practice it should match RssChannel.title; by iso code
-	image_tooltip: HashMap<String, String>, // this is the a element's title attribute, ie tooltip; by iso code
-	
-	copyright: HashMap<String, String>, // by iso code
-	managing_editor: EMailAddress, // Consider using a back-reference to an users list
-	web_master: EMailAddress, // Consider using a back-reference to an users list
-	#[serde(default)] categories: Vec<String>,
-	#[serde(default = "RssChannel::feedly_default")] feedly: Option<RssFeedlyChannel>,
-	
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default = "RssChannel::max_age_in_seconds_default")] max_age_in_seconds: u32,
 	#[serde(default)] compression: Compression,
-	
-	// rating, textInput, skipHours and skipDays are not generated
+	#[serde(default)] stylesheets: Vec<StylesheetLink>,
+	#[serde(default)] details: HashMap<String, RssChannelLanguageSpecific>,
+	#[serde(default = "RssChannel::image_url_default")] image_url: String,
+	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
+	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
+	#[serde(default)] categories: Vec<String>,
+	#[serde(default = "RssChannel::feedly_default")] feedly: Option<RssFeedlyChannel>,
 }
 
 impl RssChannel
 {
+	const ImageUrlTag: UrlTag = UrlTag::primary_image;
+	
 	#[inline(always)]
 	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResources: &'b mut Resources, oldResources: &Arc<Resources>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a BTreeMap<String, Resource>, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
-		let title = match self.title.get(iso_639_1_alpha_2_language_code)
+		let detail = match self.details.get(iso_639_1_alpha_2_language_code)
 		{
-			None => return Err(CordialError::Configuration(format!("No RSS title for language '{}'", iso_639_1_alpha_2_language_code))),
-			Some(title) => title,
+			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso_639_1_alpha_2_language_code))),
+			Some(detail) => detail,
 		};
 		
-		let description = match self.description.get(iso_639_1_alpha_2_language_code)
+		let description = &detail.description;
+		const FeedlyDescriptionLength: usize = 140;
+		if description.len() > FeedlyDescriptionLength
 		{
-			None => return Err(CordialError::Configuration(format!("No RSS description for language '{}'", iso_639_1_alpha_2_language_code))),
-			Some(description) =>
-			{
-				const FeedlyDescriptionLength: usize = 140;
-				if description.len() > FeedlyDescriptionLength
-				{
-					return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
-				}
-				description
-			},
-		};
+			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
+		}
 		
-		let image_alt = match self.image_alt.get(iso_639_1_alpha_2_language_code)
-		{
-			None => return Err(CordialError::Configuration(format!("No RSS image_alt for language '{}'", iso_639_1_alpha_2_language_code))),
-			Some(image_alt) => image_alt,
-		};
-		
-		let image_tooltip = match self.image_tooltip.get(iso_639_1_alpha_2_language_code)
-		{
-			None => return Err(CordialError::Configuration(format!("No RSS image_tooltip for language '{}'", iso_639_1_alpha_2_language_code))),
-			Some(image_tooltip) => image_tooltip,
-		};
-		
-		let copyright = match self.copyright.get(iso_639_1_alpha_2_language_code)
-		{
-			None => return Err(CordialError::Configuration(format!("No RSS copyright for language '{}'", iso_639_1_alpha_2_language_code))),
-			Some(copyright) => copyright,
-		};
-		
-		let (imageUrl, imageWidthAndHeight) = match self.image_url.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources)
-		{
-			None => return Err(CordialError::Configuration(format!("Invalid RSS image_url {:?}", &self.image_url))),
-			Some((url, None)) =>
-			{
-				(url, None)
-			}
-			Some((url, Some(jsonValue))) =>
-			{
-				let width = jsonValue["width"].as_u64().unwrap() as u32;
-				let height = jsonValue["height"].as_u64().unwrap() as u32;
-				(url, Some((width, height)))
-			}
-		};
+		let resource = resources.get(&self.image_url).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{}'", &self.image_url)))?;
+		let (imageUrl, imageJsonValue) = resource.urlAndJsonValue(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageUrlTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{}'", Self::ImageUrlTag, &self.image_url)))?;
+		let imageWidth = imageJsonValue.u32("width")?;
+		let imageHeight = imageJsonValue.u32("height")?;
+		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{}'", &self.image_url)))?;
+		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
+		let image_alt = &imageAbstract.alt;
+		let image_tooltip = &imageAbstract.title;
 		
 		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let timeToLiveInMinutes =
@@ -111,17 +71,7 @@ impl RssChannel
 		
 		for stylesheet in self.stylesheets.iter()
 		{
-			let (url, media, mimeType, characterSet) = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)?;
-			
-			let data = if let Some(characterSet) = characterSet
-			{
-				format!("type=\"{}\" media=\"{:?}\" href=\"{}\" charset=\"{}\"", mimeType, media, url, characterSet.as_ref())
-			}
-			else
-			{
-				format!("type=\"{}\" media=\"{:?}\" href=\"{}\"", mimeType, media, url)
-			};
-			
+			let data = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResources)?;
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
@@ -145,8 +95,8 @@ impl RssChannel
 		{
 			eventWriter.writeWithinElement(Name::local("channel"), &namespace, &emptyAttributes, |eventWriter|
 			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", title)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.baseUrl().unwrap().as_ref())?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", &detail.title)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.baseUrl(false).unwrap().as_ref())?;
 				
 				if let Some(ref feedly) = self.feedly
 				{
@@ -163,7 +113,7 @@ impl RssChannel
 				
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso_639_1_alpha_2_language_code)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", copyright)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", &detail.copyright)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubDate", &deploymentDateTime.to_rfc2822())?;
@@ -180,17 +130,20 @@ impl RssChannel
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "url", imageUrl.as_str())?;
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", image_alt)?;
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", image_tooltip)?;
-					if let Some((width, height)) = imageWidthAndHeight
+					if imageWidth != 0
 					{
-						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "width", &format!("{}", width))?;
-						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "height", &format!("{}", height))?;
+						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "width", &format!("{}", imageWidth))?;
+					}
+					if imageHeight != 0
+					{
+						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "height", &format!("{}", imageHeight))?;
 					}
 					Ok(())
 				})?;
 				
 				for rssItem in rssItems.iter()
 				{
-					rssItem.writeXml(iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)?;
+					rssItem.writeXml(eventWriter, &namespace, &emptyAttributes)?;
 				}
 				
 				Ok(())
@@ -229,27 +182,21 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn image_url_default() -> ResourceReference
+	fn max_age_in_seconds_default() -> u32
 	{
-		ResourceReference::internal("/organization-logo.png".to_owned(), Some(UrlTag::primary_image))
+		// BBC feeds use 15 minutes in September 2017
+		15 * 60
+	}
+	
+	#[inline(always)]
+	fn image_url_default() -> String
+	{
+		"/organization-logo.png".to_owned()
 	}
 	
 	#[inline(always)]
 	fn feedly_default() -> Option<RssFeedlyChannel>
 	{
 		Some(RssFeedlyChannel::default())
-	}
-	
-	#[inline(always)]
-	fn external_stylesheet_mime_type_default() -> String
-	{
-		"text/css".to_owned()
-	}
-	
-	#[inline(always)]
-	fn max_age_in_seconds_default() -> u32
-	{
-		// BBC feeds use 15 minutes in September 2017
-		15 * 60
 	}
 }

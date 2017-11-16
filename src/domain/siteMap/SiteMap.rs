@@ -90,7 +90,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = languageData.url(&format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = languageData.url(&ResourceUrl::siteMapIndexUrl(iso_639_1_alpha_2_language_code, index))?;
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapIndexBodyUncompressed.shrink_to_fit();
@@ -168,7 +168,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = languageData.url(&format!("{}.sitemap.{}.xml", urlAndResponse.len(), iso_639_1_alpha_2_language_code)).unwrap();
+			let unversionedCanonicalUrl = languageData.url(&ResourceUrl::siteMapUrl(iso_639_1_alpha_2_language_code, urlAndResponse.len())).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapBodyUncompressed.shrink_to_fit();

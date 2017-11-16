@@ -156,12 +156,12 @@ impl Configuration
 		
 		for processingPriority in ProcessingPriority::All.iter()
 		{
-			for resource in resources.values()
+			for (resourceUrl, resource) in resources.iter()
 			{
 				let hasProcessingPriority = resource.borrow().hasProcessingPriority(*processingPriority);
 				if hasProcessingPriority
 				{
-					resource.borrow_mut().render(&resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
+					resource.borrow_mut().render(resourceUrl, &resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
 				}
 			}
 		}

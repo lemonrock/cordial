@@ -26,12 +26,6 @@ impl DiscoverResources
 	}
 	
 	#[inline(always)]
-	fn insertResource(&mut self, resource: Resource)
-	{
-		self.resources.insert(resource.resourceRelativeUrl().to_owned(), RefCell::new(resource));
-	}
-	
-	#[inline(always)]
 	fn processFolder(&mut self, folderPath: &Path) -> Result<(), CordialError>
 	{
 		let mut hierarchy =
@@ -71,8 +65,8 @@ impl DiscoverResources
 		let rootResourceFilePath = inputFolderPath.join("root.resource.hjson");
 		let configurationHjson = loadHjsonIfExtantAndMerge(&rootResourceFilePath, self.resourceTemplates.resourceTemplate.clone())?;
 		let mut resource: Resource = deserializeHjson(configurationHjson)?;
-		resource.finishInitialization(Vec::new(), "root", inputFolderPath.to_path_buf());
-		self.insertResource(resource);
+		let resourceUrl = resource.finishInitialization(Vec::new(), "root", inputFolderPath.to_path_buf());
+		self.insertResource(resourceUrl, resource);
 		Ok(())
 	}
 	
@@ -104,12 +98,18 @@ impl DiscoverResources
 			
 			let mut resource: Resource = deserializeHjson(hjsonConfiguration)?;
 			
-			resource.finishInitialization(parentHierarchy.clone(), resourceInputName, filePath.parent().unwrap().to_path_buf());
+			let resourceUrl = resource.finishInitialization(parentHierarchy.clone(), resourceInputName, filePath.parent().unwrap().to_path_buf());
 			
-			self.insertResource(resource);
+			self.insertResource(resourceUrl, resource);
 		}
 		
 		Ok(())
+	}
+	
+	#[inline(always)]
+	fn insertResource(&mut self, resourceUrl: ResourceUrl<'static>, resource: Resource)
+	{
+		self.resources.insert(resourceUrl, RefCell::new(resource));
 	}
 	
 	fn hierarchy(relativeEntryPath: &Path) -> Result<Vec<String>, CordialError>

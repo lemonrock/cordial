@@ -3,21 +3,27 @@
 
 
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct UrlWithTag
+pub(crate) struct ResourceReference
 {
-	pub(crate) resource: String,
-	pub(crate) tag: UrlTag,
+	pub(crate) resource: ResourceUrl<'static>,
+	pub(crate) tag: ResourceTag,
 }
 
-impl UrlWithTag
+impl ResourceReference
 {
 	#[inline(always)]
-	pub(crate) fn new<S: Into<String>>(resource: S, tag: UrlTag) -> Self
+	pub(crate) fn new<S: Into<String>>(resource: S, tag: ResourceTag) -> Self
 	{
 		Self
 		{
-			resource: resource.into(),
+			resource: ResourceUrl::string(resource),
 			tag,
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
+	{
+		self.resource.get(resources)
 	}
 }

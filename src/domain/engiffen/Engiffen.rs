@@ -28,8 +28,10 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn process<F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, resourceRelativeUrlWithoutFileNameExtension: &str, languageData: &'a LanguageData, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn process<F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, resourceUrl: &ResourceUrl, languageData: &'a LanguageData, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
+		let resourceRelativeUrlWithoutFileNameExtension = resourceUrl.withoutFileNameExtension();
+		
 		let images = self.inputContentFolderPath.fileContentsInFolder(|filePath|
 		{
 			match ImageInputFormat::load(self.inputFormat, filePath)
@@ -129,28 +131,28 @@ impl<'a> Engiffen<'a>
 				})
 			);
 			
-			let mut urlTags = hashmap!
+			let mut resourceTagss = hashmap!
 			{
 				width_image(width) => jsonValue.clone(),
 				height_image(height) => jsonValue.clone(),
 				width_height_image(width, height) => jsonValue.clone(),
 			};
 			
-			use self::UrlTag::*;
+			use self::ResourceTag::*;
 			let url = if sourceSetIndex == 0
 			{
-				urlTags.insert(default, jsonValue.clone());
-				urlTags.insert(primary_image, jsonValue.clone());
-				ImageSourceSet::primaryUrl(resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData)?
+				resourceTagss.insert(default, jsonValue.clone());
+				resourceTagss.insert(primary_image, jsonValue.clone());
+				ImageSourceSet::primaryUrl(&resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData)?
 			}
 			else
 			{
-				ImageSourceSet::widthUrl(resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData, width)?
+				ImageSourceSet::widthUrl(&resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData, width)?
 			};
 			
 			let headers = headerGenerator(&url)?;
 			
-			result.push((url, urlTags, StatusCode::Ok, ContentType(mime::IMAGE_GIF), headers, body, None, false));
+			result.push((url, resourceTagss, StatusCode::Ok, ContentType(mime::IMAGE_GIF), headers, body, None, false));
 			
 			sourceSetIndex += 1;
 		}

@@ -20,18 +20,11 @@ pub(crate) struct Resource
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
-	#[serde(default, skip_deserializing)] resourceRelativeUrl: String,
-	#[serde(default, skip_deserializing)] urls_by_iso_639_1_alpha_2_language_code: HashMap<String, HashMap<UrlTag, Rc<UrlData>>>,
+	#[serde(default, skip_deserializing)] urlData_by_iso_639_1_alpha_2_language_code: HashMap<String, HashMap<ResourceTag, Rc<UrlData>>>,
 }
 
 impl Resource
 {
-	#[inline(always)]
-	pub(crate) fn resourceRelativeUrl(&self) -> &str
-	{
-		&self.resourceRelativeUrl
-	}
-	
 	#[inline(always)]
 	pub(crate) fn hasProcessingPriority(&self, processingPriority: ProcessingPriority) -> bool
 	{
@@ -39,13 +32,13 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlData(&self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, urlTag: &UrlTag) -> Option<Rc<UrlData>>
+	pub(crate) fn urlData(&self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resourceTag: &ResourceTag) -> Option<Rc<UrlData>>
 	{
 		let urlKey = self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code);
-		match self.urls_by_iso_639_1_alpha_2_language_code.get(urlKey)
+		match self.urlData_by_iso_639_1_alpha_2_language_code.get(urlKey)
 		{
 			None => None,
-			Some(urlTags) => urlTags.get(urlTag).map(|urlData| urlData.clone())
+			Some(resourceTagToUrlDataMap) => resourceTagToUrlDataMap.get(resourceTag).map(|urlData| urlData.clone())
 		}
 	}
 	
@@ -59,7 +52,7 @@ impl Resource
 		}
 		else if let Some(iso_639_1_alpha_2_language_code) = iso_639_1_alpha_2_language_code
 		{
-			if self.urls_by_iso_639_1_alpha_2_language_code.contains_key(iso_639_1_alpha_2_language_code)
+			if self.urlData_by_iso_639_1_alpha_2_language_code.contains_key(iso_639_1_alpha_2_language_code)
 			{
 				iso_639_1_alpha_2_language_code
 			}
@@ -81,10 +74,10 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf)
+	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf) -> ResourceUrl<'static>
 	{
 		#[inline(always)]
-		fn resourceRelativeUrl(parentHierarchy: &[String], resourceInputName: &str) -> String
+		fn resourceUrl(parentHierarchy: &[String], resourceInputName: &str) -> ResourceUrl<'static>
 		{
 			let mut resourceRelativeUrl = String::with_capacity(1024);
 			for parent in parentHierarchy
@@ -95,17 +88,17 @@ impl Resource
 			
 			resourceRelativeUrl.push_str(resourceInputName);
 			
-			resourceRelativeUrl
+			ResourceUrl::string(resourceRelativeUrl)
 		}
 		
 		self.canonicalParentFolderPath = canonicalParentFolderPath;
 		self.resourceInputName = resourceInputName.to_owned();
 		self.resourceInputContentFileNamesWithExtension = self.resourceInputContentFileNamesWithExtension(resourceInputName);
-		self.resourceRelativeUrl = resourceRelativeUrl(&parentHierarchy, resourceInputName);
+		resourceUrl(&parentHierarchy, resourceInputName)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, resourceUrl: &ResourceUrl, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<String, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<String, Vec<RssItem>>) -> Result<(), CordialError>
 	{
 		#[inline(always)]
 		fn getOrDefault<'a, T>(map: &'a mut HashMap<String, Vec<T>>, iso_639_1_alpha_2_language_code: &str) -> &'a mut Vec<T>
@@ -141,13 +134,13 @@ impl Resource
 					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso_639_1_alpha_2_language_code);
 					let mut rssItems = getOrDefault(rssItemsByLanguage, iso_639_1_alpha_2_language_code);
 					
-					self.execute(resources, &inputContentFilePath, &self.resourceRelativeUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?
+					self.execute(resources, &inputContentFilePath, resourceUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?
 				};
 				
 				// Always inserts, as this language code will only occur once.
-				let urls = self.urls_by_iso_639_1_alpha_2_language_code.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::with_capacity(result.len()));
+				let urls = self.urlData_by_iso_639_1_alpha_2_language_code.entry(iso_639_1_alpha_2_language_code.to_owned()).or_insert(HashMap::with_capacity(result.len()));
 				
-				for (mut url, mut urlTagsWithJsonValues, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
+				for (mut url, mut resourceTagssWithJsonValues, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
 					let hasPjax = pjax.is_some();
 					
@@ -186,7 +179,7 @@ impl Resource
 						}
 					};
 					
-					debug_assert!(!urlTagsWithJsonValues.is_empty(), "urlTags is empty");
+					debug_assert!(!resourceTagssWithJsonValues.is_empty(), "resourceTagss is empty");
 					let (urlOrDataUri, dataUriResponse) = if self.is_data_uri
 					{
 						(newResponse.toDataUri(), Some(Rc::new(newResponse)))
@@ -203,9 +196,9 @@ impl Resource
 					};
 					
 					let urlOrDataUri = Rc::new(urlOrDataUri);
-					for (urlTag, jsonValue) in urlTagsWithJsonValues.drain()
+					for (resourceTags, jsonValue) in resourceTagssWithJsonValues.drain()
 					{
-						urls.insert(urlTag, Rc::new(UrlData
+						urls.insert(resourceTags, Rc::new(UrlData
 						{
 							urlOrDataUri: urlOrDataUri.clone(),
 							jsonValue,
@@ -334,18 +327,18 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
-			css => self.css.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			font => self.font.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			html => self.html.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raw => self.raw.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			svg => self.svg.execute(resources, inputContentFilePath, resourceRelativeUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			css => self.css.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			font => self.font.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			html => self.html.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			raw => self.raw.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			svg => self.svg.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
 		}
 	}
 }

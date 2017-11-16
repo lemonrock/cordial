@@ -8,7 +8,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub struct StylesheetLink
 {
-	#[serde(default = "StylesheetLink::url_default")] url: UrlWithTag,
+	#[serde(default = "StylesheetLink::url_default")] url: ResourceReference,
 	#[serde(default = "StylesheetLink::media_default")] media: Option<String>,
 }
 
@@ -39,9 +39,9 @@ impl StylesheetLink
 	}
 	
 	#[inline(always)]
-	fn url_default() -> UrlWithTag
+	fn url_default() -> ResourceReference
 	{
-		UrlWithTag::new("/rss.css", UrlTag::default)
+		ResourceReference::new("/rss.css", ResourceTag::default)
 	}
 	
 	#[inline(always)]

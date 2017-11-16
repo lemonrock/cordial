@@ -6,12 +6,11 @@ use super::*;
 use super::markdown::*;
 use super::super::webserver::headers::commonCacheControlHeader;
 use self::ProcessingPriority::*;
-use self::UrlTag::*;
+use self::ResourceTag::*;
 use ::css_purify::html5ever_ext::*;
 use ::serde::de;
 
 
-include!("appendFileNameExtension.rs");
 include!("CssPipeline.rs");
 include!("GifAnimationPipeline.rs");
 include!("FontPipeline.rs");
@@ -23,6 +22,4 @@ include!("mimeType.rs");
 include!("Pipeline.rs");
 include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");
-include!("replaceFileNameExtension.rs");
 include!("SvgPipeline.rs");
-include!("withoutFileNameExtension.rs");

@@ -11,7 +11,7 @@ pub(crate) struct RssChannel
 	#[serde(default)] compression: Compression,
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
 	#[serde(default)] details: HashMap<String, RssChannelLanguageSpecific>,
-	#[serde(default = "RssChannel::image_url_default")] image_url: UrlWithTag,
+	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] categories: Vec<String>,
@@ -20,7 +20,7 @@ pub(crate) struct RssChannel
 
 impl RssChannel
 {
-	const ImageUrlTag: UrlTag = UrlTag::primary_image;
+	const ImageResourceTag: ResourceTag = ResourceTag::primary_image;
 	
 	#[inline(always)]
 	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
@@ -40,9 +40,9 @@ impl RssChannel
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}
 		
-		let resource = resources.get(&self.image_url.resource).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
+		let resource = self.image_url.get(resources).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
 		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{:?}'", &self.image_url)))?;
-		let urlData = resource.urlData(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageUrlTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageUrlTag, &self.image_url)))?;
+		let urlData = resource.urlData(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
 		let imageUrl = urlData.urlOrDataUri.deref();
 		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
 		let imageWidth = urlData.jsonValue.u32("width")?;
@@ -63,7 +63,7 @@ impl RssChannel
 				minutesRoundedDown
 			}
 		};
-		let unversionedCanonicalUrl = languageData.url(&format!("{}.rss.xml", iso_639_1_alpha_2_language_code))?;
+		let unversionedCanonicalUrl = languageData.url(&ResourceUrl::rssUrl(iso_639_1_alpha_2_language_code))?;
 		let rssItems = rssItems.get(iso_639_1_alpha_2_language_code).unwrap();
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
@@ -190,9 +190,9 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn image_url_default() -> UrlWithTag
+	fn image_url_default() -> ResourceReference
 	{
-		UrlWithTag::new("/organization-logo.png", UrlTag::default)
+		ResourceReference::new("/organization-logo.png", ResourceTag::default)
 	}
 	
 	#[inline(always)]

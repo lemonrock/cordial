@@ -19,51 +19,46 @@ impl<'a> LanguageData<'a>
 			language,
 		}
 	}
-	
+
 	#[inline(always)]
 	pub(crate) fn baseUrl(&self, is_for_amp: bool) -> Result<Url, CordialError>
 	{
 		self.language.baseUrl(self.iso_639_1_alpha_2_language_code, is_for_amp)
 	}
-	
+
 	#[inline(always)]
-	pub(crate) fn url(&self, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	pub(crate) fn url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
-		self._url(resourceRelativeUrl, false)
+		self._url(resourceUrl, false)
 	}
-	
+
 	#[inline(always)]
-	pub(crate) fn leaf_url(&self, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	pub(crate) fn leaf_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
-		self._leaf_url(resourceRelativeUrl, false)
+		self._leaf_url(resourceUrl, false)
 	}
-	
+
 	#[inline(always)]
-	pub(crate) fn amp_url(&self, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	pub(crate) fn amp_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
-		self._url(resourceRelativeUrl, true)
+		self._url(resourceUrl, true)
 	}
-	
+
 	#[inline(always)]
-	pub(crate) fn amp_leaf_url(&self, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	pub(crate) fn amp_leaf_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
-		self._leaf_url(resourceRelativeUrl, true)
+		self._leaf_url(resourceUrl, true)
 	}
-	
+
 	#[inline(always)]
-	fn _url(&self, resourceRelativeUrl: &str, is_for_amp: bool) -> Result<Url, CordialError>
+	fn _url(&self, resourceUrl: &ResourceUrl, is_for_amp: bool) -> Result<Url, CordialError>
 	{
-		let baseUrl = self.baseUrl(is_for_amp)?;
-		let url = baseUrl.join(resourceRelativeUrl).context(format!("Invalid resourceRelativeUrl '{}'", resourceRelativeUrl))?;
-		Ok(url)
+		resourceUrl.toUrl(self.baseUrl(is_for_amp)?)
 	}
-	
+
 	#[inline(always)]
-	fn _leaf_url(&self, resourceRelativeUrl: &str, is_for_amp: bool) -> Result<Url, CordialError>
+	fn _leaf_url(&self, resourceUrl: &ResourceUrl, is_for_amp: bool) -> Result<Url, CordialError>
 	{
-		let mut leafPath = String::with_capacity(resourceRelativeUrl.len() + 1);
-		leafPath.push_str(resourceRelativeUrl);
-		leafPath.push('/');
-		self._url(&leafPath, is_for_amp)
+		self._url(&resourceUrl.leafUrl(), is_for_amp)
 	}
 }

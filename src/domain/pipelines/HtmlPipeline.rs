@@ -25,7 +25,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
 	#[serde(default)] abstracts: HashMap<String, Abstract>,
 	// a resource URL; if missing, then rss should be set to false
-	#[serde(default)] article_image: Option<UrlWithTag>,
+	#[serde(default)] article_image: Option<ResourceReference>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
 	#[serde(default = "HtmlPipeline::amp_template_default")] amp_template: Option<String>,
 	// Handlebars template default
@@ -94,31 +94,31 @@ impl Pipeline for HtmlPipeline
 	// TODO: JSON/handlebars: Article Image
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let htmlFromMarkdown = self.renderMarkdown(inputContentFilePath)?;
 		let abstract_ = self.abstract_(languageData)?;
 		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
 		let articleImage = self.articleImage(resources)?;
 		
-		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, &articleImage, resources, languageData)?;
+		self.addSiteMapEntry(configuration, siteMapWebPages, resourceUrl, &articleImage, resources, languageData)?;
 		
 		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
 		let regularBody = document.minify_to_bytes(true);
 		
-		self.addRssItem(configuration, rssItems, resourceRelativeUrl, &articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
+		self.addRssItem(configuration, rssItems, resourceUrl, &articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
 		
 		const CanBeCompressed: bool = true;
 		
 		let mut result = Vec::with_capacity(4);
 		
-		let inputCanonicalUrl = self.canonicalUrl(languageData, resourceRelativeUrl)?;
+		let inputCanonicalUrl = self.canonicalUrl(languageData, resourceUrl)?;
 		
 		if let Some(ref amp_template) = self.amp_template
 		{
-			let ampUrl = self.ampUrl(languageData, resourceRelativeUrl)?;
+			let ampUrl = self.ampUrl(languageData, resourceUrl)?;
 			
-			self.addRedirect(true, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl)?;
+			self.addRedirect(true, &mut result, languageData, resourceUrl, &inputCanonicalUrl)?;
 			
 			let ampHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
 			
@@ -129,7 +129,7 @@ impl Pipeline for HtmlPipeline
 		}
 		
 		{
-			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl)?;
+			self.addRedirect(false, &mut result, languageData, resourceUrl, &inputCanonicalUrl)?;
 			
 			let regularHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 			
@@ -152,7 +152,7 @@ impl HtmlPipeline
 	const is_downloadable: bool = false;
 	
 	#[inline(always)]
-	fn addRedirect(&self, isForAmp: bool, result: &mut Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, languageData: &LanguageData, resourceRelativeUrl: &str, inputCanonicalUrl: &Url) -> Result<(), CordialError>
+	fn addRedirect(&self, isForAmp: bool, result: &mut Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, languageData: &LanguageData, resourceUrl: &ResourceUrl, inputCanonicalUrl: &Url) -> Result<(), CordialError>
 	{
 		const RedirectsCanNotBeCompressed: bool = false;
 		
@@ -160,11 +160,11 @@ impl HtmlPipeline
 		{
 			let redirectUrl = if isForAmp
 			{
-				self.ampRedirectUrl(languageData, resourceRelativeUrl)?
+				self.ampRedirectUrl(languageData, resourceUrl)?
 			}
 			else
 			{
-				self.redirectUrl(languageData, resourceRelativeUrl)?
+				self.redirectUrl(languageData, resourceUrl)?
 			};
 			result.push((redirectUrl, hashmap! { redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), Self::redirectHeaders(inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
 		}
@@ -185,59 +185,59 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn canonicalUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	fn canonicalUrl(&self, languageData: &LanguageData, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
 		if self.is_leaf
 		{
-			languageData.leaf_url(resourceRelativeUrl)
+			languageData.leaf_url(resourceUrl)
 		}
 		else
 		{
-			languageData.url(resourceRelativeUrl)
+			languageData.url(resourceUrl)
 		}
 	}
 	
 	#[inline(always)]
-	fn redirectUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	fn redirectUrl(&self, languageData: &LanguageData, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
 		if self.is_leaf
 		{
-			languageData.url(resourceRelativeUrl)
+			languageData.url(resourceUrl)
 		}
 		else
 		{
-			languageData.leaf_url(resourceRelativeUrl)
+			languageData.leaf_url(resourceUrl)
 		}
 	}
 	
 	#[inline(always)]
-	fn ampUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	fn ampUrl(&self, languageData: &LanguageData, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
 		if self.is_leaf
 		{
-			languageData.amp_leaf_url(resourceRelativeUrl)
+			languageData.amp_leaf_url(resourceUrl)
 		}
 		else
 		{
-			languageData.amp_url(resourceRelativeUrl)
+			languageData.amp_url(resourceUrl)
 		}
 	}
 	
 	#[inline(always)]
-	fn ampRedirectUrl(&self, languageData: &LanguageData, resourceRelativeUrl: &str) -> Result<Url, CordialError>
+	fn ampRedirectUrl(&self, languageData: &LanguageData, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
 	{
 		if self.is_leaf
 		{
-			languageData.amp_url(resourceRelativeUrl)
+			languageData.amp_url(resourceUrl)
 		}
 		else
 		{
-			languageData.amp_leaf_url(resourceRelativeUrl)
+			languageData.amp_leaf_url(resourceUrl)
 		}
 	}
 	
 	#[inline(always)]
-	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceRelativeUrl: &str, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceUrl: &ResourceUrl, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		if self.site_map
 		{
@@ -250,7 +250,7 @@ impl HtmlPipeline
 			let mut urlsByIsoLanguageCode = BTreeMap::new();
 			configuration.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
-				let url = self.canonicalUrl(languageData, resourceRelativeUrl)?;
+				let url = self.canonicalUrl(languageData, resourceUrl)?;
 				urlsByIsoLanguageCode.insert(languageData.iso_639_1_alpha_2_language_code.to_owned(), url);
 				Ok(())
 			})?;
@@ -271,7 +271,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceRelativeUrl: &str, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceUrl: &ResourceUrl, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
 	{
 		if self.rss
 		{
@@ -283,7 +283,7 @@ impl HtmlPipeline
 					{
 						webPageDescription: abstract_.description.to_owned(),
 						webPageUsefulContentHtml: Self::extractNodes(&self.rss_css_selector, &document, "rss_css_selector", capacityHint)?,
-						languageSpecificUrl: self.canonicalUrl(languageData, resourceRelativeUrl)?,
+						languageSpecificUrl: self.canonicalUrl(languageData, resourceUrl)?,
 						primaryImage: match articleImage
 						{
 							&None => None,
@@ -369,7 +369,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(&'this UrlWithTag, Ref<'resources, ImageMetaData>)>, CordialError>
+	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(&'this ResourceReference, Ref<'resources, ImageMetaData>)>, CordialError>
 	{
 		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
 		{
@@ -385,16 +385,15 @@ impl HtmlPipeline
 		match self.article_image
 		{
 			None => Ok(None),
-			Some(ref urlWithTag) =>
+			Some(ref resourceReference) =>
 			{
-				let resourceRefCellOption: Option<&RefCell<Resource>> = resources.get(&urlWithTag.resource);
-				let resourceRefCell = match resourceRefCellOption
+				let resourceRefCell = match resourceReference.get(resources)
 				{
 					None => return Ok(None),
 					Some(resourceRefCell) => resourceRefCell,
 				};
 				
-				Ok(x(resourceRefCell)?.map(|metadata| (urlWithTag, metadata)))
+				Ok(x(resourceRefCell)?.map(|metadata| (resourceReference, metadata)))
 			}
 		}
 	}
@@ -407,7 +406,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(&UrlWithTag, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
 	{
 		let html =
 		{

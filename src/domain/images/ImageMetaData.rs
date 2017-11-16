@@ -8,7 +8,7 @@ pub(crate) struct ImageMetaData
 {
 	pub(crate) abstracts: HashMap<String, ImageAbstract>,
 	
-	pub(crate) license_url: UrlWithTag,
+	pub(crate) license_url: ResourceReference,
 	
 	pub(crate) credit: FullName,
 	
@@ -59,7 +59,7 @@ impl ImageMetaData
 		}
 	}
 	
-	pub(crate) fn siteMapWebPageImage(&self, internalImage: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
 	{
 		let url = match resources.urlData(internalImage, primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code))?
 		{
@@ -88,7 +88,7 @@ impl ImageMetaData
 	}
 	
 	// TODO: add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
-	pub(crate) fn rssImage(&self, internalImage: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<RssImage, CordialError>
+	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &Resources) -> Result<RssImage, CordialError>
 	{
 		let alt = match self.abstracts.get(iso_639_1_alpha_2_language_code)
 		{

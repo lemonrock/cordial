@@ -68,10 +68,8 @@ impl Pipeline for RasterImagePipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceRelativeUrl: &str, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
-		let resourceRelativeUrlWithoutFileNameExtension = withoutFileNameExtension(resourceRelativeUrl);
-		
 		// load original
 		let mut imageBeforeTransformation = match ImageInputFormat::load(self.input_format, inputContentFilePath)
 		{
@@ -97,7 +95,7 @@ impl Pipeline for RasterImagePipeline
 		};
 		
 		// generate image src set
-		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, resourceRelativeUrlWithoutFileNameExtension, self.jpeg_quality, self.jpeg_speed_over_compression, imageAfterTransformation, languageData);
+		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, &resourceUrl, self.jpeg_quality, self.jpeg_speed_over_compression, imageAfterTransformation, languageData);
 		imageSourceSet.add(&self.source_set_excluding_original)?;
 		
 		//TODO: Need a way to pass this back

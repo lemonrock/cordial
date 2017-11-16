@@ -4,7 +4,6 @@
 
 use super::*;
 use super::pipelines::mimeType;
-use super::pipelines::replaceFileNameExtension;
 use ::woff2_sys::convertTtfToWoff2;
 
 

@@ -5,33 +5,33 @@
 pub(crate) trait ResourcesExt
 {
 	#[inline(always)]
-	fn urlData(&self, urlWithTag: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>;
+	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>;
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, urlWithTag: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
+	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
 }
 
 impl ResourcesExt for Resources
 {
 	#[inline(always)]
-	fn urlData(&self, urlWithTag: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>
+	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>
 	{
-		match self.get(&urlWithTag.resource)
+		match resourceReference.get(self)
 		{
 			None => Ok(None),
 			Some(resourceRefCell) =>
 			{
 				let refResource = resourceRefCell.try_borrow()?;
 				
-				Ok(refResource.urlData(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &urlWithTag.tag))
+				Ok(refResource.urlData(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, &resourceReference.tag))
 			},
 		}
 	}
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, urlWithTag: &UrlWithTag, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
+	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
 	{
-		let urlData = match self.urlData(urlWithTag, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code)?
+		let urlData = match self.urlData(resourceReference, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code)?
 		{
 			None => return Ok(None),
 			Some(urlData) => urlData,

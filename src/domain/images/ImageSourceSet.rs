@@ -5,7 +5,7 @@
 pub(crate) struct ImageSourceSet<'a>
 {
 	inputContentFilePath: &'a Path,
-	resourceRelativeUrlWithoutFileNameExtension: &'a str,
+	resourceRelativeUrlWithoutFileNameExtension: ResourceUrl<'a>,
 	jpegQuality: Option<u8>,
 	jpegSpeedOverCompression: bool,
 	primaryImageWidth: u32,
@@ -17,8 +17,10 @@ pub(crate) struct ImageSourceSet<'a>
 impl<'a> ImageSourceSet<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFilePath: &'a Path, resourceRelativeUrlWithoutFileNameExtension: &'a str, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
+	pub(crate) fn new(inputContentFilePath: &'a Path, resourceUrl: &'a ResourceUrl<'a>, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
 	{
+		let resourceRelativeUrlWithoutFileNameExtension = resourceUrl.withoutFileNameExtension();
+		
 		let primaryImageWidth = primaryImage.width();
 		let primaryImageHeight = primaryImage.height();
 		
@@ -81,11 +83,11 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let url = if width == self.primaryImageWidth
 			{
-				Self::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?
+				Self::primaryUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?
 			}
 			else
 			{
-				Self::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?
+				Self::widthUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?
 			};
 			
 			imageSourceSet.push((url, width))
@@ -94,7 +96,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<UrlTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -113,11 +115,11 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let (url, isPrimary) = if width == self.primaryImageWidth
 			{
-				(Self::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?, true)
+				(Self::primaryUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?, true)
 			}
 			else
 			{
-				(Self::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?, false)
+				(Self::widthUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?, false)
 			};
 			
 			let body = self.optimize(image)?;
@@ -135,8 +137,8 @@ impl<'a> ImageSourceSet<'a>
 				})
 			);
 			
-			use self::UrlTag::*;
-			let mut urlTags = hashmap!
+			use self::ResourceTag::*;
+			let mut resourceTagss = hashmap!
 			{
 				width_image(width) => jsonValue.clone(),
 				height_image(height) => jsonValue.clone(),
@@ -145,40 +147,33 @@ impl<'a> ImageSourceSet<'a>
 			
 			if isPrimary
 			{
-				urlTags.insert(default, jsonValue.clone());
-				urlTags.insert(primary_image, jsonValue.clone());
+				resourceTagss.insert(default, jsonValue.clone());
+				resourceTagss.insert(primary_image, jsonValue.clone());
 			}
 			if index == 0
 			{
-				urlTags.insert(smallest_image, jsonValue.clone());
+				resourceTagss.insert(smallest_image, jsonValue.clone());
 			}
 			if index == finalIndex
 			{
-				urlTags.insert(largest_image, jsonValue.clone());
+				resourceTagss.insert(largest_image, jsonValue.clone());
 			}
-			urls.push((url, urlTags, StatusCode::Ok, contentType.clone(), headers, body, None, false));
+			urls.push((url, resourceTagss, StatusCode::Ok, contentType.clone(), headers, body, None, false));
 			index += 1;
 		}
 		Ok(urls)
 	}
 	
-	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
+	#[inline(always)]
+	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
 	{
-		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
-		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
-		path.push_str(&format!("-{}w", width));
-		path.push_str(fileExtension);
-		
-		Ok(languageData.url(&path)?)
+		languageData.url(&resourceRelativeUrlWithoutFileNameExtension.widthUrl(fileExtension, width))
 	}
 	
-	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
+	#[inline(always)]
+	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
 	{
-		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
-		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
-		path.push_str(fileExtension);
-		
-		Ok(languageData.url(&path)?)
+		languageData.url(&resourceRelativeUrlWithoutFileNameExtension.primaryUrl(fileExtension))
 	}
 	
 	fn optimize(&self, image: &::image::DynamicImage) -> Result<Vec<u8>, CordialError>

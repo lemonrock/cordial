@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct RssFeedlyChannel
 {
-	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: UrlWithTag,
-	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: UrlWithTag,
-	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: UrlWithTag,
+	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: ResourceReference,
+	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: ResourceReference,
+	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: ResourceReference,
 	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: String, // eg 00FF00
 	#[serde(default = "RssFeedlyChannel::related_default")] related: bool,
 	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: Option<RssFeedlyChannelGoogleAnalyticsCode>,
@@ -94,21 +94,21 @@ impl RssFeedlyChannel
 	}
 	
 	#[inline(always)]
-	fn png_cover_image_default() -> UrlWithTag
+	fn png_cover_image_default() -> ResourceReference
 	{
-		UrlWithTag::new("/cover.png", UrlTag::largest_image)
+		ResourceReference::new("/cover.png", ResourceTag::largest_image)
 	}
 	
 	#[inline(always)]
-	fn svg_icon_default() -> UrlWithTag
+	fn svg_icon_default() -> ResourceReference
 	{
-		UrlWithTag::new("/favicon.svg", UrlTag::default)
+		ResourceReference::new("/favicon.svg", ResourceTag::default)
 	}
 	
 	#[inline(always)]
-	fn svg_logo_default() -> UrlWithTag
+	fn svg_logo_default() -> ResourceReference
 	{
-		UrlWithTag::new("/organization-logo.svg", UrlTag::default)
+		ResourceReference::new("/organization-logo.svg", ResourceTag::default)
 	}
 	
 	#[inline(always)]

@@ -5,7 +5,7 @@
 use super::*;
 
 
-include!("Iso639Language.rs");
+include!("Iso639Dash1Alpha2Language.rs");
 include!("Language.rs");
 include!("LanguageData.rs");
 include!("Localization.rs");

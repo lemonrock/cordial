@@ -9,7 +9,7 @@
 /// It is believed that `Church Slavic` has a hidden hard space on wikipedia and this has been corrected.
 //noinspection SpellCheckingInspection,NonAsciiCharacters
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum Iso639Language
+pub(crate) enum Iso639Dash1Alpha2Language
 {
 	Abkhazian,
 	Afar,
@@ -197,16 +197,16 @@ pub(crate) enum Iso639Language
 	Zulu,
 }
 
-impl Default for Iso639Language
+impl Default for Iso639Dash1Alpha2Language
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		Iso639Language::English
+		Iso639Dash1Alpha2Language::English
 	}
 }
 
-impl Display for Iso639Language
+impl Display for Iso639Dash1Alpha2Language
 {
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
 	{
@@ -214,16 +214,16 @@ impl Display for Iso639Language
 	}
 }
 
-impl<'de> Deserialize<'de> for Iso639Language
+impl<'de> Deserialize<'de> for Iso639Dash1Alpha2Language
 {
 	#[inline(always)]
 	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
 	{
-		struct Iso639LanguageVisitor;
+		struct Iso639Dash1Alpha2LanguageVisitor;
 		
-		impl<'de> Visitor<'de> for Iso639LanguageVisitor
+		impl<'de> Visitor<'de> for Iso639Dash1Alpha2LanguageVisitor
 		{
-			type Value = Iso639Language;
+			type Value = Iso639Dash1Alpha2Language;
 			
 			#[inline(always)]
 			fn expecting(&self, formatter: &mut Formatter) -> fmt::Result
@@ -246,13 +246,13 @@ impl<'de> Deserialize<'de> for Iso639Language
 			#[inline(always)]
 			fn visit_str<E: DeserializeError>(self, v: &str) -> Result<Self::Value, E>
 			{
-				match Iso639Language::from_english_spelling(v)
+				match Iso639Dash1Alpha2Language::from_english_spelling(v)
 				{
 					Some(value) => Ok(value),
-					None => match Iso639Language::from_lower_case_iso_639_1_alpha_2_language_code(v)
+					None => match Iso639Dash1Alpha2Language::from_lower_case_iso_639_1_alpha_2_language_code(v)
 					{
 						Some(value) => Ok(value),
-						None => match Iso639Language::from_lower_case_iso_639_1_alpha_2_language_code(&v.to_ascii_lowercase())
+						None => match Iso639Dash1Alpha2Language::from_lower_case_iso_639_1_alpha_2_language_code(&v.to_ascii_lowercase())
 						{
 							Some(value) => Ok(value),
 							None => Err(E::custom("could not match value to an ISO 639-1 language code or the English spelling of a language"))
@@ -262,11 +262,11 @@ impl<'de> Deserialize<'de> for Iso639Language
 			}
 		}
 		
-		deserializer.deserialize_str(Iso639LanguageVisitor)
+		deserializer.deserialize_str(Iso639Dash1Alpha2LanguageVisitor)
 	}
 }
 
-impl Serialize for Iso639Language
+impl Serialize for Iso639Dash1Alpha2Language
 {
 	#[inline(always)]
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -275,12 +275,12 @@ impl Serialize for Iso639Language
 	}
 }
 
-impl Iso639Language
+impl Iso639Dash1Alpha2Language
 {
 	#[inline(always)]
 	pub(crate) fn from_english_spelling(name: &str) -> Option<Self>
 	{
-		use self::Iso639Language::*;
+		use self::Iso639Dash1Alpha2Language::*;
 		
 		match name
 		{
@@ -475,7 +475,7 @@ impl Iso639Language
 	#[inline(always)]
 	pub(crate) fn from_lower_case_iso_639_1_alpha_2_language_code(lower_case_iso_639_1_alpha_2_language_code: &str) -> Option<Self>
 	{
-		use self::Iso639Language::*;
+		use self::Iso639Dash1Alpha2Language::*;
 		
 		match lower_case_iso_639_1_alpha_2_language_code
 		{
@@ -670,7 +670,7 @@ impl Iso639Language
 	#[inline(always)]
 	pub(crate) fn to_iso_639_1_alpha_2_language_code(&self) -> &'static str
 	{
-		use self::Iso639Language::*;
+		use self::Iso639Dash1Alpha2Language::*;
 		
 		match *self
 		{
@@ -865,7 +865,7 @@ impl Iso639Language
 	#[inline(always)]
 	pub(crate) fn wikipedia_preferred_english_spelling(&self) -> &'static str
 	{
-		use self::Iso639Language::*;
+		use self::Iso639Dash1Alpha2Language::*;
 		
 		match *self
 		{

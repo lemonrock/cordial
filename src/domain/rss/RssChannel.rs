@@ -10,7 +10,7 @@ pub(crate) struct RssChannel
 	#[serde(default = "RssChannel::max_age_in_seconds_default")] max_age_in_seconds: u32,
 	#[serde(default)] compression: Compression,
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
-	#[serde(default)] details: HashMap<Iso639Language, RssChannelLanguageSpecific>,
+	#[serde(default)] details: HashMap<Iso639Dash1Alpha2Language, RssChannelLanguageSpecific>,
 	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
@@ -23,13 +23,13 @@ impl RssChannel
 	const ImageResourceTag: ResourceTag = ResourceTag::primary_image;
 	
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<Iso639Language, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: Iso639Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
+	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
-		let detail = match self.details.get(&iso_639_1_alpha_2_language_code)
+		let detail = match self.details.get(&iso639Dash1Alpha2Language)
 		{
-			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso_639_1_alpha_2_language_code))),
+			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso639Dash1Alpha2Language))),
 			Some(detail) => detail,
 		};
 		
@@ -42,9 +42,9 @@ impl RssChannel
 		
 		let resource = self.image_url.get(resources).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
 		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{:?}'", &self.image_url)))?;
-		let urlData = resource.urlData(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
+		let urlData = resource.urlData(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
 		let imageUrl = urlData.urlOrDataUri.deref();
-		let imageAbstract = imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?;
+		let imageAbstract = imageMetaData.abstract_(iso639Dash1Alpha2Language)?;
 		let imageWidth = urlData.jsonValue.u32("width")?;
 		let imageHeight = urlData.jsonValue.u32("height")?;
 		let image_alt = &imageAbstract.alt;
@@ -63,8 +63,8 @@ impl RssChannel
 				minutesRoundedDown
 			}
 		};
-		let unversionedCanonicalUrl = ResourceUrl::rssUrl(iso_639_1_alpha_2_language_code).url(languageData)?;
-		let rssItems = rssItems.get(&iso_639_1_alpha_2_language_code).unwrap();
+		let unversionedCanonicalUrl = ResourceUrl::rssUrl(iso639Dash1Alpha2Language).url(languageData)?;
+		let rssItems = rssItems.get(&iso639Dash1Alpha2Language).unwrap();
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
 		
@@ -72,7 +72,7 @@ impl RssChannel
 		
 		for stylesheet in self.stylesheets.iter()
 		{
-			let data = stylesheet.render(primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code), resources, newResponses)?;
+			let data = stylesheet.render(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), resources, newResponses)?;
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
@@ -101,7 +101,7 @@ impl RssChannel
 				
 				if let Some(ref feedly) = self.feedly
 				{
-					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, resources, parentGoogleAnalyticsCode)?;
+					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
 				}
 				
 				let attributes =
@@ -113,7 +113,7 @@ impl RssChannel
 				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
 				
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso_639_1_alpha_2_language_code.to_iso_639_1_alpha_2_language_code())?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", &detail.copyright)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;

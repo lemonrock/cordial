@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ImageMetaData
 {
-	pub(crate) abstracts: HashMap<Iso639Language, ImageAbstract>,
+	pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, ImageAbstract>,
 	
 	pub(crate) license_url: ResourceReference,
 	
@@ -28,11 +28,11 @@ pub(crate) struct ImageMetaData
 impl ImageMetaData
 {
 	#[inline(always)]
-	pub(crate) fn abstract_(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Result<&ImageAbstract, CordialError>
+	pub(crate) fn abstract_(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&ImageAbstract, CordialError>
 	{
-		match self.abstracts.get(&iso_639_1_alpha_2_language_code)
+		match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
-			None => Err(CordialError::Configuration(format!("Could not find abstract for language {}", iso_639_1_alpha_2_language_code))),
+			None => Err(CordialError::Configuration(format!("Could not find abstract for language {}", iso639Dash1Alpha2Language))),
 			Some(abstract_) => Ok(abstract_),
 		}
 	}
@@ -59,23 +59,23 @@ impl ImageMetaData
 		}
 	}
 	
-	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Iso639Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
 	{
-		let url = match resources.urlData(internalImage, primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code))?
+		let url = match resources.urlData(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", internalImage))),
 			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
 		};
 		
-		let licenseUrl = match resources.urlData(&self.license_url, primary_iso_639_1_alpha_2_language_code, None)?
+		let licenseUrl = match resources.urlData(&self.license_url, primaryIso639Dash1Alpha2Language, None)?
 		{
 			None => return Err(CordialError::Configuration(format!("Could not locate a resource for license url '{:?}'", &self.license_url))),
 			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
 		};
 		
-		match self.abstracts.get(&primary_iso_639_1_alpha_2_language_code)
+		match self.abstracts.get(&primaryIso639Dash1Alpha2Language)
 		{
-			None => Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primary_iso_639_1_alpha_2_language_code))),
+			None => Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primaryIso639Dash1Alpha2Language))),
 			Some(ref abstract_) => Ok(SiteMapWebPageImage
 			{
 				url,
@@ -88,19 +88,19 @@ impl ImageMetaData
 	}
 	
 	// TODO: add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
-	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Iso639Language, resources: &Resources) -> Result<RssImage, CordialError>
+	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<RssImage, CordialError>
 	{
-		let alt = match self.abstracts.get(&iso_639_1_alpha_2_language_code)
+		let alt = match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
-			None => match self.abstracts.get(&primary_iso_639_1_alpha_2_language_code)
+			None => match self.abstracts.get(&primaryIso639Dash1Alpha2Language)
 			{
-				None => return Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primary_iso_639_1_alpha_2_language_code))),
+				None => return Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primaryIso639Dash1Alpha2Language))),
 				Some(ref primaryAbstract) => &primaryAbstract.alt
 			},
 			Some(ref abstract_) => &abstract_.alt
 		};
 		
-		match resources.urlData(internalImage, primary_iso_639_1_alpha_2_language_code, Some(iso_639_1_alpha_2_language_code))?
+		match resources.urlData(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?
 		{
 			None => Err(CordialError::Configuration(format!("Could not find article image for RSS feed for '{:?}'", internalImage))),
 			
@@ -119,7 +119,7 @@ impl ImageMetaData
 						mimeType: jsonValue.mime("mime")?,
 						alt: alt.clone(),
 						credit: self.credit.clone(),
-						iso_639_1_alpha_2_language_code,
+						iso639Dash1Alpha2Language,
 					}
 				)
 			}

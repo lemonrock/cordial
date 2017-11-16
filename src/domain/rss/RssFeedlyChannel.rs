@@ -34,11 +34,11 @@ impl Default for RssFeedlyChannel
 impl RssFeedlyChannel
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Iso639Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
-		let iso_639_1_alpha_2_language_code = Some(iso_639_1_alpha_2_language_code);
+		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.png_cover_image, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
+		if let Some(Some(urlData)) = resources.urlData(&self.png_cover_image, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			let attributes =
 			[
@@ -47,12 +47,12 @@ impl RssFeedlyChannel
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.svg_icon, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
+		if let Some(Some(urlData)) = resources.urlData(&self.svg_icon, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.urlOrDataUri.as_str())?;
 		}
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.svg_logo, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code).ok()
+		if let Some(Some(urlData)) = resources.urlData(&self.svg_logo, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.urlOrDataUri.as_str())?;
 		}

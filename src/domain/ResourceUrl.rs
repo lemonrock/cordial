@@ -75,21 +75,21 @@ impl<'a> ResourceUrl<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssUrl(iso_639_1_alpha_2_language_code: Iso639Language) -> Self
+	pub(crate) fn rssUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Self
 	{
-		Self::string(format!("{}.rss.xml", iso_639_1_alpha_2_language_code))
+		Self::string(format!("{}.rss.xml", iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapUrl(iso_639_1_alpha_2_language_code: Iso639Language, index: usize) -> Self
+	pub(crate) fn siteMapUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, index: usize) -> Self
 	{
-		Self::string(format!("{}.sitemap.{}.xml", index, iso_639_1_alpha_2_language_code))
+		Self::string(format!("{}.sitemap.{}.xml", index, iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapIndexUrl(iso_639_1_alpha_2_language_code: Iso639Language, index: usize) -> Self
+	pub(crate) fn siteMapIndexUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, index: usize) -> Self
 	{
-		Self::string(format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code))
+		Self::string(format!("{}.sitemap-index.{}.xml", index, iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]

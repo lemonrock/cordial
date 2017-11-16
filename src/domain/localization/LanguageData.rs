@@ -5,17 +5,17 @@
 #[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct LanguageData<'a>
 {
-	pub(crate) iso_639_1_alpha_2_language_code: Iso639Language,
+	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 	pub(crate) language: &'a Language,
 }
 
 impl<'a> LanguageData<'a>
 {
-	pub(crate) fn new(iso_639_1_alpha_2_language_code: Iso639Language, language: &'a Language) -> Self
+	pub(crate) fn new(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, language: &'a Language) -> Self
 	{
 		Self
 		{
-			iso_639_1_alpha_2_language_code,
+			iso639Dash1Alpha2Language,
 			language,
 		}
 	}
@@ -23,6 +23,6 @@ impl<'a> LanguageData<'a>
 	#[inline(always)]
 	pub(crate) fn baseUrl(&self, is_for_amp: bool) -> Result<Url, CordialError>
 	{
-		self.language.baseUrl(self.iso_639_1_alpha_2_language_code, is_for_amp)
+		self.language.baseUrl(self.iso639Dash1Alpha2Language, is_for_amp)
 	}
 }

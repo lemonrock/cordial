@@ -27,9 +27,9 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<Iso639Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
 		let namespace = Namespace
 		(
@@ -41,7 +41,7 @@ impl SiteMap
 		
 		let emptyAttributes = [];
 		
-		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(&iso_639_1_alpha_2_language_code).unwrap())?;
+		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(&iso639Dash1Alpha2Language).unwrap())?;
 		
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;
@@ -90,7 +90,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = ResourceUrl::siteMapIndexUrl(iso_639_1_alpha_2_language_code, index).url(languageData)?;
+			let unversionedCanonicalUrl = ResourceUrl::siteMapIndexUrl(iso639Dash1Alpha2Language, index).url(languageData)?;
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapIndexBodyUncompressed.shrink_to_fit();
@@ -112,7 +112,7 @@ impl SiteMap
 	#[inline(always)]
 	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
 		let namespace = Namespace
 		(
@@ -149,7 +149,7 @@ impl SiteMap
 				{
 					startingIndex += 1;
 					
-					if webPage.writeXml(iso_639_1_alpha_2_language_code, eventWriter, &namespace, &emptyAttributes)?
+					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &namespace, &emptyAttributes)?
 					{
 						count += 1;
 						
@@ -168,7 +168,7 @@ impl SiteMap
 				Ok(())
 			})?;
 			
-			let unversionedCanonicalUrl = ResourceUrl::siteMapUrl(iso_639_1_alpha_2_language_code, urlAndResponse.len()).url(languageData).unwrap();
+			let unversionedCanonicalUrl = ResourceUrl::siteMapUrl(iso639Dash1Alpha2Language, urlAndResponse.len()).url(languageData).unwrap();
 			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
 			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapBodyUncompressed.shrink_to_fit();

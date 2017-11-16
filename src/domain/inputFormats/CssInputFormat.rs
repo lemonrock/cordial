@@ -84,12 +84,12 @@ impl CssInputFormat
 			let (ourLanguage, otherLanguages) = match languageData
 			{
 				None => (None, None),
-				Some(&LanguageData { iso_639_1_alpha_2_language_code, language }) =>
+				Some(&LanguageData { iso639Dash1Alpha2Language, language }) =>
 				{
 					let mut ourLanguage = HashMap::with_capacity(2);
-					ourLanguage.insert("iso_639_1_alpha_2_language_code", iso_639_1_alpha_2_language_code.to_iso_639_1_alpha_2_language_code());
+					ourLanguage.insert("iso639Dash1Alpha2Language", iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
 					ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
-					(Some(ourLanguage), Some(localization.otherLanguages(iso_639_1_alpha_2_language_code)))
+					(Some(ourLanguage), Some(localization.otherLanguages(iso639Dash1Alpha2Language)))
 				}
 			};
 			

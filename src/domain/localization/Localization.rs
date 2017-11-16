@@ -7,8 +7,8 @@
 pub(crate) struct Localization
 {
 	#[serde(with = "url_serde", default = "Localization::language_tool_base_url_default")] language_tool_base_url: Url,
-	#[serde(default)] pub(crate) primary_iso_639_1_alpha_2_language_code: Iso639Language,
-	#[serde(default = "Localization::languages_default")] languages: HashMap<Iso639Language, Language>,
+	#[serde(default)] pub(crate) primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
+	#[serde(default = "Localization::languages_default")] languages: HashMap<Iso639Dash1Alpha2Language, Language>,
 }
 
 impl Default for Localization
@@ -19,7 +19,7 @@ impl Default for Localization
 		Self
 		{
 			language_tool_base_url: Self::language_tool_base_url_default(),
-			primary_iso_639_1_alpha_2_language_code: Default::default(),
+			primaryIso639Dash1Alpha2Language: Default::default(),
 			languages: Self::languages_default(),
 		}
 	}
@@ -30,34 +30,34 @@ impl Localization
 	#[inline(always)]
 	pub(crate) fn primaryLanguage(&self) -> Result<&Language, CordialError>
 	{
-		self.language(self.primary_iso_639_1_alpha_2_language_code)
+		self.language(self.primaryIso639Dash1Alpha2Language)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn language(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Result<&Language, CordialError>
+	pub(crate) fn language(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Language, CordialError>
 	{
-		match self.languages.get(&iso_639_1_alpha_2_language_code)
+		match self.languages.get(&iso639Dash1Alpha2Language)
 		{
-			None => Err(CordialError::Configuration(format!("iso_639_1_alpha_2_language_code '{}' does not have a defined language", iso_639_1_alpha_2_language_code))),
+			None => Err(CordialError::Configuration(format!("iso639Dash1Alpha2Language '{}' does not have a defined language", iso639Dash1Alpha2Language))),
 			Some(language) => Ok(language),
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn otherLanguages(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> HashMap<Iso639Language, Language>
+	pub(crate) fn otherLanguages(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> HashMap<Iso639Dash1Alpha2Language, Language>
 	{
-		self.languages.iter().filter(|&(code, _)| code != &iso_639_1_alpha_2_language_code).map(|(code, language)| (code.to_owned(), language.clone())).collect()
+		self.languages.iter().filter(|&(code, _)| code != &iso639Dash1Alpha2Language).map(|(code, language)| (code.to_owned(), language.clone())).collect()
 	}
 	
 	#[inline(always)]
 	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
 	{
-		visitor(&LanguageData::new(self.primary_iso_639_1_alpha_2_language_code, self.primaryLanguage()?), true)?;
-		for (iso_639_1_alpha_2_language_code, language) in self.languages.iter()
+		visitor(&LanguageData::new(self.primaryIso639Dash1Alpha2Language, self.primaryLanguage()?), true)?;
+		for (iso639Dash1Alpha2Language, language) in self.languages.iter()
 		{
-			if iso_639_1_alpha_2_language_code != &self.primary_iso_639_1_alpha_2_language_code
+			if iso639Dash1Alpha2Language != &self.primaryIso639Dash1Alpha2Language
 			{
-				visitor(&LanguageData::new(*iso_639_1_alpha_2_language_code, language), false)?;
+				visitor(&LanguageData::new(*iso639Dash1Alpha2Language, language), false)?;
 			}
 		}
 		Ok(())
@@ -107,11 +107,11 @@ impl Localization
 	}
 	
 	#[inline(always)]
-	fn languages_default() -> HashMap<Iso639Language, Language>
+	fn languages_default() -> HashMap<Iso639Dash1Alpha2Language, Language>
 	{
 		hashmap!
 		{
-			Iso639Language::default() => Language::default(),
+			Iso639Dash1Alpha2Language::default() => Language::default(),
 		}
 	}
 }

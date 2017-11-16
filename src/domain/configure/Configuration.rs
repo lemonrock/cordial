@@ -72,9 +72,9 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn primary_iso_639_1_alpha_2_language_code(&self) -> Iso639Language
+	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.localization.primary_iso_639_1_alpha_2_language_code
+		self.localization.primaryIso639Dash1Alpha2Language
 	}
 	
 	#[inline(always)]
@@ -177,7 +177,7 @@ impl Configuration
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<Iso639Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
@@ -185,7 +185,7 @@ impl Configuration
 		{
 			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
 			self.site_map.renderResource(languageData, handlebars, self, newResponses, oldResponses, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
-			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso_639_1_alpha_2_language_code));
+			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso639Dash1Alpha2Language));
 			
 			Ok(())
 		})?;
@@ -201,16 +201,16 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<Iso639Language, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
+	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
 	{
 		if let Some(rss) = self.rss.as_ref()
 		{
-			let primary_iso_639_1_alpha_2_language_code = self.primary_iso_639_1_alpha_2_language_code();
+			let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
 			
 			self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
 				let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
-				rss.renderResource(languageData, handlebars, self, newResponses, oldResponses, rssItems, primary_iso_639_1_alpha_2_language_code, resources, googleAnalytics)
+				rss.renderResource(languageData, handlebars, self, newResponses, oldResponses, rssItems, primaryIso639Dash1Alpha2Language, resources, googleAnalytics)
 			})
 		}
 		else
@@ -396,7 +396,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn languagesHashMap<R>(&self) -> HashMap<Iso639Language, R>
+	fn languagesHashMap<R>(&self) -> HashMap<Iso639Dash1Alpha2Language, R>
 	{
 		HashMap::with_capacity(self.numberOfLanguages())
 	}

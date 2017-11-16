@@ -8,7 +8,7 @@ pub(crate) struct SiteMapWebPage
 	pub(crate) lastModified: Option<DateTime<Utc>>,
 	pub(crate) changeFrequency: SiteMapChangeFrequency,
 	pub(crate) priority: SiteMapPriority,
-	pub(crate) urlsByIso639Language: BTreeMap<Iso639Language, Url>,
+	pub(crate) urlsByIso639Dash1Alpha2Language: BTreeMap<Iso639Dash1Alpha2Language, Url>,
 	pub(crate) images: Vec<SiteMapWebPageImage>,
 }
 
@@ -16,9 +16,9 @@ impl SiteMapWebPage
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso_639_1_alpha_2_language_code: Iso639Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
 	{
-		let locationUrl = self.urlsByIso639Language.get(&iso_639_1_alpha_2_language_code);
+		let locationUrl = self.urlsByIso639Dash1Alpha2Language.get(&iso639Dash1Alpha2Language);
 		if locationUrl.is_none()
 		{
 			return Ok(false);
@@ -34,9 +34,9 @@ impl SiteMapWebPage
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "changefreq", self.changeFrequency.as_str())?;
 			eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "priority", self.priority.as_str())?;
 			
-			for (iso_639_1_alpha_2_language_code, url) in self.urlsByIso639Language.iter()
+			for (iso639Dash1Alpha2Language, url) in self.urlsByIso639Dash1Alpha2Language.iter()
 			{
-				Self::writeXhtmlTranslationElement(eventWriter, namespace, *iso_639_1_alpha_2_language_code, url)?;
+				Self::writeXhtmlTranslationElement(eventWriter, namespace, *iso639Dash1Alpha2Language, url)?;
 			}
 			
 			for image in self.images.iter()
@@ -52,12 +52,12 @@ impl SiteMapWebPage
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, iso_639_1_alpha_2_language_code: Iso639Language, url: &Url) -> XmlWriterResult
+	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, url: &Url) -> XmlWriterResult
 	{
 		eventWriter.writeEmptyElement(namespace,
 		&[
 			Attribute::new(Name::local("rel"), "alternate"),
-			Attribute::new(Name::local("hreflang"), iso_639_1_alpha_2_language_code.to_iso_639_1_alpha_2_language_code()),
+			Attribute::new(Name::local("hreflang"), iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
 			Attribute::new(Name::local("href"), url.as_ref()),
 		], Name::prefixed("link", "xhtml"))
 	}

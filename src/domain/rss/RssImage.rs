@@ -12,5 +12,5 @@ pub(crate) struct RssImage
 	pub(crate) mimeType: Mime,
 	pub(crate) alt: String,
 	pub(crate) credit: FullName,
-	pub(crate) iso_639_1_alpha_2_language_code: Iso639Language,
+	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 }

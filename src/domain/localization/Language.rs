@@ -42,37 +42,37 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn relative_root_url(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Cow<'static, str>
+	pub(crate) fn relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url
 		{
 			host => Cow::Borrowed("/"),
-			iso => Cow::Owned(format!("/{}/", iso_639_1_alpha_2_language_code))
+			iso => Cow::Owned(format!("/{}/", iso639Dash1Alpha2Language))
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn amp_relative_root_url(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Cow<'static, str>
+	pub(crate) fn amp_relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url
 		{
 			host => Cow::Borrowed("/amp/"),
-			iso => Cow::Owned(format!("/amp/{}/", iso_639_1_alpha_2_language_code))
+			iso => Cow::Owned(format!("/amp/{}/", iso639Dash1Alpha2Language))
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn baseUrl(&self, iso_639_1_alpha_2_language_code: Iso639Language, is_for_amp: bool) -> Result<Url, CordialError>
+	pub(crate) fn baseUrl(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, is_for_amp: bool) -> Result<Url, CordialError>
 	{
 		let relative_root_url = if is_for_amp
 		{
-			self.amp_relative_root_url(iso_639_1_alpha_2_language_code)
+			self.amp_relative_root_url(iso639Dash1Alpha2Language)
 		}
 		else
 		{
-			self.relative_root_url(iso_639_1_alpha_2_language_code)
+			self.relative_root_url(iso639Dash1Alpha2Language)
 		};
 		let formattedUrl = format!("https://{}{}", &self.host, relative_root_url);
 		let parsed = Url::parse(&formattedUrl);

@@ -20,7 +20,7 @@ pub(crate) struct Resource
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
-	#[serde(default, skip_deserializing)] urlData: HashMap<Iso639Language, HashMap<ResourceTag, Rc<UrlData>>>,
+	#[serde(default, skip_deserializing)] urlData: HashMap<Iso639Dash1Alpha2Language, HashMap<ResourceTag, Rc<UrlData>>>,
 }
 
 impl Resource
@@ -32,9 +32,9 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlData(&self, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>, resourceTag: &ResourceTag) -> Option<Rc<UrlData>>
+	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<Rc<UrlData>>
 	{
-		let urlKey = self.urlKey(primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code);
+		let urlKey = self.urlKey(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
 		match self.urlData.get(&urlKey)
 		{
 			None => None,
@@ -43,27 +43,27 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn urlKey<'a>(&self, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>) -> Iso639Language
+	fn urlKey<'a>(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Iso639Dash1Alpha2Language
 	{
 		let (isForPrimaryLanguageOnly, _isVersioned) = self.is();
 		if isForPrimaryLanguageOnly
 		{
-			primary_iso_639_1_alpha_2_language_code
+			primaryIso639Dash1Alpha2Language
 		}
-		else if let Some(iso_639_1_alpha_2_language_code) = iso_639_1_alpha_2_language_code
+		else if let Some(iso639Dash1Alpha2Language) = iso639Dash1Alpha2Language
 		{
-			if self.urlData.contains_key(&iso_639_1_alpha_2_language_code)
+			if self.urlData.contains_key(&iso639Dash1Alpha2Language)
 			{
-				iso_639_1_alpha_2_language_code
+				iso639Dash1Alpha2Language
 			}
 			else
 			{
-				primary_iso_639_1_alpha_2_language_code
+				primaryIso639Dash1Alpha2Language
 			}
 		}
 		else
 		{
-			primary_iso_639_1_alpha_2_language_code
+			primaryIso639Dash1Alpha2Language
 		}
 	}
 	
@@ -98,12 +98,12 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, resourceUrl: &ResourceUrl, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<Iso639Language, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<Iso639Language, Vec<RssItem>>) -> Result<(), CordialError>
+	pub(crate) fn render(&mut self, resourceUrl: &ResourceUrl, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>) -> Result<(), CordialError>
 	{
 		#[inline(always)]
-		fn getOrDefault<'a, T>(map: &'a mut HashMap<Iso639Language, Vec<T>>, iso_639_1_alpha_2_language_code: Iso639Language) -> &'a mut Vec<T>
+		fn getOrDefault<'a, T>(map: &'a mut HashMap<Iso639Dash1Alpha2Language, Vec<T>>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> &'a mut Vec<T>
 		{
-			map.entry(iso_639_1_alpha_2_language_code).or_insert_with(|| Vec::with_capacity(4096))
+			map.entry(iso639Dash1Alpha2Language).or_insert_with(|| Vec::with_capacity(4096))
 		}
 		
 		let primaryLanguage = configuration.localization.primaryLanguage()?;
@@ -119,7 +119,7 @@ impl Resource
 			}
 			else
 			{
-				let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+				let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 				
 				let result =
 				{
@@ -131,14 +131,14 @@ impl Resource
 					{
 						(None, self.languageNeutralInputContentFilePath(primaryLanguage, None)?)
 					};
-					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso_639_1_alpha_2_language_code);
-					let mut rssItems = getOrDefault(rssItemsByLanguage, iso_639_1_alpha_2_language_code);
+					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso639Dash1Alpha2Language);
+					let mut rssItems = getOrDefault(rssItemsByLanguage, iso639Dash1Alpha2Language);
 					
 					self.execute(resources, &inputContentFilePath, resourceUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?
 				};
 				
 				// Always inserts, as this language code will only occur once.
-				let urls = self.urlData.entry(iso_639_1_alpha_2_language_code).or_insert(HashMap::with_capacity(result.len()));
+				let urls = self.urlData.entry(iso639Dash1Alpha2Language).or_insert(HashMap::with_capacity(result.len()));
 				
 				for (mut url, mut resourceTagssWithJsonValues, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{

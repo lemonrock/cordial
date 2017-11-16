@@ -16,9 +16,9 @@ impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
+	pub(crate) fn render<'a, 'b: 'a>(&'a self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
 	{
-		if let Some((urlData, contentMimeTypeWithoutParameters)) = resources.urlDataWithContentMimeTypeWithoutParameters(&self.url, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, newResponses)?
+		if let Some((urlData, contentMimeTypeWithoutParameters)) = resources.urlDataWithContentMimeTypeWithoutParameters(&self.url, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, newResponses)?
 		{
 			Ok(self.formatXmlString(&urlData.urlOrDataUri, &contentMimeTypeWithoutParameters))
 		}
@@ -27,7 +27,7 @@ impl StylesheetLink
 			Err(CordialError::Configuration(format!("Could not find a url-response pair for {:?}", &self.url)))
 		}
 	}
-	
+
 	#[inline(always)]
 	fn formatXmlString(&self, url: &Url, mimeType: &Mime) -> String
 	{
@@ -37,13 +37,13 @@ impl StylesheetLink
 			Some(ref mediaQuery) => format!("type=\"{}\" media=\"{}\" href=\"{}\"", mimeType, mediaQuery, url),
 		}
 	}
-	
+
 	#[inline(always)]
 	fn url_default() -> ResourceReference
 	{
 		ResourceReference::new("/rss.css", ResourceTag::default)
 	}
-	
+
 	#[inline(always)]
 	fn media_default() -> Option<String>
 	{

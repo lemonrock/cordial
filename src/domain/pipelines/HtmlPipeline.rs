@@ -20,10 +20,10 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] publication_date: Option<DateTime<Utc>>,
 	// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
 	// empty modifications imply use of publication date
-	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<Iso639Language, String>>,
+	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<Iso639Dash1Alpha2Language, String>>,
 	// open graph
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
-	#[serde(default)] abstracts: HashMap<Iso639Language, Abstract>,
+	#[serde(default)] abstracts: HashMap<Iso639Dash1Alpha2Language, Abstract>,
 	// a resource URL; if missing, then rss should be set to false
 	#[serde(default)] article_image: Option<ResourceReference>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
@@ -244,14 +244,14 @@ impl HtmlPipeline
 			let mut images = vec![];
 			if let &Some((imageResourceUrl, ref articleImage)) = articleImage
 			{
-				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?);
+				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primaryIso639Dash1Alpha2Language(), languageData.iso639Dash1Alpha2Language, resources)?);
 			};
 			
-			let mut urlsByIso639Language = BTreeMap::new();
+			let mut urlsByIso639Dash1Alpha2Language = BTreeMap::new();
 			configuration.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
 				let url = self.canonicalUrl(languageData, resourceUrl)?;
-				urlsByIso639Language.insert(languageData.iso_639_1_alpha_2_language_code, url);
+				urlsByIso639Dash1Alpha2Language.insert(languageData.iso639Dash1Alpha2Language, url);
 				Ok(())
 			})?;
 			
@@ -262,7 +262,7 @@ impl HtmlPipeline
 					lastModified: self.lastModificationDateOrPublicationDate(),
 					changeFrequency: self.site_map_change_frequency,
 					priority: self.site_map_priority,
-					urlsByIso639Language,
+					urlsByIso639Dash1Alpha2Language,
 					images
 				}
 			);
@@ -287,7 +287,7 @@ impl HtmlPipeline
 						primaryImage: match articleImage
 						{
 							&None => None,
-							&Some((imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?)
+							&Some((imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primaryIso639Dash1Alpha2Language(), languageData.iso639Dash1Alpha2Language, resources)?)
 						},
 					},
 					lastModificationDate: lastModificationDateOrPublicationDate,
@@ -310,14 +310,14 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn modifications(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
+	fn modifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
 	{
 		let mut modifications = BTreeMap::new();
 		for (date, modificationTranslations) in self.modifications.iter()
 		{
-			let translation = match modificationTranslations.get(&iso_639_1_alpha_2_language_code)
+			let translation = match modificationTranslations.get(&iso639Dash1Alpha2Language)
 			{
-				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso_639_1_alpha_2_language_code))),
+				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso639Dash1Alpha2Language))),
 				Some(translation) => translation.as_str(),
 			};
 			
@@ -329,10 +329,10 @@ impl HtmlPipeline
 	#[inline(always)]
 	fn abstract_(&self, languageData: &LanguageData) -> Result<&Abstract, CordialError>
 	{
-		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
-		match self.abstracts.get(&iso_639_1_alpha_2_language_code)
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
-			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso_639_1_alpha_2_language_code))),
+			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso639Dash1Alpha2Language))),
 			Some(abstract_) => Ok(abstract_),
 		}
 	}
@@ -410,11 +410,11 @@ impl HtmlPipeline
 	{
 		let html =
 		{
-			let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
+			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 			let imageAbstract = match articleImage
 			{
 				&None => None,
-				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso_639_1_alpha_2_language_code)?),
+				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso639Dash1Alpha2Language)?),
 			};
 			handlebars.template_render(template, &json!
 			({
@@ -427,7 +427,7 @@ impl HtmlPipeline
 				"markdown": htmlFromMarkdown,
 				"publication_date": self.publication_date,
 				"lastModificationDateOrPublicationDate": lastModificationDateOrPublicationDate,
-				"modifications": self.modifications(iso_639_1_alpha_2_language_code)?,
+				"modifications": self.modifications(iso639Dash1Alpha2Language)?,
 				"expiration_date": self.expiration_date,
 				"abstract": abstract_,
 				"image_abstract": imageAbstract,

@@ -101,7 +101,7 @@ impl Pipeline for HtmlPipeline
 		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
 		let articleImage = self.articleImage(resources)?;
 		
-		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, &articleImage, resources, languageData);
+		self.addSiteMapEntry(configuration, siteMapWebPages, resourceRelativeUrl, &articleImage, resources, languageData)?;
 		
 		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
 		let regularBody = document.minify_to_bytes(true);
@@ -118,7 +118,7 @@ impl Pipeline for HtmlPipeline
 		{
 			let ampUrl = self.ampUrl(languageData, resourceRelativeUrl)?;
 			
-			self.addRedirect(true, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
+			self.addRedirect(true, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl)?;
 			
 			let ampHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
 			
@@ -129,7 +129,7 @@ impl Pipeline for HtmlPipeline
 		}
 		
 		{
-			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl);
+			self.addRedirect(false, &mut result, languageData, resourceRelativeUrl, &inputCanonicalUrl)?;
 			
 			let regularHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 			
@@ -253,7 +253,7 @@ impl HtmlPipeline
 				let url = self.canonicalUrl(languageData, resourceRelativeUrl)?;
 				urlsByIsoLanguageCode.insert(languageData.iso_639_1_alpha_2_language_code.to_owned(), url);
 				Ok(())
-			});
+			})?;
 			
 			siteMapWebPages.push
 			(

@@ -44,12 +44,6 @@ impl Localization
 	}
 	
 	#[inline(always)]
-	pub(crate) fn languageData<'a>(&'a self, iso_639_1_alpha_2_language_code: &'a str) -> Result<LanguageData<'a>, CordialError>
-	{
-		Ok(LanguageData::new(iso_639_1_alpha_2_language_code, self.language(iso_639_1_alpha_2_language_code)?))
-	}
-	
-	#[inline(always)]
 	pub(crate) fn otherLanguages(&self, iso_639_1_alpha_2_language_code: &str) -> HashMap<String, Language>
 	{
 		self.languages.iter().filter(|&(code, _)| code != iso_639_1_alpha_2_language_code).map(|(code, language)| (code.to_owned(), language.clone())).collect()

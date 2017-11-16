@@ -65,7 +65,7 @@ impl Pipeline for CssPipeline
 	{
 		const CanBeCompressed: bool = true;
 		
-		let url = languageData.url(&resourceUrl.replaceFileNameExtension(".css"))?;
+		let url = resourceUrl.replaceFileNameExtension(".css").url(languageData)?;
 		
 		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
 		

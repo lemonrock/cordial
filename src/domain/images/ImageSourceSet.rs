@@ -167,13 +167,13 @@ impl<'a> ImageSourceSet<'a>
 	#[inline(always)]
 	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
 	{
-		languageData.url(&resourceRelativeUrlWithoutFileNameExtension.widthUrl(fileExtension, width))
+		resourceRelativeUrlWithoutFileNameExtension.widthUrl(fileExtension, width).url(languageData)
 	}
 	
 	#[inline(always)]
 	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
 	{
-		languageData.url(&resourceRelativeUrlWithoutFileNameExtension.primaryUrl(fileExtension))
+		resourceRelativeUrlWithoutFileNameExtension.primaryUrl(fileExtension).url(languageData)
 	}
 	
 	fn optimize(&self, image: &::image::DynamicImage) -> Result<Vec<u8>, CordialError>

@@ -25,40 +25,4 @@ impl<'a> LanguageData<'a>
 	{
 		self.language.baseUrl(self.iso_639_1_alpha_2_language_code, is_for_amp)
 	}
-
-	#[inline(always)]
-	pub(crate) fn url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
-	{
-		self._url(resourceUrl, false)
-	}
-
-	#[inline(always)]
-	pub(crate) fn leaf_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
-	{
-		self._leaf_url(resourceUrl, false)
-	}
-
-	#[inline(always)]
-	pub(crate) fn amp_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
-	{
-		self._url(resourceUrl, true)
-	}
-
-	#[inline(always)]
-	pub(crate) fn amp_leaf_url(&self, resourceUrl: &ResourceUrl) -> Result<Url, CordialError>
-	{
-		self._leaf_url(resourceUrl, true)
-	}
-
-	#[inline(always)]
-	fn _url(&self, resourceUrl: &ResourceUrl, is_for_amp: bool) -> Result<Url, CordialError>
-	{
-		resourceUrl.toUrl(self.baseUrl(is_for_amp)?)
-	}
-
-	#[inline(always)]
-	fn _leaf_url(&self, resourceUrl: &ResourceUrl, is_for_amp: bool) -> Result<Url, CordialError>
-	{
-		self._url(&resourceUrl.leafUrl(), is_for_amp)
-	}
 }

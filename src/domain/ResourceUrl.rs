@@ -93,6 +93,36 @@ impl<'a> ResourceUrl<'a>
 	}
 	
 	#[inline(always)]
+	pub(crate) fn leaf_url(&self, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		self._leaf_url(languageData, false)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn url(&self, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		self._url(languageData, false)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn amp_leaf_url(&self, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		self._leaf_url(languageData, true)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn amp_url(&self, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		self._url(languageData, true)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn toUrl(&self, baseUrl: Url) -> Result<Url, CordialError>
+	{
+		Ok(baseUrl.join(&self.0).context(format!("Invalid ResourceUrl '{}'", self))?)
+	}
+	
+	#[inline(always)]
 	pub(crate) fn replaceFileNameExtension(&self, extension: &str) -> Self
 	{
 		match self.0.rfind('.')
@@ -110,12 +140,6 @@ impl<'a> ResourceUrl<'a>
 			None => self.clone(),
 			Some(index) => Self::str(self.0.split_at(index).0),
 		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn toUrl(&self, baseUrl: Url) -> Result<Url, CordialError>
-	{
-		Ok(baseUrl.join(&self.0).context(format!("Invalid ResourceUrl '{}'", self))?)
 	}
 	
 	#[inline(always)]
@@ -150,6 +174,18 @@ impl<'a> ResourceUrl<'a>
 		path.push_str(fileExtension);
 		
 		Self::string(path)
+	}
+	
+	#[inline(always)]
+	fn _leaf_url(&self, languageData: &LanguageData, is_for_amp: bool) -> Result<Url, CordialError>
+	{
+		self.leafUrl()._url(languageData, is_for_amp)
+	}
+	
+	#[inline(always)]
+	fn _url(&self, languageData: &LanguageData, is_for_amp: bool) -> Result<Url, CordialError>
+	{
+		self.toUrl(languageData.baseUrl(is_for_amp)?)
 	}
 	
 	#[inline(always)]

@@ -63,7 +63,7 @@ impl RssChannel
 				minutesRoundedDown
 			}
 		};
-		let unversionedCanonicalUrl = languageData.url(&ResourceUrl::rssUrl(iso_639_1_alpha_2_language_code))?;
+		let unversionedCanonicalUrl = ResourceUrl::rssUrl(iso_639_1_alpha_2_language_code).url(languageData)?;
 		let rssItems = rssItems.get(iso_639_1_alpha_2_language_code).unwrap();
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();

@@ -189,11 +189,11 @@ impl HtmlPipeline
 	{
 		if self.is_leaf
 		{
-			languageData.leaf_url(resourceUrl)
+			resourceUrl.leaf_url(languageData)
 		}
 		else
 		{
-			languageData.url(resourceUrl)
+			resourceUrl.url(languageData)
 		}
 	}
 	
@@ -202,11 +202,11 @@ impl HtmlPipeline
 	{
 		if self.is_leaf
 		{
-			languageData.url(resourceUrl)
+			resourceUrl.url(languageData)
 		}
 		else
 		{
-			languageData.leaf_url(resourceUrl)
+			resourceUrl.leaf_url(languageData)
 		}
 	}
 	
@@ -215,11 +215,11 @@ impl HtmlPipeline
 	{
 		if self.is_leaf
 		{
-			languageData.amp_leaf_url(resourceUrl)
+			resourceUrl.amp_leaf_url(languageData)
 		}
 		else
 		{
-			languageData.amp_url(resourceUrl)
+			resourceUrl.amp_url(languageData)
 		}
 	}
 	
@@ -228,11 +228,11 @@ impl HtmlPipeline
 	{
 		if self.is_leaf
 		{
-			languageData.amp_url(resourceUrl)
+			resourceUrl.amp_url(languageData)
 		}
 		else
 		{
-			languageData.amp_leaf_url(resourceUrl)
+			resourceUrl.amp_leaf_url(languageData)
 		}
 	}
 	

@@ -85,7 +85,7 @@ impl FontInputFormat
 				woffNumberOfIterations @ 0 ... 5000 => woffNumberOfIterations,
 				_ => 5000,
 			};
-			let woffUrl = languageData.url(&resourceUrl.replaceFileNameExtension(".woff2"))?;
+			let woffUrl = resourceUrl.replaceFileNameExtension(".woff2").url(languageData)?;
 			let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
 			urls.push((woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
@@ -99,7 +99,7 @@ impl FontInputFormat
 				quality @ 1 ... 11 => quality,
 				_ => 11,
 			};
-			let woff2Url = languageData.url(&resourceUrl.replaceFileNameExtension(".woff2"))?;
+			let woff2Url = resourceUrl.replaceFileNameExtension(".woff2").url(languageData)?;
 			let woff2Headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woff2Url)?;
 			let woff2Body = match convertTtfToWoff2(&ttfBytes, utf8_xml_metadata, woff2BrotliQuality, !woff2_disallow_transforms)
 			{
@@ -111,7 +111,7 @@ impl FontInputFormat
 		
 		if include_ttf
 		{
-			let ttfUrl = languageData.url(resourceUrl)?;
+			let ttfUrl = resourceUrl.url(languageData)?;
 			let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
 			urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
 		}

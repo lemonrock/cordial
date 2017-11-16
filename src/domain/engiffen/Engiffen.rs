@@ -143,11 +143,11 @@ impl<'a> Engiffen<'a>
 			{
 				resourceTagss.insert(default, jsonValue.clone());
 				resourceTagss.insert(primary_image, jsonValue.clone());
-				ImageSourceSet::primaryUrl(&resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData)?
+				ResourceUrl::primaryUrl(resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData)?
 			}
 			else
 			{
-				ImageSourceSet::widthUrl(&resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData, width)?
+				ResourceUrl::widthUrl(resourceRelativeUrlWithoutFileNameExtension, ".gif", languageData, width)?
 			};
 			
 			let headers = headerGenerator(&url)?;

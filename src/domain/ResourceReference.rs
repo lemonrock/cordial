@@ -5,7 +5,7 @@
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct ResourceReference
 {
-	pub(crate) resource: ResourceUrl<'static>,
+	pub(crate) resource: ResourceUrl,
 	pub(crate) tag: ResourceTag,
 }
 

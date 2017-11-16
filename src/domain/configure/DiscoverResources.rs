@@ -107,7 +107,7 @@ impl DiscoverResources
 	}
 	
 	#[inline(always)]
-	fn insertResource(&mut self, resourceUrl: ResourceUrl<'static>, resource: Resource)
+	fn insertResource(&mut self, resourceUrl: ResourceUrl, resource: Resource)
 	{
 		self.resources.insert(resourceUrl, RefCell::new(resource));
 	}

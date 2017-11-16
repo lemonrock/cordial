@@ -3,18 +3,18 @@
 
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct ResourceUrl<'a>(pub(crate) Rc<Cow<'a, str>>);
+pub(crate) struct ResourceUrl(Rc<String>);
 
-impl Default for ResourceUrl<'static>
+impl Default for ResourceUrl
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ResourceUrl::str("/")
+		ResourceUrl::string("/")
 	}
 }
 
-impl<'a> Display for ResourceUrl<'a>
+impl Display for ResourceUrl
 {
 	#[inline(always)]
 	fn fmt(&self, f: &mut Formatter) -> fmt::Result
@@ -23,21 +23,27 @@ impl<'a> Display for ResourceUrl<'a>
 	}
 }
 
-impl<'de, 'a> Deserialize<'de> for ResourceUrl<'a>
+impl<'de> Deserialize<'de> for ResourceUrl
 {
 	#[inline(always)]
 	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
 	{
-		struct ResourceUrlVisitor<'a>(PhantomData<&'a str>);
+		struct ResourceUrlVisitor;
 		
-		impl<'de, 'a> Visitor<'de> for ResourceUrlVisitor<'a>
+		impl<'de> Visitor<'de> for ResourceUrlVisitor
 		{
-			type Value = ResourceUrl<'a>;
+			type Value = ResourceUrl;
 			
 			#[inline(always)]
 			fn expecting(&self, formatter: &mut Formatter) -> fmt::Result
 			{
 				formatter.write_str("a string")
+			}
+			
+			#[inline(always)]
+			fn visit_str<E: DeserializeError>(self, v: &str) -> Result<Self::Value, E>
+			{
+				Ok(ResourceUrl::string(v))
 			}
 			
 			#[inline(always)]
@@ -47,31 +53,31 @@ impl<'de, 'a> Deserialize<'de> for ResourceUrl<'a>
 			}
 		}
 		
-		deserializer.deserialize_string(ResourceUrlVisitor(PhantomData))
+		deserializer.deserialize_string(ResourceUrlVisitor)
 	}
 }
 
-impl ResourceUrl<'static>
+impl Serialize for ResourceUrl
 {
 	#[inline(always)]
-	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
+	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	{
-		resources.get(self)
+		serializer.serialize_str(&self.0)
 	}
 }
 
-impl<'a> ResourceUrl<'a>
+impl ResourceUrl
 {
 	#[inline(always)]
 	pub(crate) fn string<S: Into<String>>(value: S) -> Self
 	{
-		ResourceUrl(Rc::new(Cow::Owned(value.into())))
+		ResourceUrl(Rc::new(value.into()))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn str(value: &'a str) -> Self
+	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
 	{
-		ResourceUrl(Rc::new(Cow::Borrowed(value)))
+		resources.get(self)
 	}
 	
 	#[inline(always)]
@@ -90,6 +96,39 @@ impl<'a> ResourceUrl<'a>
 	pub(crate) fn siteMapIndexUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, index: usize) -> Self
 	{
 		Self::string(format!("{}.sitemap-index.{}.xml", index, iso639Dash1Alpha2Language))
+	}
+	
+	#[inline(always)]
+	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
+	{
+		#[inline(always)]
+		fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, width: u32) -> ResourceUrl
+		{
+			let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
+			path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
+			path.push_str(&format!("-{}w", width));
+			path.push_str(fileExtension);
+			
+			ResourceUrl::string(path)
+		}
+		
+		widthUrl(resourceRelativeUrlWithoutFileNameExtension, fileExtension, width).url(languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		#[inline(always)]
+		fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &str, fileExtension: &'static str) -> ResourceUrl
+		{
+			let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
+			path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
+			path.push_str(fileExtension);
+			
+			ResourceUrl::string(path)
+		}
+		
+		primaryUrl(resourceRelativeUrlWithoutFileNameExtension, fileExtension).url(languageData)
 	}
 	
 	#[inline(always)]
@@ -133,47 +172,22 @@ impl<'a> ResourceUrl<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn withoutFileNameExtension(&'a self) -> Self
+	pub(crate) fn withoutFileNameExtension(&self) -> &str
 	{
 		match self.0.rfind('.')
 		{
-			None => self.clone(),
-			Some(index) => Self::str(self.0.split_at(index).0),
+			None => &self.0,
+			Some(index) => self.0.split_at(index).0,
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn leafUrl(&self) -> ResourceUrl
+	pub(crate) fn leafUrl(&self) -> Self
 	{
 		let mut leafPath = String::with_capacity(&self.0.len() + 1);
 		leafPath.push_str(&self.0);
 		leafPath.push('/');
 		Self::string(leafPath)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn widthUrl(&self, fileExtension: &'static str, width: u32) -> Self
-	{
-		let resourceRelativeUrlWithoutFileNameExtension = &self.0;
-		
-		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
-		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
-		path.push_str(&format!("-{}w", width));
-		path.push_str(fileExtension);
-		
-		Self::string(path)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn primaryUrl(&self, fileExtension: &'static str) -> Self
-	{
-		let resourceRelativeUrlWithoutFileNameExtension = &self.0;
-		
-		let mut path = String::with_capacity(resourceRelativeUrlWithoutFileNameExtension.len() + 10);
-		path.push_str(resourceRelativeUrlWithoutFileNameExtension.as_ref());
-		path.push_str(fileExtension);
-		
-		Self::string(path)
 	}
 	
 	#[inline(always)]

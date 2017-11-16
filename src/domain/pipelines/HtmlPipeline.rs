@@ -13,6 +13,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default = "HtmlPipeline::site_map_default")] site_map: bool,
 	#[serde(default)] site_map_change_frequency: SiteMapChangeFrequency,
 	#[serde(default)] site_map_priority: SiteMapPriority,
+	#[serde(default)] site_map_images: Vec<ResourceUrl>,
 	#[serde(default = "HtmlPipeline::rss_default")] rss: bool,
 	#[serde(default)] rss_author: EMailAddress,
 	#[serde(default)] rss_categories: BTreeSet<String>,
@@ -25,7 +26,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
 	#[serde(default)] abstracts: HashMap<Iso639Dash1Alpha2Language, Abstract>,
 	// a resource URL; if missing, then rss should be set to false
-	#[serde(default)] article_image: Option<ResourceReference>,
+	#[serde(default)] article_image: Option<ResourceUrl>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
 	#[serde(default = "HtmlPipeline::amp_template_default")] amp_template: Option<String>,
 	// Handlebars template default
@@ -48,6 +49,7 @@ impl Default for HtmlPipeline
 			site_map: Self::site_map_default(),
 			site_map_change_frequency: Default::default(),
 			site_map_priority: Default::default(),
+			site_map_images: Default::default(),
 			rss: Self::rss_default(),
 			rss_author: Default::default(),
 			rss_categories: Default::default(),
@@ -92,6 +94,10 @@ impl Pipeline for HtmlPipeline
 	// TODO: Add images within web page to site map
 	// TODO: JSON/handlebars: deployment_version
 	// TODO: JSON/handlebars: Article Image
+	// TODO: Serialize for ResourceUrl
+	// TODO: Fix bugs with using ResourceUrl and not ResourceReference for self.article_image
+	// TODO: Article Image
+	// TODO: Validate title, description
 	
 	#[inline(always)]
 	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
@@ -237,15 +243,75 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceUrl: &ResourceUrl, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
+	fn renderMarkdown(&self, inputContentFilePath: &Path) -> Result<Vec<u8>, CordialError>
+	{
+		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+		MarkdownParser::defaultishParse(&self.header_id_prefix_with_trailing_dash, &markdown)
+	}
+	
+	#[inline(always)]
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
+	{
+		let html =
+		{
+			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+			let imageAbstract = match articleImage
+			{
+				&None => None,
+				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso639Dash1Alpha2Language)?),
+			};
+			handlebars.template_render(template, &json!
+			({
+				"environment": &configuration.environment,
+				"our_language": languageData,
+				"localization": &configuration.localization,
+				"deployment_date": configuration.deploymentDate,
+				//"deployment_version": deploymentVersion,
+				
+				"markdown": htmlFromMarkdown,
+				"publication_date": self.publication_date,
+				"lastModificationDateOrPublicationDate": lastModificationDateOrPublicationDate,
+				"modifications": self.modifications(iso639Dash1Alpha2Language)?,
+				"expiration_date": self.expiration_date,
+				"abstract": abstract_,
+				"image_abstract": imageAbstract,
+				"site_map_images": self.site_map_images,
+			}))?
+		};
+		let document = RcDom::from_bytes_verified_and_stripped_of_comments_and_processing_instructions_and_with_a_sane_doc_type(html.as_bytes(), inputContentFilePath)?;
+		Ok(document)
+	}
+	
+	#[inline(always)]
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		if self.site_map
 		{
+			let primaryIso639Dash1Alpha2Language = configuration.primaryIso639Dash1Alpha2Language();
+			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+			
 			let mut images = vec![];
-			if let &Some((imageResourceUrl, ref articleImage)) = articleImage
+			if let &Some((ref imageResourceUrl, ref articleImage)) = articleImage
 			{
-				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primaryIso639Dash1Alpha2Language(), languageData.iso639Dash1Alpha2Language, resources)?);
+				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?);
 			};
+			
+			for siteMapImageResourceUrl in self.site_map_images.iter()
+			{
+				if let Some(resourceRefCell) = siteMapImageResourceUrl.get(resources)
+				{
+					let resourceRef = resourceRefCell.try_borrow()?;
+					if let Some(imageMetaData) = resourceRef.imageMetaData()
+					{
+						let internalImage = ResourceReference
+						{
+							resource: siteMapImageResourceUrl.clone(),
+							tag: ResourceTag::largest_image,
+						};
+						images.push(imageMetaData.siteMapWebPageImage(&internalImage, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?)
+					}
+				}
+			}
 			
 			let mut urlsByIso639Dash1Alpha2Language = BTreeMap::new();
 			configuration.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
@@ -271,7 +337,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceUrl: &ResourceUrl, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
 	{
 		if self.rss
 		{
@@ -287,7 +353,7 @@ impl HtmlPipeline
 						primaryImage: match articleImage
 						{
 							&None => None,
-							&Some((imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primaryIso639Dash1Alpha2Language(), languageData.iso639Dash1Alpha2Language, resources)?)
+							&Some((ref imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, configuration.primaryIso639Dash1Alpha2Language(), languageData.iso639Dash1Alpha2Language, resources)?)
 						},
 					},
 					lastModificationDate: lastModificationDateOrPublicationDate,
@@ -369,7 +435,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(&'this ResourceReference, Ref<'resources, ImageMetaData>)>, CordialError>
+	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(ResourceReference, Ref<'resources, ImageMetaData>)>, CordialError>
 	{
 		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
 		{
@@ -385,57 +451,23 @@ impl HtmlPipeline
 		match self.article_image
 		{
 			None => Ok(None),
-			Some(ref resourceReference) =>
+			Some(ref resourceUrl) =>
 			{
-				let resourceRefCell = match resourceReference.get(resources)
+				let resourceRefCell = match resourceUrl.get(resources)
 				{
 					None => return Ok(None),
 					Some(resourceRefCell) => resourceRefCell,
 				};
 				
+				let resourceReference = ResourceReference
+				{
+					resource: resourceUrl.clone(),
+					tag: ResourceTag::largest_image,
+				};
+				
 				Ok(x(resourceRefCell)?.map(|metadata| (resourceReference, metadata)))
 			}
 		}
-	}
-	
-	#[inline(always)]
-	fn renderMarkdown(&self, inputContentFilePath: &Path) -> Result<Vec<u8>, CordialError>
-	{
-		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		MarkdownParser::defaultishParse(&self.header_id_prefix_with_trailing_dash, &markdown)
-	}
-	
-	#[inline(always)]
-	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(&ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
-	{
-		let html =
-		{
-			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-			let imageAbstract = match articleImage
-			{
-				&None => None,
-				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso639Dash1Alpha2Language)?),
-			};
-			handlebars.template_render(template, &json!
-			({
-				"environment": &configuration.environment,
-				"our_language": languageData,
-				"localization": &configuration.localization,
-				"deployment_date": configuration.deploymentDate,
-				//"deployment_version": deploymentVersion,
-				
-				"markdown": htmlFromMarkdown,
-				"publication_date": self.publication_date,
-				"lastModificationDateOrPublicationDate": lastModificationDateOrPublicationDate,
-				"modifications": self.modifications(iso639Dash1Alpha2Language)?,
-				"expiration_date": self.expiration_date,
-				"abstract": abstract_,
-				"image_abstract": imageAbstract,
-				// TODO: Article Image
-			}))?
-		};
-		let document = RcDom::from_bytes_verified_and_stripped_of_comments_and_processing_instructions_and_with_a_sane_doc_type(html.as_bytes(), inputContentFilePath)?;
-		Ok(document)
 	}
 	
 	#[inline(always)]

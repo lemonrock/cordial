@@ -5,7 +5,7 @@
 pub(crate) struct ImageSourceSet<'a>
 {
 	inputContentFilePath: &'a Path,
-	resourceRelativeUrlWithoutFileNameExtension: ResourceUrl<'a>,
+	resourceRelativeUrlWithoutFileNameExtension: &'a str,
 	jpegQuality: Option<u8>,
 	jpegSpeedOverCompression: bool,
 	primaryImageWidth: u32,
@@ -17,7 +17,7 @@ pub(crate) struct ImageSourceSet<'a>
 impl<'a> ImageSourceSet<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFilePath: &'a Path, resourceUrl: &'a ResourceUrl<'a>, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
+	pub(crate) fn new(inputContentFilePath: &'a Path, resourceUrl: &'a ResourceUrl, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
 	{
 		let resourceRelativeUrlWithoutFileNameExtension = resourceUrl.withoutFileNameExtension();
 		
@@ -83,11 +83,11 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let url = if width == self.primaryImageWidth
 			{
-				Self::primaryUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?
+				ResourceUrl::primaryUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?
 			}
 			else
 			{
-				Self::widthUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?
+				ResourceUrl::widthUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?
 			};
 			
 			imageSourceSet.push((url, width))
@@ -115,11 +115,11 @@ impl<'a> ImageSourceSet<'a>
 			let width = *width;
 			let (url, isPrimary) = if width == self.primaryImageWidth
 			{
-				(Self::primaryUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?, true)
+				(ResourceUrl::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData)?, true)
 			}
 			else
 			{
-				(Self::widthUrl(&self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?, false)
+				(ResourceUrl::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, fileExtension, self.languageData, width)?, false)
 			};
 			
 			let body = self.optimize(image)?;
@@ -162,18 +162,6 @@ impl<'a> ImageSourceSet<'a>
 			index += 1;
 		}
 		Ok(urls)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn widthUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData, width: u32) -> Result<Url, CordialError>
-	{
-		resourceRelativeUrlWithoutFileNameExtension.widthUrl(fileExtension, width).url(languageData)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn primaryUrl(resourceRelativeUrlWithoutFileNameExtension: &ResourceUrl, fileExtension: &'static str, languageData: &LanguageData) -> Result<Url, CordialError>
-	{
-		resourceRelativeUrlWithoutFileNameExtension.primaryUrl(fileExtension).url(languageData)
 	}
 	
 	fn optimize(&self, image: &::image::DynamicImage) -> Result<Vec<u8>, CordialError>

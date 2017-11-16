@@ -74,10 +74,10 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf) -> ResourceUrl<'static>
+	pub(crate) fn finishInitialization(&mut self, parentHierarchy: Vec<String>, resourceInputName: &str, canonicalParentFolderPath: PathBuf) -> ResourceUrl
 	{
 		#[inline(always)]
-		fn resourceUrl(parentHierarchy: &[String], resourceInputName: &str) -> ResourceUrl<'static>
+		fn resourceUrl(parentHierarchy: &[String], resourceInputName: &str) -> ResourceUrl
 		{
 			let mut resourceRelativeUrl = String::with_capacity(1024);
 			for parent in parentHierarchy

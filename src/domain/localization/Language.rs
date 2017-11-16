@@ -6,7 +6,7 @@
 #[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct Language
 {
-	iso_3166_1_alpha_2_country_code: String,
+	iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode,
 	language_tool_long_code: String,
 	#[serde(default = "Language::host_default")] pub(crate) host: String,
 	#[serde(default)] relative_root_url: RelativeRootUrl,
@@ -19,7 +19,7 @@ impl Default for Language
 	{
 		Self
 		{
-			iso_3166_1_alpha_2_country_code: "US".to_owned(),
+			iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode::US,
 			language_tool_long_code: "en-US".to_owned(),
 			host: Self::host_default(),
 			relative_root_url: RelativeRootUrl::default(),
@@ -30,9 +30,9 @@ impl Default for Language
 impl Language
 {
 	#[inline(always)]
-	pub(crate) fn iso_3166_1_alpha_2_country_code(&self) -> &str
+	pub(crate) fn iso3166Dash1Alpha2CountryCode(&self) -> Iso3166Dash1Alpha2CountryCode
 	{
-		&self.iso_3166_1_alpha_2_country_code
+		self.iso_3166_1_alpha_2_country_code
 	}
 	
 	#[inline(always)]
@@ -76,7 +76,7 @@ impl Language
 		};
 		let formattedUrl = format!("https://{}{}", &self.host, relative_root_url);
 		let parsed = Url::parse(&formattedUrl);
-		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relative_root_url, self.iso_3166_1_alpha_2_country_code()))?;
+		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relative_root_url, self.iso3166Dash1Alpha2CountryCode()))?;
 		Ok(result)
 	}
 	

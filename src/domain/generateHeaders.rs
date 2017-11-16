@@ -70,7 +70,7 @@ pub(crate) fn generateHeaders(handlebars: &mut Handlebars, headerTemplates: &Has
 			
 			let mut ourLanguage = HashMap::with_capacity(2);
 			ourLanguage.insert("iso639Dash1Alpha2Language", iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
-			ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso_3166_1_alpha_2_country_code());
+			ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso3166Dash1Alpha2CountryCode().to_iso_3166_1_alpha_2_language_code());
 			(Some(ourLanguage), Some(localization.otherLanguages(iso639Dash1Alpha2Language)))
 		}
 	};

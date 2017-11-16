@@ -74,7 +74,7 @@ impl Configuration
 	#[inline(always)]
 	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.localization.primaryIso639Dash1Alpha2Language
+		self.localization.primaryIso639Dash1Alpha2Language()
 	}
 	
 	#[inline(always)]

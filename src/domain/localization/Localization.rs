@@ -7,7 +7,7 @@
 pub(crate) struct Localization
 {
 	#[serde(with = "url_serde", default = "Localization::language_tool_base_url_default")] language_tool_base_url: Url,
-	#[serde(default)] pub(crate) primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
+	#[serde(default)] pub(crate) primary_iso_639_1_alpha_2_language: Iso639Dash1Alpha2Language,
 	#[serde(default = "Localization::languages_default")] languages: HashMap<Iso639Dash1Alpha2Language, Language>,
 }
 
@@ -19,7 +19,7 @@ impl Default for Localization
 		Self
 		{
 			language_tool_base_url: Self::language_tool_base_url_default(),
-			primaryIso639Dash1Alpha2Language: Default::default(),
+			primary_iso_639_1_alpha_2_language: Default::default(),
 			languages: Self::languages_default(),
 		}
 	}
@@ -28,9 +28,15 @@ impl Default for Localization
 impl Localization
 {
 	#[inline(always)]
+	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	{
+		self.primary_iso_639_1_alpha_2_language
+	}
+	
+	#[inline(always)]
 	pub(crate) fn primaryLanguage(&self) -> Result<&Language, CordialError>
 	{
-		self.language(self.primaryIso639Dash1Alpha2Language)
+		self.language(self.primary_iso_639_1_alpha_2_language)
 	}
 	
 	#[inline(always)]
@@ -52,10 +58,10 @@ impl Localization
 	#[inline(always)]
 	pub(crate) fn visitLanguagesWithPrimaryFirst<F: FnMut(&LanguageData, bool) -> Result<(), CordialError>>(&self, mut visitor: F) -> Result<(), CordialError>
 	{
-		visitor(&LanguageData::new(self.primaryIso639Dash1Alpha2Language, self.primaryLanguage()?), true)?;
+		visitor(&LanguageData::new(self.primary_iso_639_1_alpha_2_language, self.primaryLanguage()?), true)?;
 		for (iso639Dash1Alpha2Language, language) in self.languages.iter()
 		{
-			if iso639Dash1Alpha2Language != &self.primaryIso639Dash1Alpha2Language
+			if iso639Dash1Alpha2Language != &self.primary_iso_639_1_alpha_2_language
 			{
 				visitor(&LanguageData::new(*iso639Dash1Alpha2Language, language), false)?;
 			}

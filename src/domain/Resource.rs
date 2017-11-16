@@ -224,7 +224,7 @@ impl Resource
 			
 			for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 			{
-				let languageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", nonPrimaryLanguage.iso_3166_1_alpha_2_country_code(), resourceInputContentFileNameWithExtension));
+				let languageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", nonPrimaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceInputContentFileNameWithExtension));
 				if languageSpecificFilePath.exists()
 				{
 					return Ok(languageSpecificFilePath);
@@ -235,7 +235,7 @@ impl Resource
 			{
 				for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 				{
-					let primaryLanguageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", primaryLanguage.iso_3166_1_alpha_2_country_code(), resourceInputContentFileNameWithExtension));
+					let primaryLanguageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceInputContentFileNameWithExtension));
 					if primaryLanguageSpecificFilePath.exists()
 					{
 						return Ok(primaryLanguageSpecificFilePath);

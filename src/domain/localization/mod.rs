@@ -6,6 +6,7 @@ use super::*;
 
 
 include!("Iso639Dash1Alpha2Language.rs");
+include!("Iso3166Dash1Alpha2CountryCode.rs");
 include!("Language.rs");
 include!("LanguageData.rs");
 include!("Localization.rs");

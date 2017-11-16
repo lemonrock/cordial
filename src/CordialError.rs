@@ -187,11 +187,11 @@ impl CordialError
 			None => format!("there is no language neutral content for resource {:?}", resourceName),
 			Some(language) => if primaryLanguage == language
 			{
-				format!("there is no primary language ({}) content for resource {:?}", primaryLanguage.iso_3166_1_alpha_2_country_code(), resourceName)
+				format!("there is no primary language ({}) content for resource {:?}", primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceName)
 			}
 			else
 			{
-				format!("there is no language ({}) or primary language ({}) content for resource {:?}", language.iso_3166_1_alpha_2_country_code(), primaryLanguage.iso_3166_1_alpha_2_country_code(), resourceName)
+				format!("there is no language ({}) or primary language ({}) content for resource {:?}", language.iso3166Dash1Alpha2CountryCode(), primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceName)
 			},
 		};
 		

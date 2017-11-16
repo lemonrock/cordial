@@ -72,9 +72,9 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn primary_iso_639_1_alpha_2_language_code(&self) -> &str
+	pub(crate) fn primary_iso_639_1_alpha_2_language_code(&self) -> Iso639Language
 	{
-		&self.localization.primary_iso_639_1_alpha_2_language_code
+		self.localization.primary_iso_639_1_alpha_2_language_code
 	}
 	
 	#[inline(always)]
@@ -177,7 +177,7 @@ impl Configuration
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<Iso639Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
@@ -201,7 +201,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<String, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
+	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<Iso639Language, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
 	{
 		if let Some(rss) = self.rss.as_ref()
 		{
@@ -396,7 +396,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn languagesHashMap<R>(&self) -> HashMap<String, R>
+	fn languagesHashMap<R>(&self) -> HashMap<Iso639Language, R>
 	{
 		HashMap::with_capacity(self.numberOfLanguages())
 	}

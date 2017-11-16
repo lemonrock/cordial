@@ -16,7 +16,7 @@ impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
+	pub(crate) fn render<'a, 'b: 'a>(&'a self, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
 	{
 		if let Some((urlData, contentMimeTypeWithoutParameters)) = resources.urlDataWithContentMimeTypeWithoutParameters(&self.url, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code, newResponses)?
 		{

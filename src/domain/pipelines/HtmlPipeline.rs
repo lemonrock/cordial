@@ -20,10 +20,10 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] publication_date: Option<DateTime<Utc>>,
 	// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
 	// empty modifications imply use of publication date
-	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<String, String>>,
+	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<Iso639Language, String>>,
 	// open graph
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
-	#[serde(default)] abstracts: HashMap<String, Abstract>,
+	#[serde(default)] abstracts: HashMap<Iso639Language, Abstract>,
 	// a resource URL; if missing, then rss should be set to false
 	#[serde(default)] article_image: Option<ResourceReference>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
@@ -247,11 +247,11 @@ impl HtmlPipeline
 				images.push(articleImage.siteMapWebPageImage(imageResourceUrl, configuration.primary_iso_639_1_alpha_2_language_code(), languageData.iso_639_1_alpha_2_language_code, resources)?);
 			};
 			
-			let mut urlsByIsoLanguageCode = BTreeMap::new();
+			let mut urlsByIso639Language = BTreeMap::new();
 			configuration.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 			{
 				let url = self.canonicalUrl(languageData, resourceUrl)?;
-				urlsByIsoLanguageCode.insert(languageData.iso_639_1_alpha_2_language_code.to_owned(), url);
+				urlsByIso639Language.insert(languageData.iso_639_1_alpha_2_language_code, url);
 				Ok(())
 			})?;
 			
@@ -262,7 +262,7 @@ impl HtmlPipeline
 					lastModified: self.lastModificationDateOrPublicationDate(),
 					changeFrequency: self.site_map_change_frequency,
 					priority: self.site_map_priority,
-					urlsByIsoLanguageCode,
+					urlsByIso639Language,
 					images
 				}
 			);
@@ -310,12 +310,12 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn modifications(&self, iso_639_1_alpha_2_language_code: &str) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
+	fn modifications(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
 	{
 		let mut modifications = BTreeMap::new();
 		for (date, modificationTranslations) in self.modifications.iter()
 		{
-			let translation = match modificationTranslations.get(iso_639_1_alpha_2_language_code)
+			let translation = match modificationTranslations.get(&iso_639_1_alpha_2_language_code)
 			{
 				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso_639_1_alpha_2_language_code))),
 				Some(translation) => translation.as_str(),
@@ -330,7 +330,7 @@ impl HtmlPipeline
 	fn abstract_(&self, languageData: &LanguageData) -> Result<&Abstract, CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
-		match self.abstracts.get(iso_639_1_alpha_2_language_code)
+		match self.abstracts.get(&iso_639_1_alpha_2_language_code)
 		{
 			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso_639_1_alpha_2_language_code))),
 			Some(abstract_) => Ok(abstract_),

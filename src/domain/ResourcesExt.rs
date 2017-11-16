@@ -5,16 +5,16 @@
 pub(crate) trait ResourcesExt
 {
 	#[inline(always)]
-	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>;
+	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>) -> Result<Option<Rc<UrlData>>, CordialError>;
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
+	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
 }
 
 impl ResourcesExt for Resources
 {
 	#[inline(always)]
-	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>) -> Result<Option<Rc<UrlData>>, CordialError>
+	fn urlData(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>) -> Result<Option<Rc<UrlData>>, CordialError>
 	{
 		match resourceReference.get(self)
 		{
@@ -29,7 +29,7 @@ impl ResourcesExt for Resources
 	}
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: Option<&str>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
+	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Option<Iso639Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
 	{
 		let urlData = match self.urlData(resourceReference, primary_iso_639_1_alpha_2_language_code, iso_639_1_alpha_2_language_code)?
 		{

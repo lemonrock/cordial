@@ -1,17 +1,38 @@
 <component name="ProjectDictionaryState">
   <dictionary name="raph">
     <words>
+      <w>abkhaz</w>
+      <w>abkhazian</w>
+      <w>akan</w>
       <w>appendv</w>
+      <w>aragonese</w>
       <w>autoprefix</w>
       <w>autoprefixer</w>
       <w>autoprefixers</w>
+      <w>avar</w>
+      <w>avaric</w>
+      <w>avestan</w>
       <w>backface</w>
+      <w>bambara</w>
+      <w>bangla</w>
+      <w>bashkir</w>
+      <w>belarusian</w>
+      <w>bhojpuri</w>
+      <w>bihari</w>
       <w>bindgen</w>
+      <w>bislama</w>
+      <w>bokmal</w>
+      <w>bokmål</w>
       <w>brotli</w>
       <w>caniuse</w>
       <w>canonicalized</w>
+      <w>castilian</w>
+      <w>chamorro</w>
       <w>chardet</w>
+      <w>chewa</w>
+      <w>chichewa</w>
       <w>chrono</w>
+      <w>chuang</w>
       <w>chunksize</w>
       <w>cloexec</w>
       <w>comrak</w>
@@ -24,8 +45,11 @@
       <w>deserialise</w>
       <w>deserialiser</w>
       <w>deserialized</w>
+      <w>dhivehi</w>
+      <w>divehi</w>
       <w>dlid</w>
       <w>doctype</w>
+      <w>dzongkha</w>
       <w>ebusy</w>
       <w>edeadlk</w>
       <w>einval</w>
@@ -34,27 +58,60 @@
       <w>epoll</w>
       <w>errormsg</w>
       <w>failover</w>
+      <w>fanti</w>
+      <w>faroese</w>
       <w>fclass</w>
       <w>feedly</w>
       <w>flowinfo</w>
+      <w>fula</w>
+      <w>fulah</w>
       <w>funcs</w>
+      <w>galician</w>
+      <w>ganda</w>
       <w>getinfo</w>
+      <w>gikuyu</w>
       <w>grayscale</w>
+      <w>guaraní</w>
       <w>guetzli</w>
       <w>guid</w>
+      <w>hiri</w>
       <w>hjson</w>
       <w>hsts</w>
       <w>ibverbs</w>
+      <w>igbo</w>
       <w>infini</w>
       <w>infiniband</w>
       <w>inode</w>
+      <w>interlingua</w>
+      <w>interlingue</w>
+      <w>inupiaq</w>
       <w>iovcnt</w>
       <w>iovec</w>
       <w>ipoib</w>
       <w>isystem</w>
+      <w>kalaallisut</w>
+      <w>kanuri</w>
+      <w>kashmiri</w>
+      <w>katanga</w>
+      <w>kinyarwanda</w>
+      <w>kirundi</w>
+      <w>komi</w>
+      <w>kuanyama</w>
+      <w>kwanyama</w>
+      <w>kyrgyz</w>
       <w>languagetool</w>
+      <w>letzeburgesch</w>
       <w>libfabric</w>
       <w>libibverbs</w>
+      <w>limburgan</w>
+      <w>limburgish</w>
+      <w>lingala</w>
+      <w>luba</w>
+      <w>luxembourgish</w>
+      <w>magahi</w>
+      <w>maithili</w>
+      <w>marshallese</w>
+      <w>marāṭhī</w>
       <w>mathml</w>
       <w>maxevents</w>
       <w>mblkpool</w>
@@ -72,19 +129,37 @@
       <w>mmutex</w>
       <w>mobjpool</w>
       <w>moid</w>
+      <w>motu</w>
       <w>mpool</w>
       <w>mrwlock</w>
       <w>msync</w>
       <w>musl</w>
+      <w>māori</w>
       <w>nack</w>
+      <w>navaho</w>
       <w>nbyte</w>
+      <w>ndebele</w>
+      <w>ndonga</w>
       <w>nelems</w>
       <w>nonblock</w>
       <w>nonoverlapping</w>
+      <w>nuosu</w>
       <w>nvml</w>
+      <w>nyanja</w>
+      <w>nynorsk</w>
+      <w>occitan</w>
+      <w>odia</w>
       <w>oflags</w>
+      <w>ojibwe</w>
+      <w>oromo</w>
+      <w>ossetian</w>
+      <w>ossetic</w>
       <w>oxipng</w>
+      <w>pali</w>
+      <w>panjabi</w>
+      <w>pashto</w>
       <w>picto</w>
+      <w>pilipino</w>
       <w>pjax</w>
       <w>pkey</w>
       <w>pmem</w>
@@ -98,7 +173,9 @@
       <w>prefixer</w>
       <w>preloading</w>
       <w>pthread</w>
+      <w>pushto</w>
       <w>pwait</w>
+      <w>pāli</w>
       <w>qkey</w>
       <w>quant</w>
       <w>quantizer</w>
@@ -107,23 +184,38 @@
       <w>recv</w>
       <w>refcnt</w>
       <w>rkey</w>
+      <w>rundi</w>
       <w>rustls</w>
       <w>rwlock</w>
+      <w>sami</w>
+      <w>sango</w>
+      <w>sardinian</w>
+      <w>saṃskṛta</w>
       <w>scss</w>
       <w>serialiser</w>
       <w>sfnt</w>
+      <w>shaba</w>
       <w>shmem</w>
+      <w>shona</w>
+      <w>sichuan</w>
       <w>sigmask</w>
       <w>sigs</w>
+      <w>sinhala</w>
       <w>sitemap</w>
       <w>sockaddr</w>
+      <w>sotho</w>
       <w>srcset</w>
       <w>strdup</w>
       <w>svgcleaner</w>
       <w>svgdom</w>
+      <w>swati</w>
+      <w>tajik</w>
       <w>targa</w>
+      <w>tigrinya</w>
       <w>timewait</w>
       <w>toml</w>
+      <w>tsonga</w>
+      <w>turkmen</w>
       <w>uncanonicalized</w>
       <w>unextended</w>
       <w>unicase</w>
@@ -132,15 +224,22 @@
       <w>unsharpen</w>
       <w>unsubscribes</w>
       <w>unversioned</w>
+      <w>uyghur</w>
+      <w>valencian</w>
+      <w>venda</w>
+      <w>volapuk</w>
+      <w>volapük</w>
       <w>webfeeds</w>
       <w>webserver</w>
       <w>werror</w>
       <w>whitelist</w>
       <w>woff</w>
+      <w>wolof</w>
       <w>wrlock</w>
       <w>xmltree</w>
       <w>xrcd</w>
       <w>yandex</w>
+      <w>zhuang</w>
       <w>zopfli</w>
     </words>
   </dictionary>

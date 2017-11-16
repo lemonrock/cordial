@@ -43,6 +43,8 @@ use ::serde::de::Error as DeserializeError;
 use ::serde::de::Deserialize;
 use ::serde::de::Deserializer;
 use ::serde::de::Visitor;
+use ::serde::ser::Serialize;
+use ::serde::ser::Serializer;
 use ::serde_hjson::Map as HjsonMap;
 use ::serde_hjson::Value as HjsonValue;
 use ::serde_json::value::Value as JsonValue;

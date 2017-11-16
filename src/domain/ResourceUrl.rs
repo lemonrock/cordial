@@ -75,19 +75,19 @@ impl<'a> ResourceUrl<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssUrl(iso_639_1_alpha_2_language_code: &str) -> Self
+	pub(crate) fn rssUrl(iso_639_1_alpha_2_language_code: Iso639Language) -> Self
 	{
 		Self::string(format!("{}.rss.xml", iso_639_1_alpha_2_language_code))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapUrl(iso_639_1_alpha_2_language_code: &str, index: usize) -> Self
+	pub(crate) fn siteMapUrl(iso_639_1_alpha_2_language_code: Iso639Language, index: usize) -> Self
 	{
 		Self::string(format!("{}.sitemap.{}.xml", index, iso_639_1_alpha_2_language_code))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapIndexUrl(iso_639_1_alpha_2_language_code: &str, index: usize) -> Self
+	pub(crate) fn siteMapIndexUrl(iso_639_1_alpha_2_language_code: Iso639Language, index: usize) -> Self
 	{
 		Self::string(format!("{}.sitemap-index.{}.xml", index, iso_639_1_alpha_2_language_code))
 	}

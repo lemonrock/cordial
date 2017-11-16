@@ -27,7 +27,7 @@ impl Default for SiteMap
 impl SiteMap
 {
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<String, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<Iso639Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
@@ -41,7 +41,7 @@ impl SiteMap
 		
 		let emptyAttributes = [];
 		
-		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(iso_639_1_alpha_2_language_code).unwrap())?;
+		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(&iso_639_1_alpha_2_language_code).unwrap())?;
 		
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;

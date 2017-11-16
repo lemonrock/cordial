@@ -73,7 +73,7 @@ impl RssItem
 					Attribute::new(Name::local("width"), &width),
 					Attribute::new(Name::local("fileSize"), &fileSize),
 					Attribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
-					Attribute::new(Name::local("lang"), &primaryImage.iso_639_1_alpha_2_language_code),
+					Attribute::new(Name::local("lang"), primaryImage.iso_639_1_alpha_2_language_code.to_iso_639_1_alpha_2_language_code()),
 				];
 				eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
 				{

@@ -34,7 +34,7 @@ impl Default for RssFeedlyChannel
 impl RssFeedlyChannel
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: &str, iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primary_iso_639_1_alpha_2_language_code: Iso639Language, iso_639_1_alpha_2_language_code: Iso639Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
 		let iso_639_1_alpha_2_language_code = Some(iso_639_1_alpha_2_language_code);
 		

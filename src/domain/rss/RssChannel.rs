@@ -10,7 +10,7 @@ pub(crate) struct RssChannel
 	#[serde(default = "RssChannel::max_age_in_seconds_default")] max_age_in_seconds: u32,
 	#[serde(default)] compression: Compression,
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
-	#[serde(default)] details: HashMap<String, RssChannelLanguageSpecific>,
+	#[serde(default)] details: HashMap<Iso639Language, RssChannelLanguageSpecific>,
 	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
@@ -23,11 +23,11 @@ impl RssChannel
 	const ImageResourceTag: ResourceTag = ResourceTag::primary_image;
 	
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<String, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: &str, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
+	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<Iso639Language, Vec<RssItem>>, primary_iso_639_1_alpha_2_language_code: Iso639Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
 		let iso_639_1_alpha_2_language_code = languageData.iso_639_1_alpha_2_language_code;
 		
-		let detail = match self.details.get(iso_639_1_alpha_2_language_code)
+		let detail = match self.details.get(&iso_639_1_alpha_2_language_code)
 		{
 			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso_639_1_alpha_2_language_code))),
 			Some(detail) => detail,
@@ -64,7 +64,7 @@ impl RssChannel
 			}
 		};
 		let unversionedCanonicalUrl = ResourceUrl::rssUrl(iso_639_1_alpha_2_language_code).url(languageData)?;
-		let rssItems = rssItems.get(iso_639_1_alpha_2_language_code).unwrap();
+		let rssItems = rssItems.get(&iso_639_1_alpha_2_language_code).unwrap();
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
 		
@@ -113,7 +113,7 @@ impl RssChannel
 				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
 				
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso_639_1_alpha_2_language_code)?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso_639_1_alpha_2_language_code.to_iso_639_1_alpha_2_language_code())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", &detail.copyright)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;

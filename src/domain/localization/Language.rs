@@ -42,7 +42,7 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn relative_root_url(&self, iso_639_1_alpha_2_language_code: &str) -> Cow<'static, str>
+	pub(crate) fn relative_root_url(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url
@@ -53,7 +53,7 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn amp_relative_root_url(&self, iso_639_1_alpha_2_language_code: &str) -> Cow<'static, str>
+	pub(crate) fn amp_relative_root_url(&self, iso_639_1_alpha_2_language_code: Iso639Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url
@@ -64,7 +64,7 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn baseUrl(&self, iso_639_1_alpha_2_language_code: &str, is_for_amp: bool) -> Result<Url, CordialError>
+	pub(crate) fn baseUrl(&self, iso_639_1_alpha_2_language_code: Iso639Language, is_for_amp: bool) -> Result<Url, CordialError>
 	{
 		let relative_root_url = if is_for_amp
 		{

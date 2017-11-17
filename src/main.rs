@@ -55,7 +55,7 @@ extern crate serde_hjson;
 extern crate sfnt2woff_zopfli_sys;
 extern crate stderr_logging;
 extern crate svgcleaner;
-//extern crate svgbob;
+extern crate svgbob;
 extern crate svgdom;
 extern crate tendril;
 extern crate tokio_core;

@@ -8,8 +8,7 @@ pub(crate) enum MarkdownPlugin
 {
 	csv,
 	
-	//Suspended as does not compile with rust nightly 1.23.0
-	//svgbob,
+	svgbob,
 }
 
 impl MarkdownPlugin
@@ -22,7 +21,7 @@ impl MarkdownPlugin
 		hashmap!
 		{
 			b"csv".to_vec() => csv,
-			//b"svgbob".to_vec() => svgbob,
+			b"svgbob".to_vec() => svgbob,
 		}
 	}
 	
@@ -36,7 +35,7 @@ impl MarkdownPlugin
 		let string = match *self
 		{
 			csv => Self::csv(data, nonEmptyArguments)?,
-			//svgbob => Self::svgbob(data, nonEmptyArguments)?,
+			svgbob => Self::svgbob(data, nonEmptyArguments)?,
 		};
 		Ok(string.into_bytes())
 	}
@@ -87,14 +86,28 @@ impl MarkdownPlugin
 		Ok(buffer)
 	}
 	
-	/*
 	//noinspection SpellCheckingInspection
-	fn svgbob<ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], arguments: ArgumentsIterator) -> Result<String, ()>
+	fn svgbob<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], mut arguments: ArgumentsIterator) -> Result<String, ()>
 	{
 		use ::svgbob::Grid;
 		use ::svgbob::Settings;
-
-		let enable_lens = // from arguments, the string b"enablelens" should be present
+		
+		let enableLens = match arguments.next()
+		{
+			None => false,
+			Some(ref value) =>
+			{
+				if arguments.next().is_some()
+				{
+					return Err(());
+				}
+				if value != b"lens"
+				{
+					return Err(());
+				}
+				true
+			}
+		};
 
 		#[inline(always)]
 		fn build_cells(text: &Vec<Vec<Option<&String>>>) -> String
@@ -124,7 +137,7 @@ impl MarkdownPlugin
 
 		let svg = grid.get_svg();
 
-		let result = if enable_lens
+		let result = if enableLens
 		{
 			let (width, height) = grid.get_size();
 			let text = grid.get_all_text();
@@ -138,5 +151,4 @@ impl MarkdownPlugin
 		};
 		Ok(result)
 	}
-	*/
 }

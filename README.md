@@ -50,7 +50,7 @@ It also does a lot more to create a great experience for your users:-
 * everything can go in source control
 * HTTP headers can be generated using templates
 * CSS is auto-prefixed, stripped and validated
-* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md) and [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/); just change the input_format for the SVG pipeline.
+* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md), [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/) and [memes](https://docs.rs/memenhancer/0.1.0/memenhancer/); just change the input_format for the SVG pipeline.
 
 [cordial] is intended to be secure:-
 
@@ -103,8 +103,8 @@ The license for this project is AGPL-3.0.
 	* Generate access logs
 * Additional Markdown plugins
 	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG
-	* eg [comic](https://crates.io/crates/comic)
 	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
+	* Mac Primitive
 	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
 	* [memenhancer](https://github.com/ivanceras/memenhancer)
 * Formats

@@ -13,6 +13,8 @@ pub(crate) enum SvgInputFormat
 	MON_ARTIST(MonArtist),
 	
 	QR_CODE(QrCodeData),
+
+	MEME(Meme)
 }
 
 impl Default for SvgInputFormat
@@ -40,6 +42,8 @@ impl InputFormat for SvgInputFormat
 			MON_ARTIST(_) => &[".mon-artist"],
 			
 			QR_CODE(_) => &[".qr-code"],
+			
+			MEME(_) => &[".meme"],
 		}
 	}
 	
@@ -48,8 +52,10 @@ impl InputFormat for SvgInputFormat
 	{
 		&[
 			".svg",
+			".svgbob",
 			".mon-artist",
 			".qr-code",
+			".meme",
 		]
 	}
 }
@@ -74,6 +80,8 @@ impl SvgInputFormat
 			MON_ARTIST(ref monArtist) => monArtist.svgString(inputContentFilePath, resourceUrl, configuration),
 			
 			QR_CODE(ref qrCodeData) => qrCodeData.svgString(),
+			
+			MEME(ref meme) => meme.svgString(inputContentFilePath),
 		}
 	}
 }

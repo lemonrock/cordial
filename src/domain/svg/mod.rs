@@ -14,6 +14,7 @@ use ::qrcode::types::EcLevel;
 use ::qrcode::types::Version;
 
 
+include!("Meme.rs");
 include!("MonArtist.rs");
 include!("QrCodeData.rs");
 include!("QrVersion.rs");

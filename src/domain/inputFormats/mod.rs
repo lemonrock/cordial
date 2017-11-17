@@ -5,6 +5,7 @@
 use super::*;
 use super::markdown::MarkdownPlugin;
 use super::pipelines::mimeType;
+use super::svg::Meme;
 use super::svg::MonArtist;
 use super::svg::QrCodeData;
 use ::woff2_sys::convertTtfToWoff2;

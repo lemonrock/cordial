@@ -34,6 +34,7 @@ extern crate libc;
 #[macro_use] extern crate quick_error;
 extern crate malloc_buf;
 #[macro_use] extern crate maplit;
+extern crate memenhancer;
 extern crate mktemp;
 extern crate mime_guess;
 extern crate mime_multipart;

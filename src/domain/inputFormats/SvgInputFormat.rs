@@ -84,7 +84,7 @@ impl SvgInputFormat
 			SVGBOB =>
 			{
 				let bobString = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-				Ok(MarkdownPlugin::svgbobFromStr(&bobString, false))
+				Ok(MarkdownBlockPlugin::svgbobFromStr(&bobString, false))
 			}
 			
 			MON_ARTIST(ref monArtist) => monArtist.svgString(inputContentFilePath, resourceUrl, configuration),

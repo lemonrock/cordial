@@ -6,7 +6,8 @@
 pub(crate) struct MarkdownParser
 {
 	options: ComrakOptions,
-	plugins: HashMap<Vec<u8>, MarkdownPlugin>,
+	blockPlugins: HashMap<Vec<u8>, MarkdownBlockPlugin>,
+	inlinePlugins: HashMap<Vec<u8>, MarkdownInlinePlugin>,
 }
 
 impl MarkdownParser
@@ -14,11 +15,11 @@ impl MarkdownParser
 	#[inline(always)]
 	pub(crate) fn defaultishParse(headerIdPrefixWithTrailingDash: &str, markdown: &str) -> Result<Vec<u8>, CordialError>
 	{
-		Self::new(headerIdPrefixWithTrailingDash, MarkdownPlugin::registerAllPlugins()).parseMarkdown(markdown)
+		Self::new(headerIdPrefixWithTrailingDash, MarkdownBlockPlugin::registerAllPlugins(), MarkdownInlinePlugin::registerAllPlugins()).parseMarkdown(markdown)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn new(headerIdPrefixWithTrailingDash: &str, plugins: HashMap<Vec<u8>, MarkdownPlugin>) -> Self
+	pub(crate) fn new(headerIdPrefixWithTrailingDash: &str, blockPlugins: HashMap<Vec<u8>, MarkdownBlockPlugin>, inlinePlugins: HashMap<Vec<u8>, MarkdownInlinePlugin>) -> Self
 	{
 		Self
 		{
@@ -36,7 +37,8 @@ impl MarkdownParser
 				ext_header_ids: Some(headerIdPrefixWithTrailingDash.to_string()),
 				ext_footnotes: true,
 			},
-			plugins,
+			blockPlugins,
+			inlinePlugins,
 		}
 	}
 	
@@ -55,29 +57,68 @@ impl MarkdownParser
 			{
 				&mut CodeBlock(ref codeBlock) =>
 				{
-					// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
-					const Space: u8 = 32;
-					let mut split = codeBlock.info.split(|byte| *byte == Space);
-					let languageOrMarkdownPluginName = split.next().unwrap();
-					let mut mayBeEmptyArgumentsIterator = split;
-					
-					match self.plugins.get(languageOrMarkdownPluginName)
+					if codeBlock.fenced
 					{
-						Some(markdownPlugin) =>
-						{
-							match markdownPlugin.execute(mayBeEmptyArgumentsIterator, &codeBlock.literal)
-							{
-								Ok(literal_html) => HtmlBlock(NodeHtmlBlock
-								{
-									literal: literal_html,
-									block_type: 0
-								}),
-								
-								Err(_) => CodeBlock(codeBlock.clone()),
-							}
-						},
+						// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
+						const Space: u8 = 32;
+						let mut split = codeBlock.info.split(|byte| *byte == Space);
+						let languageOrMarkdownBlockPluginName = split.next().unwrap();
+						let mut mayBeEmptyArgumentsIterator = split;
 						
-						None => CodeBlock(codeBlock.clone()),
+						match self.blockPlugins.get(languageOrMarkdownBlockPluginName)
+						{
+							Some(markdownPlugin) =>
+							{
+								match markdownPlugin.execute(mayBeEmptyArgumentsIterator, &codeBlock.literal)
+								{
+									Ok(literal_html) => HtmlBlock(NodeHtmlBlock
+									{
+										literal: literal_html,
+										block_type: 0
+									}),
+									
+									Err(_) => CodeBlock(codeBlock.clone()),
+								}
+							},
+							
+							None => CodeBlock(codeBlock.clone()),
+						}
+					}
+					else
+					{
+						// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
+						const Space: u8 = 32;
+						let mut split = codeBlock.info.split(|byte| *byte == Space);
+						let languageOrMarkdownBlockPluginName = split.next().unwrap();
+						let mut mayBeEmptyArgumentsIterator = split;
+						
+						// U+00A7, §, Section Sign
+						const SectionSign: &[u8] = b"\xC2\xA7";
+						if languageOrMarkdownBlockPluginName.len() >= 2 && &languageOrMarkdownBlockPluginName[0..2] == SectionSign
+						{
+							match self.inlinePlugins.get(&languageOrMarkdownBlockPluginName[1..])
+							{
+								Some(markdownPlugin) =>
+								{
+									match markdownPlugin.execute(mayBeEmptyArgumentsIterator)
+									{
+										Ok(literal_html) => HtmlBlock(NodeHtmlBlock
+										{
+											literal: literal_html,
+											block_type: 0
+										}),
+										
+										Err(_) => CodeBlock(codeBlock.clone()),
+									}
+								},
+								
+								None => CodeBlock(codeBlock.clone()),
+							}
+						}
+						else
+						{
+							CodeBlock(codeBlock.clone())
+						}
 					}
 				}
 				

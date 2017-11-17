@@ -3,7 +3,7 @@
 
 
 use super::*;
-use super::markdown::MarkdownPlugin;
+use super::markdown::MarkdownBlockPlugin;
 use super::pipelines::mimeType;
 use super::svg::Barcode;
 use super::svg::Meme;

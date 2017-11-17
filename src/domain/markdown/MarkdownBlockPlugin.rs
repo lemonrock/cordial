@@ -4,19 +4,19 @@
 
 //noinspection SpellCheckingInspection
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum MarkdownPlugin
+pub(crate) enum MarkdownBlockPlugin
 {
 	csv,
 	
 	svgbob,
 }
 
-impl MarkdownPlugin
+impl MarkdownBlockPlugin
 {
 	#[inline(always)]
-	pub(crate) fn registerAllPlugins() -> HashMap<Vec<u8>, MarkdownPlugin>
+	pub(crate) fn registerAllPlugins() -> HashMap<Vec<u8>, MarkdownBlockPlugin>
 	{
-		use self::MarkdownPlugin::*;
+		use self::MarkdownBlockPlugin::*;
 		
 		hashmap!
 		{
@@ -30,7 +30,7 @@ impl MarkdownPlugin
 	{
 		let nonEmptyArguments = mayBeEmptyArguments.filter(|item| !item.is_empty());
 		
-		use self::MarkdownPlugin::*;
+		use self::MarkdownBlockPlugin::*;
 		
 		let string = match *self
 		{

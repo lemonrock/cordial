@@ -50,7 +50,7 @@ It also does a lot more to create a great experience for your users:-
 * everything can go in source control
 * HTTP headers can be generated using templates
 * CSS is auto-prefixed, stripped and validated
-* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md), [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/) and [memes](https://docs.rs/memenhancer/0.1.0/memenhancer/); just change the input_format for the SVG pipeline.
+* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md), [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/), [memes](https://docs.rs/memenhancer/0.1.0/memenhancer/) and [plotlib](); just change the input_format for the SVG pipeline.
 
 [cordial] is intended to be secure:-
 
@@ -102,13 +102,14 @@ The license for this project is AGPL-3.0.
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
 * Additional SVG plugins
-	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG, from PPM
-	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
+	* [octicons](https://docs.rs/octicons/0.1.1/octicons/)
+	* [raster-retrace](https://crates.io/crates/raster-retrace)
 	* [Primitive](https://www.michaelfogleman.com/projects/primitive/) - Go binary, uses randomness so not really reproducible
-		* Can be used for GIFs
-	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
-		* Devise a JSON-based data source format
 * Formats
+	* Markdown: Lua plugins
+	* SASS: Lua plugins
+	* Handlebars: Lua Plugins
+	* Markdown: `code` plugins, eg for SVG, IMG, internal URL
 	* SVG
 		- adjust or set or remove width & height in document
 		- support source set generation
@@ -121,7 +122,7 @@ The license for this project is AGPL-3.0.
 		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
 	* HTML
-		* Add images (and videos) within web page to SiteMap.xml, not just article image.
+		* Add videos within web page to SiteMap.xml.
 * Modify zopfli crate to allow specifying options
 * RSS
 	* Validate that Feedly PNG and SVG images are PNG and SVG.

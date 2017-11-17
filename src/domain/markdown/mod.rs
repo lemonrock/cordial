@@ -15,4 +15,5 @@ use ::typed_arena::Arena;
 
 include!("AstNodeExt.rs");
 include!("MarkdownParser.rs");
-include!("MarkdownPlugin.rs");
+include!("MarkdownBlockPlugin.rs");
+include!("MarkdownInlinePlugin.rs");

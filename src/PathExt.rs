@@ -47,8 +47,6 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsImage(&self, imageInputFormat: ImageInputFormat) -> Result<::image::DynamicImage, CordialError>;
 	
-	fn fileContentsAsSvgDocument(&self) -> Result<(::svgdom::Document, String), CordialError>;
-	
 	fn fileContentsAsPemX509Certificates(&self) -> Result<Vec<Certificate>, CordialError>;
 	
 	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>;
@@ -396,28 +394,6 @@ impl PathExt for Path
 		};
 		
 		Ok(::image::load(reader, decoder).context(self)?)
-	}
-	
-	fn fileContentsAsSvgDocument(&self) -> Result<(::svgdom::Document, String), CordialError>
-	{
-		let svgString = self.fileContentsAsString().context(self)?;
-		
-		use ::svgcleaner::ParseOptions as SvgParseOptions;
-		static GenerousParseOptions: SvgParseOptions = SvgParseOptions
-		{
-			parse_comments: true,
-			parse_declarations: true,
-			parse_unknown_elements: true,
-			parse_unknown_attributes: true,
-			parse_px_unit: true,
-			skip_unresolved_classes: false,
-		};
-		
-		match ::svgcleaner::cleaner::parse_data(&svgString, &GenerousParseOptions)
-		{
-			Err(error) => Err(CordialError::CouldNotParseSvg(self.to_path_buf(), error)),
-			Ok(document) => Ok((document, svgString)),
-		}
 	}
 	
 	fn fileContentsAsPemX509Certificates(&self) -> Result<Vec<Certificate>, CordialError>

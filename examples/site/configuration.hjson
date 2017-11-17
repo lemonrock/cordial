@@ -238,9 +238,8 @@
 			// Exists solely because of potential bugs in svg optimizer
 			do_not_optimize: false
 
-			// If SVG lacks width or height properties (or does not have absolute values for them greater than zero), these are supplied as the image's dimensions if asked for.
-			width: null
-			height: null
+			// Generate SVG from mon artist
+			mon_artist: null
 		}
 
 		headers:

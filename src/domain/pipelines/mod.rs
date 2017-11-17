@@ -8,6 +8,11 @@ use super::super::webserver::headers::commonCacheControlHeader;
 use self::ProcessingPriority::*;
 use self::ResourceTag::*;
 use ::css_purify::html5ever_ext::*;
+use ::mon_artist::render::svg::SvgRender;
+use ::mon_artist::render::RenderS;
+use ::mon_artist::grid::Grid;
+use ::mon_artist::SceneOpts;
+use ::mon_artist::format::Table;
 use ::serde::de;
 
 
@@ -19,6 +24,7 @@ include!("is_downloadable_false_default.rs");
 include!("is_versioned_true_default.rs");
 include!("max_age_in_seconds_long_default.rs");
 include!("mimeType.rs");
+include!("MonArtist.rs");
 include!("Pipeline.rs");
 include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");

@@ -14,25 +14,12 @@ impl MarkdownParser
 	#[inline(always)]
 	pub(crate) fn defaultishParse(headerIdPrefixWithTrailingDash: &str, markdown: &str) -> Result<Vec<u8>, CordialError>
 	{
-		use self::MarkdownPlugin::*;
-		
-		Self::new(headerIdPrefixWithTrailingDash, hashset!
-		{
-			svgbob { enable_lens: false },
-			csv,
-		}).parseMarkdown(markdown)
+		Self::new(headerIdPrefixWithTrailingDash, MarkdownPlugin::registerAllPlugins()).parseMarkdown(markdown)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn new(headerIdPrefixWithTrailingDash: &str, markdownPlugins: HashSet<MarkdownPlugin>) -> Self
+	pub(crate) fn new(headerIdPrefixWithTrailingDash: &str, plugins: HashMap<Vec<u8>, MarkdownPlugin>) -> Self
 	{
-		let mut plugins = HashMap::with_capacity(markdownPlugins.len());
-		
-		for markdownPlugin in markdownPlugins.iter()
-		{
-			markdownPlugin.register(&mut plugins)
-		}
-		
 		Self
 		{
 			options: ComrakOptions
@@ -68,17 +55,26 @@ impl MarkdownParser
 			{
 				&mut CodeBlock(ref codeBlock) =>
 				{
-					match self.plugins.get(&codeBlock.info)
+					// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
+					const Space: u8 = 32;
+					let mut split = codeBlock.info.split(|byte| *byte == Space);
+					let languageOrMarkdownPluginName = split.next().unwrap();
+					let mut mayBeEmptyArgumentsIterator = split;
+					
+					match self.plugins.get(languageOrMarkdownPluginName)
 					{
-						Some(markdownPlugin) => match markdownPlugin.execute(&codeBlock.literal)
+						Some(markdownPlugin) =>
 						{
-							Ok(literal_html) => HtmlBlock(NodeHtmlBlock
+							match markdownPlugin.execute(mayBeEmptyArgumentsIterator, &codeBlock.literal)
 							{
-								literal: literal_html,
-								block_type: 0
-							}),
-							
-							Err(_) => CodeBlock(codeBlock.clone()),
+								Ok(literal_html) => HtmlBlock(NodeHtmlBlock
+								{
+									literal: literal_html,
+									block_type: 0
+								}),
+								
+								Err(_) => CodeBlock(codeBlock.clone()),
+							}
 						},
 						
 						None => CodeBlock(codeBlock.clone()),

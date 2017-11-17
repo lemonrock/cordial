@@ -16,6 +16,8 @@ pub(crate) struct SvgPipeline
 	// Exists solely because of potential bugs in svg optimizer
 	#[serde(default)] do_not_optimize: bool,
 	
+	#[serde(default)] mon_artist: Option<MonArtist>,
+	
 	// Responsive tips: https://useiconic.com/guides/using-iconic-responsively
 	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
 	// Or individual image files, with width/height pre-set
@@ -34,6 +36,7 @@ impl Default for SvgPipeline
 			language_aware: false,
 			metadata: None,
 			do_not_optimize: false,
+			mon_artist: None,
 		}
 	}
 }
@@ -63,10 +66,16 @@ impl Pipeline for SvgPipeline
 	{
 		let url = resourceUrl.replaceFileNameExtension(".svg").url(languageData)?;
 		
+		let svgString = match self.mon_artist
+		{
+			None => inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?,
+			Some(ref monArtist) => monArtist.execute(inputContentFilePath, resourceUrl, configuration)?,
+		};
+	
+		let document = Self::parseSvg(&svgString)?;
+		
 		const CanBeCompressed: bool = true;
 		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
-		
-		let (document, svgString) = inputContentFilePath.fileContentsAsSvgDocument()?;
 		
 		let width = Self::svgDimensionInPixels(&document, "width").unwrap_or(0);
 		let height = Self::svgDimensionInPixels(&document, "height").unwrap_or(0);
@@ -77,7 +86,7 @@ impl Pipeline for SvgPipeline
 		}
 		else
 		{
-			Self::fileContentsAsACleanedSvgFrom(inputContentFilePath, document, svgString)?
+			Self::clean(document, svgString)?
 		};
 		
 		let mimeType = mimeType("image/svg+xml");
@@ -111,7 +120,28 @@ impl Pipeline for SvgPipeline
 
 impl SvgPipeline
 {
-	fn fileContentsAsACleanedSvgFrom(inputContentFilePath: &Path, document: ::svgdom::Document, svgString: String) -> Result<Vec<u8>, CordialError>
+	#[inline(always)]
+	fn parseSvg(svgString: &str) -> Result<::svgdom::Document, CordialError>
+	{
+		use ::svgcleaner::ParseOptions as SvgParseOptions;
+		static GenerousParseOptions: SvgParseOptions = SvgParseOptions
+		{
+			parse_comments: true,
+			parse_declarations: true,
+			parse_unknown_elements: true,
+			parse_unknown_attributes: true,
+			parse_px_unit: true,
+			skip_unresolved_classes: false,
+		};
+		
+		match ::svgcleaner::cleaner::parse_data(svgString, &GenerousParseOptions)
+		{
+			Err(error) => Err(CordialError::CouldNotParseSvg(error)),
+			Ok(document) => Ok(document),
+		}
+	}
+	
+	fn clean(document: ::svgdom::Document, svgString: String) -> Result<Vec<u8>, CordialError>
 	{
 		use ::svgcleaner::CleaningOptions as SvgCleanOptions;
 		use ::svgcleaner::cleaner::clean_doc as svgDocumentCleaner;
@@ -139,7 +169,7 @@ impl SvgPipeline
 		// NOTE: write options aren't used by this method but are required...
 		if let Err(error) = svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions)
 		{
-			return Err(CordialError::CouldNotCleanSvg(inputContentFilePath.to_path_buf(), error));
+			return Err(CordialError::CouldNotCleanSvg(error));
 		}
 		
 		let mut buffer = Vec::with_capacity(svgString.len());

@@ -112,7 +112,6 @@ The license for this project is AGPL-3.0.
 	* SVG
 		- adjust or set or remove width & height in document
 		- support source set generation
-		- minify when within an HTML document
 		- https://www.freepik.com/
 	* CSS
 		* Embedding images into the stylesheet as data-uris

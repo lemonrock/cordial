@@ -88,16 +88,11 @@ impl Pipeline for HtmlPipeline
 	}
 	
 	// TODO: How do we minify CSS across mutliple HTML pages?
-	// TODO: Take HTML and generate AMP page
 	// TODO: Take HTML and run it through languagetool
 	// TODO: Validate length of title and description, content, etc
-	// TODO: Add images within web page to site map
-	// TODO: JSON/handlebars: deployment_version
-	// TODO: JSON/handlebars: Article Image
-	// TODO: Serialize for ResourceUrl
-	// TODO: Fix bugs with using ResourceUrl and not ResourceReference for self.article_image
-	// TODO: Article Image
-	// TODO: Validate title, description
+	// TODO: Sitemap videos?
+	// TODO: More markdown plugins, external + internal (eg for a URL, SVG, IMAGE)
+	// TODO: markdown plugins using `` syntax, markdown plugins using arguments from ```CODE``` syntax
 	
 	#[inline(always)]
 	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
@@ -255,10 +250,15 @@ impl HtmlPipeline
 		let html =
 		{
 			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+			let imageResourceReference = match articleImage
+			{
+				&None => None,
+				&Some((ref imageResourceReference, _)) => Some(imageResourceReference),
+			};
 			let imageAbstract = match articleImage
 			{
 				&None => None,
-				&Some((_, ref imageMetaData)) => Some(imageMetaData.abstract_(iso639Dash1Alpha2Language)?),
+				&Some((_, ref imageMetaData)) => Some((imageResourceReference,imageMetaData.abstract_(iso639Dash1Alpha2Language)?)),
 			};
 			handlebars.template_render(template, &json!
 			({
@@ -266,7 +266,7 @@ impl HtmlPipeline
 				"our_language": languageData,
 				"localization": &configuration.localization,
 				"deployment_date": configuration.deploymentDate,
-				//"deployment_version": deploymentVersion,
+				"deployment_version": &configuration.deploymentVersion,
 				
 				"markdown": htmlFromMarkdown,
 				"publication_date": self.publication_date,
@@ -275,6 +275,7 @@ impl HtmlPipeline
 				"expiration_date": self.expiration_date,
 				"abstract": abstract_,
 				"image_abstract": imageAbstract,
+				"image_article": imageResourceReference,
 				"site_map_images": self.site_map_images,
 			}))?
 		};

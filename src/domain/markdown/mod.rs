@@ -6,11 +6,10 @@ use super::*;
 use ::comrak::ComrakOptions;
 use ::comrak::format_html;
 use ::comrak::parse_document;
-use ::comrak::nodes::{AstNode, NodeHtmlBlock, NodeValue};
+use ::comrak::nodes::*;
 use ::csv::Reader;
+use ::std::iter::Iterator;
 use ::std::str::from_utf8;
-use ::svgbob::Grid;
-use ::svgbob::Settings;
 use ::typed_arena::Arena;
 
 

@@ -6,92 +6,50 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum MarkdownPlugin
 {
-	svgbob
-	{
-		enable_lens: bool,
-	},
 	csv,
+	
+	//Suspended as does not compile with rust nightly 1.23.0
+	//svgbob,
 }
 
 impl MarkdownPlugin
 {
-	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn register(self, plugins: &mut HashMap<Vec<u8>, MarkdownPlugin>)
+	pub(crate) fn registerAllPlugins() -> HashMap<Vec<u8>, MarkdownPlugin>
 	{
 		use self::MarkdownPlugin::*;
 		
-		let name = match self
+		hashmap!
 		{
-			svgbob { .. } => "svgbob",
-			csv => "csv",
-		};
-		
-		plugins.insert(name.as_bytes().to_vec(), self);
+			b"csv".to_vec() => csv,
+			//b"svgbob".to_vec() => svgbob,
+		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, codeBlock: &[u8]) -> Result<Vec<u8>, ()>
+	pub(crate) fn execute<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(&self, mayBeEmptyArguments: ArgumentsIterator, data: &[u8]) -> Result<Vec<u8>, ()>
 	{
+		let nonEmptyArguments = mayBeEmptyArguments.filter(|item| !item.is_empty());
+		
 		use self::MarkdownPlugin::*;
 		
 		let string = match *self
 		{
-			svgbob { enable_lens } => Self::execute_svgbob(codeBlock, enable_lens)?,
-			csv => Self::execute_csv(codeBlock)?,
+			csv => Self::csv(data, nonEmptyArguments)?,
+			//svgbob => Self::svgbob(data, nonEmptyArguments)?,
 		};
 		Ok(string.into_bytes())
 	}
 	
 	//noinspection SpellCheckingInspection
-	fn execute_svgbob(codeBlock: &[u8], enable_lens: bool) -> Result<String, ()>
+	fn csv<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], arguments: ArgumentsIterator) -> Result<String, ()>
 	{
-		#[inline(always)]
-		fn build_cells(text: &Vec<Vec<Option<&String>>>) -> String
+		if arguments.count() != 0
 		{
-			let mut buffer = String::new();
-			for lines in text
-			{
-				for line in lines
-				{
-					match *line
-					{
-						Some(ref extantLine) => buffer.push_str(&format!("<div>{}</div>", extantLine)),
-						None => buffer.push_str("<div></div>"),
-					}
-				}
-			}
-			buffer
+			return Err(());
 		}
 		
-		let string = match from_utf8(codeBlock)
-		{
-			Err(_) => return Err(()),
-			Ok(string) => string,
-		};
-		
-		let grid = Grid::from_str(string, &Settings::compact());
-		
-		let svg = grid.get_svg();
-		
-		let result = if enable_lens
-		{
-			let (width, height) = grid.get_size();
-			let text = grid.get_all_text();
-			let cells = build_cells(&text);
-			let lens = format!("<div class='lens'><div class='content' style='width:{}px;height:{}px'>{}</div></div>", width, height, cells);
-			format!("<div class='bob_container' style='width:{}px;height:{}px'>{}{}</div>", width, height, svg, lens)
-		}
-		else
-		{
-			format!("{}", svg)
-		};
-		Ok(result)
-	}
-	
-	fn execute_csv(codeBlock: &[u8]) -> Result<String, ()>
-	{
-		let string = match from_utf8(codeBlock)
+		let string = match from_utf8(data)
 		{
 			Err(_) => return Err(()),
 			Ok(string) => string,
@@ -128,4 +86,57 @@ impl MarkdownPlugin
 		
 		Ok(buffer)
 	}
+	
+	/*
+	//noinspection SpellCheckingInspection
+	fn svgbob<ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], arguments: ArgumentsIterator) -> Result<String, ()>
+	{
+		use ::svgbob::Grid;
+		use ::svgbob::Settings;
+
+		let enable_lens = // from arguments, the string b"enablelens" should be present
+
+		#[inline(always)]
+		fn build_cells(text: &Vec<Vec<Option<&String>>>) -> String
+		{
+			let mut buffer = String::new();
+			for lines in text
+			{
+				for line in lines
+				{
+					match *line
+					{
+						Some(ref extantLine) => buffer.push_str(&format!("<div>{}</div>", extantLine)),
+						None => buffer.push_str("<div></div>"),
+					}
+				}
+			}
+			buffer
+		}
+
+		let string = match from_utf8(data)
+		{
+			Err(_) => return Err(()),
+			Ok(string) => string,
+		};
+
+		let grid = Grid::from_str(string, &Settings::compact());
+
+		let svg = grid.get_svg();
+
+		let result = if enable_lens
+		{
+			let (width, height) = grid.get_size();
+			let text = grid.get_all_text();
+			let cells = build_cells(&text);
+			let lens = format!("<div class='lens'><div class='content' style='width:{}px;height:{}px'>{}</div></div>", width, height, cells);
+			format!("<div class='bob_container' style='width:{}px;height:{}px'>{}{}</div>", width, height, svg, lens)
+		}
+		else
+		{
+			format!("{}", svg)
+		};
+		Ok(result)
+	}
+	*/
 }

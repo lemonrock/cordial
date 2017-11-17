@@ -43,7 +43,6 @@ use ::rustls::SignatureScheme;
 use ::rustls::sign::CertifiedKey;
 use ::rustls::sign::RSASigningKey;
 use ::rustls::sign::SigningKey;
-use ::std::ascii::AsciiExt;
 use ::std::borrow::Cow;
 use ::std::collections::HashSet;
 use ::std::net::SocketAddr;

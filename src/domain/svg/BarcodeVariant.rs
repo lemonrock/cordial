@@ -2,22 +2,31 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::mon_artist::render::svg::SvgRender;
-use ::mon_artist::render::RenderS;
-use ::mon_artist::grid::Grid;
-use ::mon_artist::SceneOpts;
-use ::mon_artist::format::Table;
-use ::qrcode::QrCode;
-use ::qrcode::render::svg::Color as SvgColor;
-use ::qrcode::types::EcLevel;
-use ::qrcode::types::Version;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum BarcodeVariant
+{
+	Codabar,
+	// aka USD8
+	Code11,
+	Code39,
+	Code39Checksummed,
+	Code93,
+	Code128,
+	/// aka UPC-A, JAN and Brookland
+	EAN2,
+	EAN5,
+	EAN8,
+	EAN13,
+	TwoOfFiveInterleaved,
+	TwoOfFiveStandard,
+}
 
-
-include!("Barcode.rs");
-include!("BarcodeVariant.rs");
-include!("Meme.rs");
-include!("MonArtist.rs");
-include!("QrCodeData.rs");
-include!("QrVersion.rs");
-include!("QrErrorCorrectionLevel.rs");
+impl Default for BarcodeVariant
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		BarcodeVariant::EAN13
+	}
+}

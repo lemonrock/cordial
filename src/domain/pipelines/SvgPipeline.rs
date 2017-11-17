@@ -55,6 +55,12 @@ impl Pipeline for SvgPipeline
 	}
 	
 	#[inline(always)]
+	fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
+	{
+		self.input_format.resourceInputContentFileNamesWithExtension(resourceInputName)
+	}
+	
+	#[inline(always)]
 	fn is<'a>(&self) -> (bool, bool)
 	{
 		(self.is_versioned, self.language_aware)

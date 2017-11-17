@@ -101,12 +101,13 @@ The license for this project is AGPL-3.0.
 * Web server
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
-* Additional Markdown plugins
-	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG
+* Additional SVG plugins
+	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG, from PPM
 	* eg [barcoders](https://github.com/buntine/barcoders) - generates barcode images
-	* Mac Primitive
+	* [Primitive](https://www.michaelfogleman.com/projects/primitive/) - Go binary, uses randomness so not really reproducible
+		* Can be used for GIFs
 	* [plotlib](https://github.com/milliams/plotlib) data sets to SVG graphs
-	* [memenhancer](https://github.com/ivanceras/memenhancer)
+		* Devise a JSON-based data source format
 * Formats
 	* SVG
 		- adjust or set or remove width & height in document

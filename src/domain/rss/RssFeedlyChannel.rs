@@ -9,7 +9,7 @@ pub(crate) struct RssFeedlyChannel
 	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: ResourceReference,
 	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: ResourceReference,
 	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: String, // eg 00FF00
+	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: [u8; 3], // eg 00FF00, R, G, B
 	#[serde(default = "RssFeedlyChannel::related_default")] related: bool,
 	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: Option<RssFeedlyChannelGoogleAnalyticsCode>,
 }
@@ -57,7 +57,9 @@ impl RssFeedlyChannel
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.urlOrDataUri.as_str())?;
 		}
 		
-		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", &self.accent_color)?;
+		let accentColor = format!("{:02X}{:02X}{:02X}", self.accent_color[0], self.accent_color[1], self.accent_color[2]);
+		
+		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", &accentColor)?;
 		
 		let attributes =
 		[
@@ -112,9 +114,9 @@ impl RssFeedlyChannel
 	}
 	
 	#[inline(always)]
-	fn accent_color_default() -> String
+	fn accent_color_default() -> [u8; 3]
 	{
-		"00FF00".to_owned()
+		[0x00, 0xFF, 0x00]
 	}
 	
 	#[inline(always)]

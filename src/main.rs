@@ -11,6 +11,7 @@
 #![recursion_limit="128"]
 
 
+extern crate barcoders;
 extern crate base64;
 extern crate brotli2;
 extern crate chardet;

@@ -28,7 +28,7 @@ debug-assertions = false
 codegen-units = 1
 
 [dependencies]
-#barcoders = {version = "0.9.0", features = ["svg"]}
+barcoders = {version = "0.9.0", features = ["svg"]}
 base64 = "0.6.0"
 brotli2 = "0.3.0"
 chardet = "0.2.3"

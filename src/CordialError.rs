@@ -153,6 +153,14 @@ quick_error!
 			from()
 		}
 		
+		CouldNotEncodeBarcode(cause: ::barcoders::error::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not encode barcode because: {}", cause)
+			from()
+		}
+		
 		CouldNotCreateQrCode(cause: ::qrcode::types::QrError)
 		{
 			display("Could not create QR code because: {}", cause)

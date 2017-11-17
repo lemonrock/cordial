@@ -40,7 +40,7 @@ impl Default for MonArtist
 impl MonArtist
 {
 	#[inline(always)]
-	pub(crate) fn execute(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<String, CordialError>
+	pub(crate) fn svgString(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<String, CordialError>
 	{
 		let table = match self.table
 		{

@@ -238,8 +238,8 @@
 			// Exists solely because of potential bugs in svg optimizer
 			do_not_optimize: false
 
-			// Generate SVG from mon artist
-			mon_artist: null
+			// Optionally SVG from mon artist or QR code
+			input_format: SVG
 		}
 
 		headers:

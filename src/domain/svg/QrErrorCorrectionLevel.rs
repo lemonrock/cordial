@@ -2,17 +2,39 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::markdown::MarkdownPlugin;
-use super::pipelines::mimeType;
-use super::svg::MonArtist;
-use super::svg::QrCodeData;
-use ::woff2_sys::convertTtfToWoff2;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum QrErrorCorrectionLevel
+{
+	low,
+	medium,
+	quartile,
+	high,
+}
 
+impl Default for QrErrorCorrectionLevel
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		QrErrorCorrectionLevel::medium
+	}
+}
 
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
-include!("SvgInputFormat.rs");
+impl QrErrorCorrectionLevel
+{
+	#[inline(always)]
+	pub(crate) fn toEcLevel(&self) -> EcLevel
+	{
+		use self::QrErrorCorrectionLevel::*;
+		use self::EcLevel::*;
+		
+		match *self
+		{
+			low => L,
+			medium => M,
+			quartile => Q,
+			high => H,
+		}
+	}
+}

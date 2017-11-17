@@ -44,6 +44,7 @@ extern crate num_cpus;
 extern crate ordermap;
 extern crate oxipng;
 extern crate phf;
+extern crate qrcode;
 extern crate radix_trie;
 extern crate ring;
 extern crate rustls;

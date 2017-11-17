@@ -153,6 +153,12 @@ quick_error!
 			from()
 		}
 		
+		CouldNotCreateQrCode(cause: ::qrcode::types::QrError)
+		{
+			display("Could not create QR code because: {}", cause)
+			from()
+		}
+		
 		CouldNotFormatMarkdownToHtml
 		{
 			description("could not format markdown to HTML")

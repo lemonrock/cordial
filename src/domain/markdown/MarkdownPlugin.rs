@@ -89,9 +89,6 @@ impl MarkdownPlugin
 	//noinspection SpellCheckingInspection
 	fn svgbob<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], mut arguments: ArgumentsIterator) -> Result<String, ()>
 	{
-		use ::svgbob::Grid;
-		use ::svgbob::Settings;
-		
 		let enableLens = match arguments.next()
 		{
 			None => false,
@@ -108,7 +105,22 @@ impl MarkdownPlugin
 				true
 			}
 		};
-
+		
+		let string = match from_utf8(data)
+		{
+			Err(_) => return Err(()),
+			Ok(string) => string,
+		};
+		
+		Ok(Self::svgbobFromStr(string, enableLens))
+	}
+	
+	#[inline(always)]
+	pub(crate) fn svgbobFromStr(string: &str, enableLens: bool) -> String
+	{
+		use ::svgbob::Grid;
+		use ::svgbob::Settings;
+		
 		#[inline(always)]
 		fn build_cells(text: &Vec<Vec<Option<&String>>>) -> String
 		{
@@ -127,12 +139,6 @@ impl MarkdownPlugin
 			buffer
 		}
 
-		let string = match from_utf8(data)
-		{
-			Err(_) => return Err(()),
-			Ok(string) => string,
-		};
-
 		let grid = Grid::from_str(string, &Settings::compact());
 
 		let svg = grid.get_svg();
@@ -149,6 +155,6 @@ impl MarkdownPlugin
 		{
 			format!("{}", svg)
 		};
-		Ok(result)
+		result
 	}
 }

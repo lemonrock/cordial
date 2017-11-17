@@ -10,13 +10,12 @@ pub(crate) struct SvgPipeline
 	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
+	#[serde(default)] input_format: SvgInputFormat,
 	
 	#[serde(default)] metadata: Option<ImageMetaData>,
 	
 	// Exists solely because of potential bugs in svg optimizer
 	#[serde(default)] do_not_optimize: bool,
-	
-	#[serde(default)] mon_artist: Option<MonArtist>,
 	
 	// Responsive tips: https://useiconic.com/guides/using-iconic-responsively
 	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
@@ -34,9 +33,9 @@ impl Default for SvgPipeline
 			is_downloadable: is_downloadable_false_default(),
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
+			input_format: Default::default(),
 			metadata: None,
 			do_not_optimize: false,
-			mon_artist: None,
 		}
 	}
 }
@@ -66,11 +65,7 @@ impl Pipeline for SvgPipeline
 	{
 		let url = resourceUrl.replaceFileNameExtension(".svg").url(languageData)?;
 		
-		let svgString = match self.mon_artist
-		{
-			None => inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?,
-			Some(ref monArtist) => monArtist.execute(inputContentFilePath, resourceUrl, configuration)?,
-		};
+		let svgString = self.input_format.svgString(inputContentFilePath, resourceUrl, configuration)?;
 	
 		let document = Self::parseSvg(&svgString)?;
 		

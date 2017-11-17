@@ -101,7 +101,6 @@ The license for this project is AGPL-3.0.
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
 * Additional Markdown plugins
-	* eg <https://crates.io/crates/mon-artist> - ASCII to SVG
 	* eg [raster-retrace](https://crates.io/crates/raster-retrace) - images to SVG
 	* eg [comic](https://crates.io/crates/comic)
 	* eg [qrcode](https://crates.io/crates/qrcode)

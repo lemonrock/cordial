@@ -2,17 +2,35 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::markdown::MarkdownPlugin;
-use super::pipelines::mimeType;
-use super::svg::MonArtist;
-use super::svg::QrCodeData;
-use ::woff2_sys::convertTtfToWoff2;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum QrVersion
+{
+	normal(i16),
+	micro(i16),
+}
 
+impl Default for QrVersion
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		QrVersion::normal(5)
+	}
+}
 
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
-include!("SvgInputFormat.rs");
+impl QrVersion
+{
+	#[inline(always)]
+	pub(crate) fn toVersion(&self) -> Version
+	{
+		use self::QrVersion::*;
+		use self::Version::*;
+		
+		match *self
+		{
+			normal(value) => Normal(value),
+			micro(value) => Micro(value),
+		}
+	}
+}

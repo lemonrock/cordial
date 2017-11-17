@@ -100,6 +100,7 @@ pub(crate) mod pipelines;
 pub(crate) mod robots;
 pub(crate) mod rss;
 pub(crate) mod siteMap;
+pub(crate) mod svg;
 
 
 include!("generateHeaders.rs");

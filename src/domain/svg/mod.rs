@@ -3,16 +3,18 @@
 
 
 use super::*;
-use super::markdown::MarkdownPlugin;
-use super::pipelines::mimeType;
-use super::svg::MonArtist;
-use super::svg::QrCodeData;
-use ::woff2_sys::convertTtfToWoff2;
+use ::mon_artist::render::svg::SvgRender;
+use ::mon_artist::render::RenderS;
+use ::mon_artist::grid::Grid;
+use ::mon_artist::SceneOpts;
+use ::mon_artist::format::Table;
+use ::qrcode::QrCode;
+use ::qrcode::render::svg::Color as SvgColor;
+use ::qrcode::types::EcLevel;
+use ::qrcode::types::Version;
 
 
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
-include!("SvgInputFormat.rs");
+include!("MonArtist.rs");
+include!("QrCodeData.rs");
+include!("QrVersion.rs");
+include!("QrErrorCorrectionLevel.rs");

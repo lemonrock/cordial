@@ -2,20 +2,35 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::markdown::MarkdownPlugin;
-use super::pipelines::mimeType;
-use super::svg::Barcode;
-use super::svg::Meme;
-use super::svg::MonArtist;
-use super::svg::PlotSettings;
-use super::svg::QrCodeData;
-use ::woff2_sys::convertTtfToWoff2;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum PlotMarker
+{
+	circle,
+	square,
+}
 
+impl Default for PlotMarker
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		PlotMarker::circle
+	}
+}
 
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
-include!("SvgInputFormat.rs");
+impl PlotMarker
+{
+	#[inline(always)]
+	pub(crate) fn toMarker(&self) -> Marker
+	{
+		use self::PlotMarker::*;
+		use self::Marker::*;
+		
+		match *self
+		{
+			circle => Circle,
+			square => Square,
+		}
+	}
+}

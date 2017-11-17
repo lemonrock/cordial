@@ -8,16 +8,26 @@ use ::mon_artist::render::RenderS;
 use ::mon_artist::grid::Grid;
 use ::mon_artist::SceneOpts;
 use ::mon_artist::format::Table;
+use ::plotlib::histogram::Histogram;
+use ::plotlib::scatter::Marker;
+use ::plotlib::scatter::Scatter;
+use ::plotlib::scatter::Style;
+use ::plotlib::view::View;
 use ::qrcode::QrCode;
 use ::qrcode::render::svg::Color as SvgColor;
 use ::qrcode::types::EcLevel;
 use ::qrcode::types::Version;
+use ::svg::Document as PlotSvgDocument;
 
 
 include!("Barcode.rs");
 include!("BarcodeVariant.rs");
 include!("Meme.rs");
 include!("MonArtist.rs");
+include!("PlotKind.rs");
+include!("PlotMarker.rs");
+include!("PlotSettings.rs");
+include!("PlotViewSettings.rs");
 include!("QrCodeData.rs");
 include!("QrVersion.rs");
 include!("QrErrorCorrectionLevel.rs");

@@ -45,6 +45,7 @@ extern crate net2;
 extern crate num_cpus;
 extern crate ordermap;
 extern crate oxipng;
+extern crate plotlib;
 extern crate phf;
 extern crate qrcode;
 extern crate radix_trie;
@@ -57,6 +58,7 @@ extern crate serde;
 extern crate serde_hjson;
 extern crate sfnt2woff_zopfli_sys;
 extern crate stderr_logging;
+extern crate svg; // Used by plotlib
 extern crate svgcleaner;
 extern crate svgbob;
 extern crate svgdom;

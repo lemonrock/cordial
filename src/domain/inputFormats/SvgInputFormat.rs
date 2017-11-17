@@ -17,6 +17,8 @@ pub(crate) enum SvgInputFormat
 	MEME(Meme),
 
 	BARCODE(Barcode),
+
+	PLOT(PlotSettings),
 }
 
 impl Default for SvgInputFormat
@@ -48,6 +50,8 @@ impl InputFormat for SvgInputFormat
 			MEME(_) => &[".meme"],
 			
 			BARCODE(_) => &[".barcode"],
+			
+			PLOT(_) => &[".plot"],
 		}
 	}
 	
@@ -61,6 +65,7 @@ impl InputFormat for SvgInputFormat
 			".qr-code",
 			".meme",
 			".barcode",
+			".plot",
 		]
 	}
 }
@@ -89,6 +94,8 @@ impl SvgInputFormat
 			MEME(ref meme) => meme.svgString(inputContentFilePath),
 			
 			BARCODE(ref barcode) => barcode.svgString(),
+			
+			PLOT(ref plotSettings) => plotSettings.svgString(),
 		}
 	}
 }

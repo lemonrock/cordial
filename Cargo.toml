@@ -28,6 +28,7 @@ debug-assertions = false
 codegen-units = 1
 
 [dependencies]
+#barcoders = {version = "0.9.0", features = ["svg"]}
 base64 = "0.6.0"
 brotli2 = "0.3.0"
 chardet = "0.2.3"
@@ -72,7 +73,7 @@ serde = "^1.0"
 sfnt2woff-zopfli-sys = "0.0.1"
 stderr-logging = "0.0.1"
 svgcleaner = "0.9.1"
-svgbob = "0.2.2"
+svgbob = "0.2.3"
 svgdom = "0.6.0"
 tendril = "^0.4"
 tokio-core = "0.1.7"
@@ -103,4 +104,4 @@ features = ["serde-1"]
 
 [patch.crates-io]
 mon-artist = { git = "https://github.com/lemonrock/mon-artist", branch = "range-syntax-fix" }
-svgbob = { git = "https://github.com/ivanceras/svgbobrus", rev = "0883318cf3cd48c34904d8eb81376428de316548" }
+#svgbob = { git = "https://github.com/ivanceras/svgbobrus", rev = "0883318cf3cd48c34904d8eb81376428de316548" }

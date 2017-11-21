@@ -26,7 +26,7 @@ impl MarkdownBlockPlugin
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, arguments: &[u8], _pluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, arguments: &[u8], _markdownPluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
 		use self::MarkdownBlockPlugin::*;
 		

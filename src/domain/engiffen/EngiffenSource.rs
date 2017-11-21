@@ -117,7 +117,7 @@ impl EngiffenSource
 			}
 		};
 		
-		let engiffenImage = Self::toEngiffenOutputImage(resizedImage);
+		let engiffenImage = Self::toEngiffenOutputImage(&resizedImage);
 		
 		let sourceSet = sourceSets.get_mut(sourceSetIndex).unwrap();
 		sourceSet.0.push(engiffenImage);
@@ -127,7 +127,7 @@ impl EngiffenSource
 	}
 	
 	#[inline(always)]
-	fn toEngiffenOutputImage(image: EngiffenSourceImage) -> EngiffenOutputImage
+	fn toEngiffenOutputImage(image: &EngiffenSourceImage) -> EngiffenOutputImage
 	{
 		const PixelSize: usize = 4;
 		

@@ -52,6 +52,13 @@ impl EngiffenFrame
 	}
 	
 	#[inline(always)]
+	fn modifyForPlaceholder(&self, frame: &mut ::gif::Frame)
+	{
+		frame.top = self.top_offset;
+		frame.left = self.left_offset;
+	}
+	
+	#[inline(always)]
 	fn frame_delay_in_tens_of_milliseconds_default() -> u16
 	{
 		const TwentyFiveFramesPerSecond: u16 = 4;

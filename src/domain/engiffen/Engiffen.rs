@@ -111,6 +111,7 @@ impl<'a> Engiffen<'a>
 		for sourceSetIndex in 0 .. length
 		{
 			result.push(self.createGifResource(&sourceSets, &frameWidthBySourceSet, &frameHeightBySourceSet, &mut headerGenerator, sourceSetIndex)?);
+			result.push(self.createPlaceholderResource(&sourceSets, &frameWidthBySourceSet, &frameHeightBySourceSet, &mut headerGenerator, sourceSetIndex)?);
 		}
 		Ok(result)
 	}
@@ -118,20 +119,14 @@ impl<'a> Engiffen<'a>
 	#[inline(always)]
 	fn createGifResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool), CordialError>
 	{
-		#[inline(always)]
-		fn frameDimension(frameDimensions: &HashMap<usize, u16>, sourceSetIndex: usize) -> u32
-		{
-			*frameDimensions.get(&sourceSetIndex).unwrap() as u32
-		}
-		
 		use self::ResourceTag::*;
 		
 		let &(ref engiffenImages, ref engiffenFrames) = sourceSets.get(sourceSetIndex).unwrap();
 		
-		let body = self.toGifBytes(engiffenImages, engiffenFrames)?;
+		let body = self.toGifBytes(&engiffenImages[..], &engiffenFrames[..])?;
 		
-		let width = frameDimension(&frameWidthBySourceSet, sourceSetIndex);
-		let height = frameDimension(&frameHeightBySourceSet, sourceSetIndex);
+		let width = Self::frameDimension(&frameWidthBySourceSet, sourceSetIndex);
+		let height = Self::frameDimension(&frameHeightBySourceSet, sourceSetIndex);
 		
 		let urlDataDetails = Rc::new
 		(
@@ -164,6 +159,60 @@ impl<'a> Engiffen<'a>
 		
 		let headers = headerGenerator(&url)?;
 		Ok((url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false))
+	}
+	
+	#[inline(always)]
+	fn createPlaceholderResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool), CordialError>
+	{
+		let &(ref engiffenImages, ref engiffenFrames) = sourceSets.get(sourceSetIndex).unwrap();
+		
+		let body = self.toGifBytes(&engiffenImages[0 .. 1], &engiffenFrames[0 .. 1])?;
+		
+		let width = Self::frameDimension(&frameWidthBySourceSet, sourceSetIndex);
+		let height = Self::frameDimension(&frameHeightBySourceSet, sourceSetIndex);
+		
+		let resourceTags = hashmap!
+		{
+			ResourceTag::animation_placeholder(sourceSetIndex) => Rc::new
+			(
+				UrlDataDetails::Image
+				{
+					width,
+					height,
+					mime: Self::GifMimeType,
+					size: body.len() as u64,
+				}
+			),
+		};
+		
+		let placeholderRelativeUrlWithoutFileNameExtension = self.placeholderRelativeUrlWithoutFileNameExtension();
+		let url = if sourceSetIndex == 0
+		{
+			ResourceUrl::primaryUrl(&placeholderRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData)?
+		}
+		else
+		{
+			ResourceUrl::widthUrl(&placeholderRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData, width)?
+		};
+		
+		let headers = headerGenerator(&url)?;
+		Ok((url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false))
+	}
+	
+	#[inline(always)]
+	fn frameDimension(frameDimensions: &HashMap<usize, u16>, sourceSetIndex: usize) -> u32
+	{
+		*frameDimensions.get(&sourceSetIndex).unwrap() as u32
+	}
+	
+	#[inline(always)]
+	fn placeholderRelativeUrlWithoutFileNameExtension(&self) -> String
+	{
+		const Suffix: &'static str = "-placeholder";
+		let mut placeholderRelativeUrlWithoutFileNameExtension = String::with_capacity(self.resourceRelativeUrlWithoutFileNameExtension.len() + Suffix.len());
+		placeholderRelativeUrlWithoutFileNameExtension.push_str(self.resourceRelativeUrlWithoutFileNameExtension);
+		placeholderRelativeUrlWithoutFileNameExtension.push_str(Suffix);
+		placeholderRelativeUrlWithoutFileNameExtension
 	}
 	
 	const GifMimeType: Mime = mime::IMAGE_GIF;
@@ -229,13 +278,13 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	fn toGifBytes(&self, engiffenImages: &Vec<EngiffenOutputImage>, engiffenFrames: &Vec<&'a EngiffenFrame>) -> Result<Vec<u8>, CordialError>
+	fn toGifBytes(&self, engiffenImages: &[EngiffenOutputImage], engiffenFrames: &[&EngiffenFrame]) -> Result<Vec<u8>, CordialError>
 	{
 		const IgnoreFramesPerSecond: usize = 1;
 		
-		let gifAnimation = ::engiffen::engiffen(&engiffenImages[..], IgnoreFramesPerSecond, self.quantizer).expect("Should not occur");
+		let gifAnimation = ::engiffen::engiffen(engiffenImages, IgnoreFramesPerSecond, self.quantizer).expect("Should not occur");
 		let mut body = Vec::with_capacity(128 * 1024);
-		self.writeGifAnimation(&gifAnimation, &mut body, &engiffenFrames[..])?;
+		self.writeGifAnimation(&gifAnimation, &mut body, engiffenFrames)?;
 		body.shrink_to_fit();
 		
 		Ok(body)
@@ -245,7 +294,10 @@ impl<'a> Engiffen<'a>
 	fn writeGifAnimation<W: Write>(&self, gifAnimation: &Gif, writer: &mut W, engiffenFrames: &[&EngiffenFrame]) -> Result<(), CordialError>
 	{
 		let mut encoder = ::gif::Encoder::new(writer, gifAnimation.width, gifAnimation.height, &gifAnimation.palette).context(self.inputContentFolderPath)?;
-		encoder.set(self.loops.toRepeat()).context(self.inputContentFolderPath)?;
+		if engiffenFrames.len() > 1
+		{
+			encoder.set(self.loops.toRepeat()).context(self.inputContentFolderPath)?;
+		}
 		
 		let mut frameIndex = 0;
 		for imageFrame in &gifAnimation.images
@@ -256,9 +308,18 @@ impl<'a> Engiffen<'a>
 			frame.buffer = Cow::Borrowed(&*imageFrame);
 			frame.transparent = gifAnimation.transparency;
 			
-			encoder.write_frame(&frame).context(self.inputContentFolderPath)?;
+			let engiffenFrame = engiffenFrames.get(frameIndex).unwrap();
 			
-			engiffenFrames.get(frameIndex).unwrap().modify(&mut frame);
+			if engiffenFrames.len() > 1
+			{
+				engiffenFrame.modify(&mut frame);
+			}
+			else
+			{
+				engiffenFrame.modifyForPlaceholder(&mut frame);
+			}
+			
+			encoder.write_frame(&frame).context(self.inputContentFolderPath)?;
 			
 			frameIndex += 1;
 		}

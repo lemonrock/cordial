@@ -210,19 +210,24 @@ impl<'a> ImageSourceSet<'a>
 		}
 		else
 		{
-			let mut temporaryFile = Temp::new_file().context(self.inputContentFilePath)?;
-			let temporaryFilePath = temporaryFile.to_path_buf();
-			let bytes =
-			{
-				temporaryFilePath.createFileWithPngImage(&image)?;
-				temporaryFilePath.modifyPngWithOxipng()?;
-				temporaryFilePath.fileContentsAsBytes().context(&temporaryFilePath)?
-			};
-			temporaryFilePath.deleteOverridingPermissions().context(&temporaryFilePath)?;
-			temporaryFile.release();
-			
-			bytes
+			Self::optimizePngImage(&image, self.inputContentFilePath)?
 		};
+		Ok(bytes)
+	}
+	
+	fn optimizePngImage(image: &::image::DynamicImage, context: &Path) -> Result<Vec<u8>, CordialError>
+	{
+		let mut temporaryFile = Temp::new_file().context(context)?;
+		let temporaryFilePath = temporaryFile.to_path_buf();
+		let bytes =
+		{
+			temporaryFilePath.createFileWithPngImage(&image)?;
+			temporaryFilePath.modifyPngWithOxipng()?;
+			temporaryFilePath.fileContentsAsBytes().context(&temporaryFilePath)?
+		};
+		temporaryFilePath.deleteOverridingPermissions().context(&temporaryFilePath)?;
+		temporaryFile.release();
+		
 		Ok(bytes)
 	}
 }

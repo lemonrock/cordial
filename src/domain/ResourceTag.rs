@@ -15,6 +15,9 @@ pub(crate) enum ResourceTag
 	height_image(u32),
 	width_height_image(u32, u32),
 	
+	// Value is index in source set
+	animation_placeholder(usize),
+	
 	redirect,
 	amp,
 	amp_redirect,

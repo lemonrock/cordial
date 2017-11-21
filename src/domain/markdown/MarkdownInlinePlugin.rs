@@ -23,7 +23,7 @@ impl MarkdownInlinePlugin
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, arguments: &[u8], pluginData: &MarkdownPluginData, isForAmp: bool, ) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, arguments: &[u8], markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<Vec<u8>, CordialError>
 	{
 		use self::MarkdownInlinePlugin::*;
 		
@@ -31,13 +31,13 @@ impl MarkdownInlinePlugin
 		
 		let string = match *self
 		{
-			image => Self::image(&mut arguments, pluginData, isForAmp)?,
+			image => Self::image(&mut arguments, markdownPluginData, isForAmp)?,
 		};
 		Ok(string.into_bytes())
 	}
 	
 	//noinspection SpellCheckingInspection
-	fn image(arguments: &mut ParsedQueryString, pluginData: &MarkdownPluginData, isForAmp: bool) -> Result<String, CordialError>
+	fn image(arguments: &mut ParsedQueryString, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<String, CordialError>
 	{
 		let mut imageResourceUrl = None;
 		let mut captionPosition = CaptionPosition::default();
@@ -62,7 +62,7 @@ impl MarkdownInlinePlugin
 		let image = match imageResourceUrl
 		{
 			None => return Err(CordialError::Configuration("image inline plugin resource can not be omitted".to_owned())),
-			Some(url) => pluginData.image(&ResourceReference::primary_image(url))?,
+			Some(url) => markdownPluginData.image(&ResourceReference::primary_image(url))?,
 		};
 		
 		// TODO: Support the image lightbox: https://ampbyexample.com/components/amp-image-lightbox/

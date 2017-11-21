@@ -267,7 +267,7 @@ impl MarkdownInlinePlugin
 		
 		let captionNode = "span"
 			.with_class("caption")
-			.with_child_text(imageAbstract.caption);
+			.with_child_text(imageAbstract.caption.as_str());
 		
 		let anchorNode = "a"
 			.with_class("caption")

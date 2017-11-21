@@ -70,71 +70,7 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn process<F: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
-	{
-		#[inline(always)]
-		fn frameDimension(frameDimensions: &HashMap<usize, u16>, sourceSetIndex: usize) -> u32
-		{
-			*frameDimensions.get(&sourceSetIndex).unwrap() as u32
-		}
-		
-		use self::ResourceTag::*;
-		
-		let (sourceSets, frameWidthBySourceSet, frameHeightBySourceSet) = self.transformEveryImageInEverySourceSet()?;
-		
-		let mut result = Vec::with_capacity(sourceSets.len());
-		let mut sourceSetIndex = 0;
-		for (engiffenImages, engiffenFrames) in sourceSets
-		{
-			let body = self.toGifBytes(&engiffenImages, &engiffenFrames)?;
-			
-			let width = frameDimension(&frameWidthBySourceSet, sourceSetIndex);
-			let height = frameDimension(&frameHeightBySourceSet, sourceSetIndex);
-			
-			let urlDataDetails = Rc::new
-			(
-				UrlDataDetails::Image
-				{
-					width,
-					height,
-					mime: Self::GifMimeType,
-					size: body.len() as u64,
-				}
-			);
-			
-			let mut resourceTags = hashmap!
-			{
-				width_image(width) => urlDataDetails.clone(),
-				height_image(height) => urlDataDetails.clone(),
-				width_height_image(width, height) => urlDataDetails.clone(),
-			};
-			
-			let url = if sourceSetIndex == 0
-			{
-				resourceTags.insert(default, urlDataDetails.clone());
-				resourceTags.insert(primary_image, urlDataDetails.clone());
-				ResourceUrl::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData)?
-			}
-			else
-			{
-				ResourceUrl::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData, width)?
-			};
-			
-			let headers = headerGenerator(&url)?;
-			let x = (url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false);
-			result.push(x);
-			
-			sourceSetIndex += 1;
-		}
-		Ok(result)
-	}
-	
-	const GifMimeType: Mime = mime::IMAGE_GIF;
-	
-	const GifFileExtension: &'static str = ".gif";
-	
-	#[inline(always)]
-	fn transformEveryImageInEverySourceSet(&self) -> Result<(SourceSets<'a>, HashMap<usize, u16>, HashMap<usize, u16>), CordialError>
+	pub(crate) fn process<HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: HeaderGenerator) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let sourceImages = self.sourceImages()?;
 		
@@ -144,7 +80,10 @@ impl<'a> Engiffen<'a>
 		let mut frameWidthBySourceSet = HashMap::with_capacity(length);
 		let mut frameHeightBySourceSet = HashMap::with_capacity(length);
 		
+		// Transform images. Can not be easily abstracted to a method due to lifetimes.
 		{
+			let mutableBorrowOfSourceSets = &mut sourceSets;
+			
 			let mut imageIndex = 0;
 			for (_, mut image) in sourceImages
 			{
@@ -152,14 +91,14 @@ impl<'a> Engiffen<'a>
 				{
 					Some(ref engiffenSource) =>
 					{
-						engiffenSource.transform(&mut sourceSets, 0, imageIndex, &mut image, &mut frameWidthBySourceSet, &mut frameHeightBySourceSet)?;
+						engiffenSource.transform(mutableBorrowOfSourceSets, 0, imageIndex, &mut image, &mut frameWidthBySourceSet, &mut frameHeightBySourceSet)?;
 					}
 					None =>
 					{
 						let mut sourceSetIndex = 0;
 						for engiffenSource in self.engiffenSources.iter()
 						{
-							engiffenSource.transform(&mut sourceSets, sourceSetIndex, imageIndex, &mut image, &mut frameWidthBySourceSet, &mut frameHeightBySourceSet)?;
+							engiffenSource.transform(mutableBorrowOfSourceSets, sourceSetIndex, imageIndex, &mut image, &mut frameWidthBySourceSet, &mut frameHeightBySourceSet)?;
 							sourceSetIndex += 1;
 						}
 					}
@@ -168,8 +107,68 @@ impl<'a> Engiffen<'a>
 			}
 		}
 		
-		Ok((sourceSets, frameWidthBySourceSet, frameHeightBySourceSet))
+		let mut result = Vec::with_capacity(length);
+		for sourceSetIndex in 0 .. length
+		{
+			result.push(self.createGifResource(&sourceSets, &frameWidthBySourceSet, &frameHeightBySourceSet, &mut headerGenerator, sourceSetIndex)?);
+		}
+		Ok(result)
 	}
+	
+	#[inline(always)]
+	fn createGifResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool), CordialError>
+	{
+		#[inline(always)]
+		fn frameDimension(frameDimensions: &HashMap<usize, u16>, sourceSetIndex: usize) -> u32
+		{
+			*frameDimensions.get(&sourceSetIndex).unwrap() as u32
+		}
+		
+		use self::ResourceTag::*;
+		
+		let &(ref engiffenImages, ref engiffenFrames) = sourceSets.get(sourceSetIndex).unwrap();
+		
+		let body = self.toGifBytes(engiffenImages, engiffenFrames)?;
+		
+		let width = frameDimension(&frameWidthBySourceSet, sourceSetIndex);
+		let height = frameDimension(&frameHeightBySourceSet, sourceSetIndex);
+		
+		let urlDataDetails = Rc::new
+		(
+			UrlDataDetails::Image
+			{
+				width,
+				height,
+				mime: Self::GifMimeType,
+				size: body.len() as u64,
+			}
+		);
+		
+		let mut resourceTags = hashmap!
+		{
+			width_image(width) => urlDataDetails.clone(),
+			height_image(height) => urlDataDetails.clone(),
+			width_height_image(width, height) => urlDataDetails.clone(),
+		};
+		
+		let url = if sourceSetIndex == 0
+		{
+			resourceTags.insert(default, urlDataDetails.clone());
+			resourceTags.insert(primary_image, urlDataDetails.clone());
+			ResourceUrl::primaryUrl(self.resourceRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData)?
+		}
+		else
+		{
+			ResourceUrl::widthUrl(self.resourceRelativeUrlWithoutFileNameExtension, Self::GifFileExtension, self.languageData, width)?
+		};
+		
+		let headers = headerGenerator(&url)?;
+		Ok((url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false))
+	}
+	
+	const GifMimeType: Mime = mime::IMAGE_GIF;
+	
+	const GifFileExtension: &'static str = ".gif";
 	
 	#[inline(always)]
 	fn sourceImages(&self) -> Result<EngiffenSourceImages, CordialError>

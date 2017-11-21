@@ -61,7 +61,7 @@ impl<'a> MarkdownPluginData<'a>
 	{
 		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
 		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
-		imageMetaData.addToImgAttributes(&mut attributes, &self.resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
+		imageMetaData.addToImgAttributes(attributes, &self.resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
 	}
 	
 	#[inline(always)]

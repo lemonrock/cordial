@@ -449,14 +449,16 @@ impl HtmlPipeline
 	{
 		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
 		{
-			let resourceRef = resourceRefCell.try_borrow()?;
-			let doneTwiceBecauseOfLimitationOnRefMapMethod = resourceRef.imageMetaData();
-			if let Err(error) = doneTwiceBecauseOfLimitationOnRefMapMethod
 			{
-				return Err(error);
+				let resourceRef = resourceRefCell.try_borrow()?;
+				let doneTwiceBecauseOfLimitationOnRefMapMethod = resourceRef.imageMetaData();
+				if let Err(error) = doneTwiceBecauseOfLimitationOnRefMapMethod
+				{
+					return Err(error);
+				}
 			}
 			
-			Ok(Some(Ref::map(resourceRef, |resource| resource.imageMetaData().unwrap())))
+			Ok(Some(Ref::map(resourceRefCell.try_borrow()?, |resource| resource.imageMetaData().unwrap())))
 		}
 		
 		match self.article_image

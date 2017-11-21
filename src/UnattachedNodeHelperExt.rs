@@ -108,7 +108,8 @@ impl UnattachedNodeHelperExt for str
 	#[inline(always)]
 	fn with_child_element(&self, child: UnattachedNode) -> UnattachedNode
 	{
-		self.local_name().with_child_element(child)
+		let localName = self.local_name();
+		UnattachedNode::from(localName).with_child_element(child)
 	}
 	
 	#[inline(always)]

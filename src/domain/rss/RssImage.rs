@@ -10,7 +10,7 @@ pub(crate) struct RssImage
 	pub(crate) url: Url,
 	pub(crate) fileSize: u64,
 	pub(crate) mimeType: Mime,
-	pub(crate) alt: String,
+	pub(crate) imageAbstract: Rc<ImageAbstract>,
 	pub(crate) credit: FullName,
 	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 }

@@ -60,10 +60,11 @@ impl ResourceReference
 			Some(resource) =>
 			{
 				let borrowedResource = resource.try_borrow()?;
-				match borrowedResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag)
+				let urlData = borrowedResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag).cloned();
+				match urlData
 				{
 					None => Err(CordialError::Configuration(format!("Could not get urlData for '{:?}'", self))),
-					Some(urlData) => Ok(Some((urlData, borrowedResource))),
+					Some(urlData) => Ok(Some((urlData.clone(), borrowedResource))),
 				}
 			}
 		}

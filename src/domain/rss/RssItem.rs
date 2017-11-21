@@ -77,7 +77,7 @@ impl RssItem
 				];
 				eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
 				{
-					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &primaryImage.alt)?;
+					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &primaryImage.imageAbstract.alt)?;
 					
 					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("credit", "media"), &primaryImage.credit)?;
 					

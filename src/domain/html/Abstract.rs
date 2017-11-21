@@ -6,6 +6,6 @@
 #[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct Abstract
 {
-	pub(crate) title: String,
-	pub(crate) description: String,
+	pub(crate) title: Rc<String>,
+	pub(crate) description: Rc<String>,
 }

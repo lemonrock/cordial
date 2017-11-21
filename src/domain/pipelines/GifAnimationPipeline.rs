@@ -12,7 +12,7 @@ pub(crate) struct GifAnimationPipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<ImageInputFormat>,
 	
-	#[serde(default)] metadata: ImageMetaData,
+	#[serde(default)] metadata: Rc<ImageMetaData>,
 	#[serde(default)] source_set: Vec<EngiffenSource>,
 	
 	#[serde(default)] quantizer: EngiffenQuantizer,
@@ -45,7 +45,7 @@ impl Default for GifAnimationPipeline
 impl Pipeline for GifAnimationPipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
+	fn imageMetaData(&self) -> Result<&Rc<ImageMetaData>, CordialError>
 	{
 		Ok(&self.metadata)
 	}

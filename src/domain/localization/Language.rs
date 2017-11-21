@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Language
 {
 	iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode,
@@ -12,6 +12,7 @@ pub(crate) struct Language
 	#[serde(default)] relative_root_url: RelativeRootUrl,
 	#[serde(default)] pub(crate) assume_right_to_left_script: bool,
 	native_name: String, // Native name for language, with correct Unicode accents, etc. See https://dribbble.com/shots/1202316-Language-menus-with-flags for an example of common Language descriptions
+	required_translations: HashMap<RequiredTranslation, Rc<String>>,
 }
 
 impl Default for Language
@@ -19,6 +20,8 @@ impl Default for Language
 	#[inline(always)]
 	fn default() -> Self
 	{
+		use self::RequiredTranslation::*;
+		
 		Self
 		{
 			iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode::US,
@@ -26,7 +29,11 @@ impl Default for Language
 			host: Self::host_default(),
 			relative_root_url: RelativeRootUrl::default(),
 			assume_right_to_left_script: false,
-			native_name: "English".to_owned()
+			native_name: "English".to_owned(),
+			required_translations: hashmap!
+			{
+				missing_image_fallback => Rc::new("Unfortunately, this content is unavailable at this time.".to_owned()),
+			},
 		}
 	}
 }
@@ -53,6 +60,16 @@ impl Language
 		{
 			host => Cow::Borrowed("/"),
 			iso => Cow::Owned(format!("/{}/", iso639Dash1Alpha2Language))
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn required_translation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
+	{
+		match self.required_translations.get(&requiredTranslation)
+		{
+			None => Err(CordialError::Configuration(format!("Missing translation for '{:?}'", requiredTranslation))),
+			Some(translation) => Ok(translation)
 		}
 	}
 	

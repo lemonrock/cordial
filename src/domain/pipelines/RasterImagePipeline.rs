@@ -12,7 +12,7 @@ pub(crate) struct RasterImagePipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<ImageInputFormat>,
 	
-	#[serde(default)] metadata: ImageMetaData,
+	#[serde(default)] metadata: Rc<ImageMetaData>,
 	#[serde(default)] source_set_excluding_original: Vec<ImageSourceSetEntry>,
 	
 	#[serde(default)] jpeg_quality: Option<u8>,
@@ -49,7 +49,7 @@ impl Default for RasterImagePipeline
 impl Pipeline for RasterImagePipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
+	fn imageMetaData(&self) -> Result<&Rc<ImageMetaData>, CordialError>
 	{
 		Ok(&self.metadata)
 	}

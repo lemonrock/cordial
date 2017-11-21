@@ -5,16 +5,16 @@
 pub(crate) trait ResourcesExt
 {
 	#[inline(always)]
-	fn urlData(&self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>;
+	fn urlData<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>;
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
+	fn urlDataWithContentMimeTypeWithoutParameters<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
 }
 
 impl ResourcesExt for Resources
 {
 	#[inline(always)]
-	fn urlData(&self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>
+	fn urlData<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>
 	{
 		match resourceReference.get(self)
 		{
@@ -23,13 +23,13 @@ impl ResourcesExt for Resources
 			{
 				let refResource = resourceRefCell.try_borrow()?;
 				
-				Ok(refResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &resourceReference.tag))
+				Ok(refResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &resourceReference.tag).cloned())
 			},
 		}
 	}
 	
 	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters(&self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
+	fn urlDataWithContentMimeTypeWithoutParameters<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
 	{
 		let urlData = match self.urlData(resourceReference, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?
 		{

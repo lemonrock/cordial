@@ -2,6 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct MarkdownPluginData<'a>
 {
 	pub(crate) resources: &'a Resources,
@@ -30,7 +31,13 @@ impl<'a> MarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn image(&self, imageResourceReference: &ResourceReference) -> Result<(Ref<'a, Resource>, &'a ImageMetaData, Rc<UrlData>, &'a ImageAbstract), CordialError>
+	pub(crate) fn required_translation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
+	{
+		self.language.language.required_translation(requiredTranslation)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn image(&'a self, imageResourceReference: &ResourceReference) -> Result<ImageMarkdownPluginData<'a>, CordialError>
 	{
 		match imageResourceReference.get(self.resources)
 		{
@@ -39,36 +46,22 @@ impl<'a> MarkdownPluginData<'a>
 			{
 				let imageResource = imageResource.try_borrow()?;
 				
-				let imageMetaData = imageResource.imageMetaData()?;
-				let imageUrlData = imageResource.urlData(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &imageResourceReference.tag).ok_or_else(|| CordialError::Configuration(format!("image resource '{:?}' urlData missing", imageResourceReference)))?;
-				let imageAbstract = imageMetaData.abstract_(self.iso639Dash1Alpha2Language())?;
+				let imageMetaData = imageResource.imageMetaData()?.clone();
 				
+				let imageAbstract = imageMetaData.imageAbstract(self.iso639Dash1Alpha2Language())?.clone();
+				let imageUrlData = imageResource.urlData(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &imageResourceReference.tag).ok_or_else(|| CordialError::Configuration(format!("image resource '{:?}' urlData missing", imageResourceReference)))?.clone();
 				Ok
 				(
-					(
-						imageResource,
+					ImageMarkdownPluginData
+					{
+						markdownPluginData: self,
+						imageAbstract,
 						imageMetaData,
 						imageUrlData,
-						imageAbstract,
-					)
+						imageResource,
+					}
 				)
 			}
 		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn addImageMetaDataToImgAttributes(&self, attributes: &mut Vec<Attribute>, imageMetaData: &ImageMetaData, isForAmp: bool) -> Result<(), CordialError>
-	{
-		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
-		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
-		imageMetaData.addToImgAttributes(attributes, &self.resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn imageLicenseUrlAndDescription(&'a self, imageMetaData: &'a ImageMetaData) -> Result<(Rc<Url>, &'a str), CordialError>
-	{
-		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
-		let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
-		imageMetaData.licenseUrlAndDescription(&self.resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 	}
 }

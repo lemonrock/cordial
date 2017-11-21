@@ -2,4 +2,9 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub type FullName = Rc<String>;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum RequiredTranslation
+{
+	missing_image_fallback,
+}

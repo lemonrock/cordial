@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Debug, Copy, Clone)]
 pub(crate) struct LanguageData<'a>
 {
 	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,

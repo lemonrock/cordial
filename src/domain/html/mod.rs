@@ -6,4 +6,3 @@ use super::*;
 
 
 include!("Abstract.rs");
-include!("AmpLayout.rs");

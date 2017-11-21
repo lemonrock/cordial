@@ -208,7 +208,7 @@ quick_error!
 
 impl CordialError
 {
-	pub(crate) fn couldNotFindResourceContentFile<R>(resource: &Resource, primaryLanguage: &Language, language: Option<&Language>) -> Result<R, CordialError>
+	pub(crate) fn couldNotFindResourceContentFile<R>(resource: &Resource, primaryLanguage: Iso639Dash1Alpha2Language, language: Option<Iso639Dash1Alpha2Language>) -> Result<R, CordialError>
 	{
 		let resourceName = resource.name();
 		let reason = match language
@@ -216,11 +216,11 @@ impl CordialError
 			None => format!("there is no language neutral content for resource {:?}", resourceName),
 			Some(language) => if primaryLanguage == language
 			{
-				format!("there is no primary language ({}) content for resource {:?}", primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceName)
+				format!("there is no primary language ({:?}) content for resource {:?}", primaryLanguage, resourceName)
 			}
 			else
 			{
-				format!("there is no language ({}) or primary language ({}) content for resource {:?}", language.iso3166Dash1Alpha2CountryCode(), primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceName)
+				format!("there is no language ({:?}) or primary language ({:?}) content for resource {:?}", language, primaryLanguage, resourceName)
 			},
 		};
 		

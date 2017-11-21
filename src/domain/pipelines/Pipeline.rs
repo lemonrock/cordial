@@ -5,7 +5,7 @@
 pub(crate) trait Pipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
+	fn imageMetaData(&self) -> Result<&Rc<ImageMetaData>, CordialError>
 	{
 		Err(CordialError::Configuration("This resource is not an image".to_owned()))
 	}

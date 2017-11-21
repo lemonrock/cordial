@@ -6,13 +6,13 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum AmpLayout
 {
-	nodisplay,
-	fixed,
+	#[allow(dead_code)] nodisplay,
+	#[allow(dead_code)] fixed,
 	responsive,
-	fixed_height,
-	fill,
-	container,
-	flex_item,
+	#[allow(dead_code)] fixed_height,
+	#[allow(dead_code)] fill,
+	#[allow(dead_code)] container,
+	#[allow(dead_code)] flex_item,
 }
 
 impl Deref for AmpLayout

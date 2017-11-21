@@ -13,13 +13,13 @@ pub(crate) struct MarkdownParser
 impl MarkdownParser
 {
 	#[inline(always)]
-	pub(crate) fn defaultish(headerIdPrefixWithTrailingDash: &str) -> Self
+	pub(crate) fn defaultish<S: Into<String>>(headerIdPrefixWithTrailingDash: S) -> Self
 	{
 		Self::new(headerIdPrefixWithTrailingDash, MarkdownBlockPlugin::registerAllPlugins(), MarkdownInlinePlugin::registerAllPlugins())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn new(headerIdPrefixWithTrailingDash: &str, blockPlugins: HashMap<Vec<u8>, MarkdownBlockPlugin>, inlinePlugins: HashMap<Vec<u8>, MarkdownInlinePlugin>) -> Self
+	pub(crate) fn new<S: Into<String>>(headerIdPrefixWithTrailingDash: S, blockPlugins: HashMap<Vec<u8>, MarkdownBlockPlugin>, inlinePlugins: HashMap<Vec<u8>, MarkdownInlinePlugin>) -> Self
 	{
 		Self
 		{
@@ -34,7 +34,7 @@ impl MarkdownParser
 				ext_autolink: true,
 				ext_tasklist: true,
 				ext_superscript: false,
-				ext_header_ids: Some(headerIdPrefixWithTrailingDash.to_string()),
+				ext_header_ids: Some(headerIdPrefixWithTrailingDash.into()),
 				ext_footnotes: true,
 			},
 			blockPlugins,

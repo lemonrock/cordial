@@ -12,7 +12,7 @@ pub(crate) struct SvgPipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: SvgInputFormat,
 	
-	#[serde(default)] metadata: ImageMetaData,
+	#[serde(default)] metadata: Rc<ImageMetaData>,
 	
 	// Exists solely because of potential bugs in svg optimizer
 	#[serde(default)] do_not_optimize: bool,
@@ -46,7 +46,7 @@ impl Default for SvgPipeline
 impl Pipeline for SvgPipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
+	fn imageMetaData(&self) -> Result<&Rc<ImageMetaData>, CordialError>
 	{
 		Ok(&self.metadata)
 	}

@@ -32,19 +32,13 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn embedAsXmlData(&self) -> bool
-	{
-		self.embed == ResourceEmbedding::xml
-	}
-	
-	#[inline(always)]
-	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<Rc<UrlData>>
+	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<&Rc<UrlData>>
 	{
 		let urlKey = self.urlKey(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
 		match self.urlData.get(&urlKey)
 		{
 			None => None,
-			Some(resourceTagToUrlDataMap) => resourceTagToUrlDataMap.get(resourceTag).map(|urlData| urlData.clone())
+			Some(resourceTagToUrlDataMap) => resourceTagToUrlDataMap.get(resourceTag)
 		}
 	}
 	
@@ -69,7 +63,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn htmlModifications<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &'a str>, CordialError>
+	pub(crate) fn htmlModifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, Rc<String>>, CordialError>
 	{
 		match self.htmlPipeline()
 		{
@@ -89,12 +83,12 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn htmlAbstract<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&'a Abstract, CordialError>
+	pub(crate) fn htmlAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<Rc<Abstract>, CordialError>
 	{
 		match self.htmlPipeline()
 		{
 			Err(error) => Err(error),
-			Ok(htmlPipeline) => htmlPipeline.abstract_(iso639Dash1Alpha2Language),
+			Ok(htmlPipeline) => htmlPipeline.abstract_(iso639Dash1Alpha2Language).map(|abstractReference| abstractReference.clone()),
 		}
 	}
 	
@@ -162,7 +156,7 @@ impl Resource
 			map.entry(iso639Dash1Alpha2Language).or_insert_with(|| Vec::with_capacity(4096))
 		}
 		
-		let primaryLanguage = configuration.localization.primaryLanguage()?;
+		let primaryLanguage = configuration.localization.primaryIso639Dash1Alpha2Language();
 		
 		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
@@ -181,7 +175,7 @@ impl Resource
 				{
 					let (ifLanguageAwareLanguageData, inputContentFilePath) = if isLanguageAware
 					{
-						(Some(languageData), self.inputContentFilePath(primaryLanguage, Some(languageData.language))?)
+						(Some(languageData), self.inputContentFilePath(primaryLanguage, Some(languageData.iso639Dash1Alpha2Language))?)
 					}
 					else
 					{
@@ -278,7 +272,7 @@ impl Resource
 	/// if language is some, then searches for resource by language, primary language or language-neutral name in descending order
 	/// if language is none, the searches by language-neutral name
 	#[inline(always)]
-	fn inputContentFilePath(&self, primaryLanguage: &Language, language: Option<&Language>) -> Result<PathBuf, CordialError>
+	fn inputContentFilePath(&self, primaryLanguage: Iso639Dash1Alpha2Language, language: Option<Iso639Dash1Alpha2Language>) -> Result<PathBuf, CordialError>
 	{
 		if language.is_some()
 		{
@@ -286,7 +280,7 @@ impl Resource
 			
 			for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 			{
-				let languageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", nonPrimaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceInputContentFileNameWithExtension));
+				let languageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{:?}.{}", nonPrimaryLanguage, resourceInputContentFileNameWithExtension));
 				if languageSpecificFilePath.exists()
 				{
 					return Ok(languageSpecificFilePath);
@@ -297,7 +291,7 @@ impl Resource
 			{
 				for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 				{
-					let primaryLanguageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{}.{}", primaryLanguage.iso3166Dash1Alpha2CountryCode(), resourceInputContentFileNameWithExtension));
+					let primaryLanguageSpecificFilePath = self.canonicalParentFolderPath.join(format!("{:?}.{}", primaryLanguage, resourceInputContentFileNameWithExtension));
 					if primaryLanguageSpecificFilePath.exists()
 					{
 						return Ok(primaryLanguageSpecificFilePath);
@@ -310,7 +304,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn languageNeutralInputContentFilePath(&self, primaryLanguage: &Language, language: Option<&Language>) -> Result<PathBuf, CordialError>
+	fn languageNeutralInputContentFilePath(&self, primaryLanguage: Iso639Dash1Alpha2Language, language: Option<Iso639Dash1Alpha2Language>) -> Result<PathBuf, CordialError>
 	{
 		for resourceInputContentFileNameWithExtension in self.resourceInputContentFileNamesWithExtension.iter()
 		{
@@ -341,7 +335,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn imageMetaData<'a>(&'a self) -> Result<&'a ImageMetaData, CordialError>
+	pub(crate) fn imageMetaData(&self) -> Result<&Rc<ImageMetaData>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline

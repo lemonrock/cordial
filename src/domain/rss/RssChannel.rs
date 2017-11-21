@@ -44,10 +44,10 @@ impl RssChannel
 		let imageMetaData = resource.imageMetaData()?;
 		let urlData = resource.urlData(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
 		let imageUrl = urlData.urlOrDataUri.deref();
-		let imageAbstract = imageMetaData.abstract_(iso639Dash1Alpha2Language)?;
+		let imageAbstract = imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?;
 		let (imageWidth, imageHeight) = urlData.dimensions()?;
-		let image_alt = &imageAbstract.alt;
-		let image_tooltip = &imageAbstract.title;
+		let image_alt = imageAbstract.alt.as_str();
+		let image_tooltip = imageAbstract.title.as_str();
 		
 		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let timeToLiveInMinutes =

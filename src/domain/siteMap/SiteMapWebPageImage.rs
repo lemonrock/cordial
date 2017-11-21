@@ -6,9 +6,7 @@
 pub(crate) struct SiteMapWebPageImage
 {
 	pub(crate) url: Url,
-	pub(crate) caption: String,
-	pub(crate) geographicLocation: Option<String>,
-	pub(crate) title: String,
+	pub(crate) imageAbstract: Rc<ImageAbstract>,
 	pub(crate) licenseUrl: Url,
 }
 
@@ -20,12 +18,12 @@ impl SiteMapWebPageImage
 		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, |eventWriter|
 		{
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "loc", self.url.as_ref())?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "caption", &self.caption)?;
-			if let Some(ref geographicLocation) = self.geographicLocation
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "caption", &self.imageAbstract.caption)?;
+			if let Some(geographicLocation) = self.imageAbstract.geographic_location.as_ref()
 			{
 				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "geo_location", geographicLocation)?;
 			}
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "title", &self.title)?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "title", &self.imageAbstract.title)?;
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.as_ref())
 		})
 	}

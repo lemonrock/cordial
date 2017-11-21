@@ -17,7 +17,10 @@ use ::url::form_urlencoded::Parse as ParsedQueryString;
 use ::url::form_urlencoded::parse as parseQueryString;
 
 
+include!("AmpLayout.rs");
 include!("AstNodeExt.rs");
+include!("CaptionPosition.rs");
+include!("ImageMarkdownPluginData.rs");
 include!("MarkdownBlockPlugin.rs");
 include!("MarkdownInlinePlugin.rs");
 include!("MarkdownParser.rs");

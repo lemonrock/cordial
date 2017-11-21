@@ -8,7 +8,7 @@
 pub(crate) struct EMailAddress
 {
 	#[serde(default = "EMailAddress::full_name_default")] pub(crate) full_name: FullName,
-	#[serde(default = "EMailAddress::email_default")] email: String,
+	#[serde(default = "EMailAddress::email_default")] email: Rc<String>,
 }
 
 impl Default for EMailAddress
@@ -33,14 +33,14 @@ impl EMailAddress
 	}
 	
 	#[inline(always)]
-	fn full_name_default() -> String
+	fn full_name_default() -> FullName
 	{
-		"webmaster@example.com".to_owned()
+		Rc::new("webmaster@example.com".to_owned())
 	}
 	
 	#[inline(always)]
-	fn email_default() -> String
+	fn email_default() -> Rc<String>
 	{
-		"Webmaster".to_owned()
+		Rc::new("Webmaster".to_owned())
 	}
 }

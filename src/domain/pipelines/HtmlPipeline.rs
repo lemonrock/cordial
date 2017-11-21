@@ -21,10 +21,10 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] publication_date: Option<DateTime<Utc>>,
 	// modification_date - used by open graph, schema.org. should be a list of changes, with changes detailed in all languages. Not the same as HTTP last-modified date.
 	// empty modifications imply use of publication date
-	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<Iso639Dash1Alpha2Language, String>>,
+	#[serde(default)] modifications: BTreeMap<DateTime<Utc>, HashMap<Iso639Dash1Alpha2Language, Rc<String>>>,
 	// open graph
 	#[serde(default)] expiration_date: Option<DateTime<Utc>>,
-	#[serde(default)] abstracts: HashMap<Iso639Dash1Alpha2Language, Abstract>,
+	#[serde(default)] abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<Abstract>>,
 	// a resource URL; if missing, then rss should be set to false
 	#[serde(default)] article_image: Option<ResourceUrl>,
 	#[serde(default = "HtmlPipeline::template_default")] template: String,
@@ -98,7 +98,7 @@ impl Pipeline for HtmlPipeline
 	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		let markdownParser = MarkdownParser::defaultish(&self.header_id_prefix_with_trailing_dash);
+		let markdownParser = MarkdownParser::defaultish(self.header_id_prefix_with_trailing_dash.as_str());
 		let pluginData = MarkdownPluginData
 		{
 			resources,
@@ -171,7 +171,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn modifications<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &'a str>, CordialError>
+	pub(crate) fn modifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, Rc<String>>, CordialError>
 	{
 		let mut modifications = BTreeMap::new();
 		for (date, modificationTranslations) in self.modifications.iter()
@@ -179,7 +179,7 @@ impl HtmlPipeline
 			let translation = match modificationTranslations.get(&iso639Dash1Alpha2Language)
 			{
 				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso639Dash1Alpha2Language))),
-				Some(translation) => translation.as_str(),
+				Some(translation) => translation.clone(),
 			};
 			
 			modifications.insert(*date, translation);
@@ -194,7 +194,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn abstract_<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&'a Abstract, CordialError>
+	pub(crate) fn abstract_<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&'a Rc<Abstract>, CordialError>
 	{
 		match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
@@ -289,7 +289,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn renderHandlebarsTemplateToHtml(&self, template: &str, markdown: &str, markdownParser: &MarkdownParser, languageData: &LanguageData, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract, pluginData: &MarkdownPluginData, isForAmp: bool) -> Result<RcDom, CordialError>
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, markdown: &str, markdownParser: &MarkdownParser, languageData: &LanguageData, articleImage: &Option<(ResourceReference, Rc<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Rc<Abstract>, pluginData: &MarkdownPluginData, isForAmp: bool) -> Result<RcDom, CordialError>
 	{
 		let htmlFromMarkdown = markdownParser.parse(&markdown, pluginData, isForAmp)?;
 		
@@ -304,7 +304,7 @@ impl HtmlPipeline
 			let imageAbstract = match articleImage
 			{
 				&None => None,
-				&Some((_, ref imageMetaData)) => Some((imageResourceReference,imageMetaData.abstract_(iso639Dash1Alpha2Language)?)),
+				&Some((_, ref imageMetaData)) => Some((imageResourceReference, imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?)),
 			};
 			
 			let modifications = self.modifications(iso639Dash1Alpha2Language)?;
@@ -332,7 +332,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
+	fn addSiteMapEntry(&self, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Rc<ImageMetaData>)>, resources: &Resources, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		if self.site_map
 		{
@@ -385,7 +385,7 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
+	fn addRssItem(&self, configuration: &Configuration, rssItems: &mut Vec<RssItem>, resourceUrl: &ResourceUrl, articleImage: &Option<(ResourceReference, Rc<ImageMetaData>)>, resources: &Resources, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, document: &RcDom, capacityHint: usize, languageData: &LanguageData, abstract_: &Abstract) -> Result<(), CordialError>
 	{
 		if self.rss
 		{
@@ -395,7 +395,7 @@ impl HtmlPipeline
 				{
 					rssItemLanguageVariant: RssItemLanguageVariant
 					{
-						webPageDescription: abstract_.description.to_owned(),
+						webPageDescription: abstract_.description.clone(),
 						webPageUsefulContentHtml: Self::extractNodes(&self.rss_css_selector, &document, "rss_css_selector", capacityHint)?,
 						languageSpecificUrl: self.canonicalUrl(languageData, resourceUrl)?,
 						primaryImage: match articleImage
@@ -445,40 +445,27 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn articleImage<'this, 'resources: 'this>(&'this self, resources: &'resources Resources) -> Result<Option<(ResourceReference, Ref<'resources, ImageMetaData>)>, CordialError>
+	fn articleImage(&self, resources: &Resources) -> Result<Option<(ResourceReference, Rc<ImageMetaData>)>, CordialError>
 	{
-		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
-		{
-			{
-				let resourceRef = resourceRefCell.try_borrow()?;
-				let doneTwiceBecauseOfLimitationOnRefMapMethod = resourceRef.imageMetaData();
-				if let Err(error) = doneTwiceBecauseOfLimitationOnRefMapMethod
-				{
-					return Err(error);
-				}
-			}
-			
-			Ok(Some(Ref::map(resourceRefCell.try_borrow()?, |resource| resource.imageMetaData().unwrap())))
-		}
-		
 		match self.article_image
 		{
 			None => Ok(None),
 			Some(ref resourceUrl) =>
 			{
-				let resourceRefCell = match resourceUrl.get(resources)
+				match resourceUrl.get(resources)
 				{
-					None => return Ok(None),
-					Some(resourceRefCell) => resourceRefCell,
-				};
-				
-				let resourceReference = ResourceReference
-				{
-					resource: resourceUrl.clone(),
-					tag: ResourceTag::largest_image,
-				};
-				
-				Ok(x(resourceRefCell)?.map(|metadata| (resourceReference, metadata)))
+					None => Err(CordialError::Configuration(format!("Missing article image resource {:?}", resourceUrl))),
+					Some(resourceRefCell) => Ok
+					(
+						Some
+						(
+							(
+								ResourceReference { resource: resourceUrl.clone(), tag: ResourceTag::largest_image, },
+								resourceRefCell.try_borrow()?.imageMetaData()?.clone(),
+							)
+						)
+					),
+				}
 			}
 		}
 	}

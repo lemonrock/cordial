@@ -11,3 +11,4 @@ include!("Language.rs");
 include!("LanguageData.rs");
 include!("Localization.rs");
 include!("RelativeRootUrl.rs");
+include!("RequiredTranslation.rs");

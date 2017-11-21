@@ -46,7 +46,7 @@ impl InputFormat for FontInputFormat
 impl FontInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let format = match option
 		{
@@ -68,7 +68,7 @@ impl FontInputFormat
 	}
 	
 	#[inline(always)]
-	fn process(&self, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn process(&self, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourceTag::*;
 		
@@ -88,7 +88,7 @@ impl FontInputFormat
 			let woffUrl = resourceUrl.replaceFileNameExtension(".woff2").url(languageData)?;
 			let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
-			urls.push((woffUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
+			urls.push((woffUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
 		}
 		
 		// woff2
@@ -106,14 +106,14 @@ impl FontInputFormat
 				Err(()) => return Err(CordialError::Configuration("Could not encode font to WOFF2".to_owned())),
 				Ok(body) => body,
 			};
-			urls.push((woff2Url, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
+			urls.push((woff2Url, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
 		}
 		
 		if include_ttf
 		{
 			let ttfUrl = resourceUrl.url(languageData)?;
 			let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
-			urls.push((ttfUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
+			urls.push((ttfUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
 		}
 		
 		Ok(urls)

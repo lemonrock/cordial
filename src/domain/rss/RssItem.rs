@@ -15,13 +15,13 @@ impl RssItem
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> XmlWriterResult
 	{
 		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
 		
 		let versionAttributes =
 		[
-			Attribute::new(Name::local("version"), "2.0"),
+			XmlAttribute::new(Name::local("version"), "2.0"),
 		];
 		eventWriter.writeWithinElement(Name::local("item"), &namespace, &versionAttributes, |eventWriter|
 		{
@@ -33,7 +33,7 @@ impl RssItem
 			
 			let guidAttributes =
 			[
-				Attribute::new(Name::local("isPermaLink"), "true"),
+				XmlAttribute::new(Name::local("isPermaLink"), "true"),
 			];
 			eventWriter.writeUnprefixedTextElement(&namespace, &guidAttributes, "guid", rssItemLanguageVariant.languageSpecificUrl.as_ref())?;
 			
@@ -59,21 +59,21 @@ impl RssItem
 				
 				let enclosureAttributes =
 				[
-					Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
-					Attribute::new(Name::local("length"), &fileSize),
-					Attribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
+					XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
+					XmlAttribute::new(Name::local("length"), &fileSize),
+					XmlAttribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
 				];
 				eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
 				
 				let contentAttributes =
 				[
-					Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
-					Attribute::new(Name::local("medium"), "image"),
-					Attribute::new(Name::local("height"), &height),
-					Attribute::new(Name::local("width"), &width),
-					Attribute::new(Name::local("fileSize"), &fileSize),
-					Attribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
-					Attribute::new(Name::local("lang"), primaryImage.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
+					XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
+					XmlAttribute::new(Name::local("medium"), "image"),
+					XmlAttribute::new(Name::local("height"), &height),
+					XmlAttribute::new(Name::local("width"), &width),
+					XmlAttribute::new(Name::local("fileSize"), &fileSize),
+					XmlAttribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
+					XmlAttribute::new(Name::local("lang"), primaryImage.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
 				];
 				eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
 				{
@@ -83,9 +83,9 @@ impl RssItem
 					
 					let thumbnailAttributes =
 					[
-						Attribute::new(Name::local("width"), &width),
-						Attribute::new(Name::local("height"), &height),
-						Attribute::new(Name::local("url"), primaryImage.url.as_ref()),
+						XmlAttribute::new(Name::local("width"), &width),
+						XmlAttribute::new(Name::local("height"), &height),
+						XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
 					];
 					eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
 				})?;

@@ -66,7 +66,7 @@ impl<'a> ImageSourceSet<'a>
 	/// Outputs (Url, Width) pairs
 	/// Use as say (note commas MATTER): srcset="/url/elva-fairy-320w.jpg 320w, /url/elva-fairy-480w.jpg 480w, /url/elva-fairy.jpg 800w, /url/elva-fairy-1000w.jpg 1000w,"
 	#[inline(always)]
-	pub(crate) fn processedImageSourceSet(&self) -> Result<Vec<(Url, u32)>, CordialError>
+	pub(crate) fn processedImageSourceSet(&self, imageSourceSet: &mut Vec<(Url, u32)>) -> Result<(), CordialError>
 	{
 		let fileExtension = if self.jpegQuality.is_some()
 		{
@@ -77,7 +77,8 @@ impl<'a> ImageSourceSet<'a>
 			".png"
 		};
 		
-		let mut imageSourceSet = Vec::with_capacity(self.imagesInOrder.len());
+		imageSourceSet.reserve_exact(self.imagesInOrder.len());
+		
 		for width in self.imagesInOrder.keys()
 		{
 			let width = *width;
@@ -92,11 +93,11 @@ impl<'a> ImageSourceSet<'a>
 			
 			imageSourceSet.push((url, width))
 		}
-		Ok(imageSourceSet)
+		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let (contentType, fileExtension) = if self.jpegQuality.is_some()
 		{
@@ -126,39 +127,39 @@ impl<'a> ImageSourceSet<'a>
 			let headers = headerGenerator(&url)?;
 			
 			let height = image.height();
-			let jsonValue = Rc::new
+			let urlDataDetails = Rc::new
 			(
-				json!
-				({
-					"width": width,
-					"height": height,
-					"mime": contentType.0.as_ref().to_owned(),
-					"size": body.len() as u64,
-				})
+				UrlDataDetails::Image
+				{
+					width,
+					height,
+					mime: contentType.0.clone(),
+					size: body.len() as u64,
+				}
 			);
 			
 			use self::ResourceTag::*;
-			let mut resourceTagss = hashmap!
+			let mut resourceTags = hashmap!
 			{
-				width_image(width) => jsonValue.clone(),
-				height_image(height) => jsonValue.clone(),
-				width_height_image(width, height) => jsonValue.clone()
+				width_image(width) => urlDataDetails.clone(),
+				height_image(height) => urlDataDetails.clone(),
+				width_height_image(width, height) => urlDataDetails.clone()
 			};
 			
 			if isPrimary
 			{
-				resourceTagss.insert(default, jsonValue.clone());
-				resourceTagss.insert(primary_image, jsonValue.clone());
+				resourceTags.insert(default, urlDataDetails.clone());
+				resourceTags.insert(primary_image, urlDataDetails.clone());
 			}
 			if index == 0
 			{
-				resourceTagss.insert(smallest_image, jsonValue.clone());
+				resourceTags.insert(smallest_image, urlDataDetails.clone());
 			}
 			if index == finalIndex
 			{
-				resourceTagss.insert(largest_image, jsonValue.clone());
+				resourceTags.insert(largest_image, urlDataDetails.clone());
 			}
-			urls.push((url, resourceTagss, StatusCode::Ok, contentType.clone(), headers, body, None, false));
+			urls.push((url, resourceTags, StatusCode::Ok, contentType.clone(), headers, body, None, false));
 			index += 1;
 		}
 		Ok(urls)

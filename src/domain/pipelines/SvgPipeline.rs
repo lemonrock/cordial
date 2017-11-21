@@ -12,7 +12,7 @@ pub(crate) struct SvgPipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: SvgInputFormat,
 	
-	#[serde(default)] metadata: Option<ImageMetaData>,
+	#[serde(default)] metadata: ImageMetaData,
 	
 	// Exists solely because of potential bugs in svg optimizer
 	#[serde(default)] do_not_optimize: bool,
@@ -20,6 +20,8 @@ pub(crate) struct SvgPipeline
 	// Responsive tips: https://useiconic.com/guides/using-iconic-responsively
 	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
 	// Or individual image files, with width/height pre-set
+	
+	#[serde(default, skip_deserializing)] primaryImageDimensions: Cell<(u32, u32)>,
 }
 
 impl Default for SvgPipeline
@@ -34,8 +36,9 @@ impl Default for SvgPipeline
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			input_format: Default::default(),
-			metadata: None,
+			metadata: Default::default(),
 			do_not_optimize: false,
+			primaryImageDimensions: Default::default(),
 		}
 	}
 }
@@ -43,9 +46,25 @@ impl Default for SvgPipeline
 impl Pipeline for SvgPipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Option<&ImageMetaData>
+	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
 	{
-		self.metadata.as_ref()
+		Ok(&self.metadata)
+	}
+	
+	#[inline(always)]
+	fn addToImgAttributes(&self, attributes: &mut Vec<Attribute>) -> Result<(), CordialError>
+	{
+		let dimensions = self.primaryImageDimensions.get();
+		if dimensions.0 != 0
+		{
+			attributes.push("width".u32_attribute(dimensions.0));
+		}
+		if dimensions.1 != 0
+		{
+			attributes.push("height".u32_attribute(dimensions.1));
+		}
+		
+		Ok(())
 	}
 	
 	#[inline(always)]
@@ -67,7 +86,7 @@ impl Pipeline for SvgPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let url = resourceUrl.replaceFileNameExtension(".svg").url(languageData)?;
 		
@@ -81,6 +100,8 @@ impl Pipeline for SvgPipeline
 		let width = Self::svgDimensionInPixels(&document, "width").unwrap_or(0);
 		let height = Self::svgDimensionInPixels(&document, "height").unwrap_or(0);
 		
+		self.primaryImageDimensions.set((width, height));
+		
 		let body = if self.do_not_optimize
 		{
 			svgString.into_bytes()
@@ -92,27 +113,27 @@ impl Pipeline for SvgPipeline
 		
 		let mimeType = mimeType("image/svg+xml");
 		
-		let jsonValue = Rc::new
+		let urlDataDetails = Rc::new
 		(
-			json!
-			({
-				"width": width,
-				"height": height,
-				"mime": mimeType.as_ref().to_owned(),
-				"size": body.len() as u64,
-			})
+			UrlDataDetails::Image
+			{
+				width,
+				height,
+				mime: mimeType.clone(),
+				size: body.len() as u64,
+			}
 		);
 		
 		let tags = hashmap!
 		{
-			default => jsonValue.clone(),
+			default => urlDataDetails.clone(),
 			
-			smallest_image => jsonValue.clone(),
-			largest_image => jsonValue.clone(),
-			primary_image => jsonValue.clone(),
-			width_image(width) => jsonValue.clone(),
-			height_image(height) => jsonValue.clone(),
-			width_height_image(width, height) => jsonValue.clone(),
+			smallest_image => urlDataDetails.clone(),
+			largest_image => urlDataDetails.clone(),
+			primary_image => urlDataDetails.clone(),
+			width_image(width) => urlDataDetails.clone(),
+			height_image(height) => urlDataDetails.clone(),
+			width_height_image(width, height) => urlDataDetails.clone(),
 		};
 		
 		Ok(vec![(url, tags, StatusCode::Ok, ContentType(mimeType), headers, body, None, CanBeCompressed)])

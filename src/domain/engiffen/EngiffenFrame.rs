@@ -36,7 +36,7 @@ impl Default for EngiffenFrame
 impl EngiffenFrame
 {
 	#[inline(always)]
-	fn transform(&self, image: &mut ::image::DynamicImage) -> Result<Option<::image::DynamicImage>, CordialError>
+	fn transform(&self, image: &mut EngiffenSourceImage) -> Result<Option<EngiffenSourceImage>, CordialError>
 	{
 		ImageTransformation::applyTransformations(image, &self.transformations[..])
 	}

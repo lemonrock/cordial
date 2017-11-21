@@ -16,7 +16,7 @@ impl SiteMapWebPage
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'a>]) -> ::xml::writer::Result<bool>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> ::xml::writer::Result<bool>
 	{
 		let locationUrl = self.urlsByIso639Dash1Alpha2Language.get(&iso639Dash1Alpha2Language);
 		if locationUrl.is_none()
@@ -56,9 +56,9 @@ impl SiteMapWebPage
 	{
 		eventWriter.writeEmptyElement(namespace,
 		&[
-			Attribute::new(Name::local("rel"), "alternate"),
-			Attribute::new(Name::local("hreflang"), iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
-			Attribute::new(Name::local("href"), url.as_ref()),
+			XmlAttribute::new(Name::local("rel"), "alternate"),
+			XmlAttribute::new(Name::local("hreflang"), iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
+			XmlAttribute::new(Name::local("href"), url.as_ref()),
 		], Name::prefixed("link", "xhtml"))
 	}
 }

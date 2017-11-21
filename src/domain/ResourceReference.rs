@@ -6,12 +6,35 @@
 #[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct ResourceReference
 {
-	pub(crate) resource: ResourceUrl,
-	pub(crate) tag: ResourceTag,
+	#[serde(default)] pub(crate) resource: ResourceUrl,
+	#[serde(default)] pub(crate) tag: ResourceTag,
+}
+
+impl Default for ResourceReference
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			resource: Default::default(),
+			tag: Default::default(),
+		}
+	}
 }
 
 impl ResourceReference
 {
+	#[inline(always)]
+	pub(crate) fn primary_image(resource: ResourceUrl) -> Self
+	{
+		Self
+		{
+			resource,
+			tag: ResourceTag::primary_image,
+		}
+	}
+	
 	#[inline(always)]
 	pub(crate) fn new<S: Into<String>>(resource: S, tag: ResourceTag) -> Self
 	{
@@ -26,5 +49,23 @@ impl ResourceReference
 	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
 	{
 		self.resource.get(resources)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn getUrlData<'resources>(&self, resources: &'resources Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) ->  Result<Option<(Rc<UrlData>, Ref<'resources, Resource>)>, CordialError>
+	{
+		match self.get(resources)
+		{
+			None => Ok(None),
+			Some(resource) =>
+			{
+				let borrowedResource = resource.try_borrow()?;
+				match borrowedResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag)
+				{
+					None => Err(CordialError::Configuration(format!("Could not get urlData for '{:?}'", self))),
+					Some(urlData) => Ok(Some((urlData, borrowedResource))),
+				}
+			}
+		}
 	}
 }

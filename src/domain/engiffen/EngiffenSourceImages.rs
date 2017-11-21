@@ -2,21 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::image::GenericImage;
-use ::image::jpeg::JPEGEncoder;
-
-
-include!("ImageAbstract.rs");
-include!("ImageCrop.rs");
-include!("ImageMetaData.rs");
-include!("ImageScale.rs");
-include!("ImageSourceSet.rs");
-include!("ImageSourceSetEntry.rs");
-include!("ImageTransformation.rs");
-include!("ImageTransformationFilterType.rs");
-include!("Length.rs");
-include!("LongDescription.rs");
-include!("MediaQueryAndLength.rs");
-include!("ProcessedImageSourceSet.rs");
-include!("ReferrerPolicy.rs");
+type EngiffenSourceImages = BTreeMap<PathBuf, EngiffenSourceImage>;

@@ -7,13 +7,18 @@ use ::comrak::ComrakOptions;
 use ::comrak::format_html;
 use ::comrak::parse_document;
 use ::comrak::nodes::*;
+use ::comrak::nodes::NodeValue::*;
 use ::csv::Reader;
+use ::std::ops::Deref;
 use ::std::iter::Iterator;
 use ::std::str::from_utf8;
 use ::typed_arena::Arena;
+use ::url::form_urlencoded::Parse as ParsedQueryString;
+use ::url::form_urlencoded::parse as parseQueryString;
 
 
 include!("AstNodeExt.rs");
-include!("MarkdownParser.rs");
 include!("MarkdownBlockPlugin.rs");
 include!("MarkdownInlinePlugin.rs");
+include!("MarkdownParser.rs");
+include!("MarkdownPluginData.rs");

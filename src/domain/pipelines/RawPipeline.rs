@@ -49,7 +49,7 @@ impl Pipeline for RawPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		let inputCanonicalUrl = resourceUrl.url(languageData)?;
 		
@@ -77,7 +77,7 @@ impl Pipeline for RawPipeline
 		
 		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, self.max_age_in_seconds, self.is_downloadable, &inputCanonicalUrl)?;
 		let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
+		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
 	}
 }
 

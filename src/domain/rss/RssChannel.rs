@@ -41,12 +41,11 @@ impl RssChannel
 		}
 		
 		let resource = self.image_url.get(resources).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
-		let imageMetaData = resource.imageMetaData().ok_or_else(|| CordialError::Configuration(format!("Could not find image meta data for image_url '{:?}'", &self.image_url)))?;
+		let imageMetaData = resource.imageMetaData()?;
 		let urlData = resource.urlData(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
 		let imageUrl = urlData.urlOrDataUri.deref();
 		let imageAbstract = imageMetaData.abstract_(iso639Dash1Alpha2Language)?;
-		let imageWidth = urlData.jsonValue.u32("width")?;
-		let imageHeight = urlData.jsonValue.u32("height")?;
+		let (imageWidth, imageHeight) = urlData.dimensions()?;
 		let image_alt = &imageAbstract.alt;
 		let image_tooltip = &imageAbstract.title;
 		
@@ -90,7 +89,7 @@ impl RssChannel
 		
 		let attributes =
 		[
-			Attribute::new(Name::local("version"), "2.0"),
+			XmlAttribute::new(Name::local("version"), "2.0"),
 		];
 		eventWriter.writeWithinElement(Name::local("rss"), &namespace, &attributes, |eventWriter|
 		{
@@ -106,9 +105,9 @@ impl RssChannel
 				
 				let attributes =
 				[
-					Attribute::new(Name::local("rel"), "self"),
-					Attribute::new(Name::local("type"), "application/rss+xml"),
-					Attribute::new(Name::local("href"), unversionedCanonicalUrl.as_ref()),
+					XmlAttribute::new(Name::local("rel"), "self"),
+					XmlAttribute::new(Name::local("type"), "application/rss+xml"),
+					XmlAttribute::new(Name::local("href"), unversionedCanonicalUrl.as_ref()),
 				];
 				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
 				

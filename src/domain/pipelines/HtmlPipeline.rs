@@ -87,7 +87,7 @@ impl Pipeline for HtmlPipeline
 		(Self::is_versioned, Self::language_aware)
 	}
 	
-	// TODO: How do we minify CSS across mutliple HTML pages?
+	// TODO: How do we minify CSS across multiple HTML pages?
 	// TODO: Take HTML and run it through languagetool
 	// TODO: Validate length of title and description, content, etc
 	// TODO: Sitemap videos?
@@ -95,16 +95,24 @@ impl Pipeline for HtmlPipeline
 	// TODO: markdown plugins using `` syntax, markdown plugins using arguments from ```CODE``` syntax
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
-		let htmlFromMarkdown = self.renderMarkdown(inputContentFilePath)?;
-		let abstract_ = self.abstract_(languageData)?;
+		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+		let markdownParser = MarkdownParser::defaultish(&self.header_id_prefix_with_trailing_dash);
+		let pluginData = MarkdownPluginData
+		{
+			resources,
+			configuration,
+			language: languageData,
+		};
+		
+		let abstract_ = self.abstract_(languageData.iso639Dash1Alpha2Language)?;
 		let lastModificationDateOrPublicationDate = self.lastModificationDateOrPublicationDate();
 		let articleImage = self.articleImage(resources)?;
 		
 		self.addSiteMapEntry(configuration, siteMapWebPages, resourceUrl, &articleImage, resources, languageData)?;
 		
-		let document = self.renderHandlebarsTemplateToHtml(&self.template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+		let document = self.renderHandlebarsTemplateToHtml(&self.template, &markdown, &markdownParser, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_, &pluginData, false)?;
 		let regularBody = document.minify_to_bytes(true);
 		
 		self.addRssItem(configuration, rssItems, resourceUrl, &articleImage, resources, lastModificationDateOrPublicationDate, &document, regularBody.len(), languageData, abstract_)?;
@@ -123,10 +131,10 @@ impl Pipeline for HtmlPipeline
 			
 			let ampHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::AMP, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &ampUrl)?;
 			
-			let ampDocument = self.renderHandlebarsTemplateToHtml(amp_template, &htmlFromMarkdown, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_)?;
+			let ampDocument = self.renderHandlebarsTemplateToHtml(amp_template, &markdown, &markdownParser, languageData, &articleImage, lastModificationDateOrPublicationDate, inputContentFilePath, configuration, handlebars, abstract_, &pluginData, true)?;
 			let ampBody = ampDocument.minify_to_bytes(false);
 			
-			result.push((ampUrl, hashmap! { amp => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
+			result.push((ampUrl, hashmap! { amp => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType::html(), ampHeaders, ampBody, None, CanBeCompressed));
 		}
 		
 		{
@@ -137,7 +145,7 @@ impl Pipeline for HtmlPipeline
 			let pjaxHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::PJAX, configuration, CanBeCompressed, self.max_age_in_seconds, Self::is_downloadable, &inputCanonicalUrl)?;
 			let pjaxBody = Self::extractNodes(&self.pjax_css_selector, &document, "pjax_css_selector", regularBody.len())?;
 			
-			result.push((inputCanonicalUrl, hashmap! { default => Rc::new(JsonValue::Null) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
+			result.push((inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType::html(), regularHeaders, regularBody, Some((pjaxHeaders, pjaxBody)), CanBeCompressed));
 		}
 		
 		Ok(result)
@@ -153,7 +161,50 @@ impl HtmlPipeline
 	const is_downloadable: bool = false;
 	
 	#[inline(always)]
-	fn addRedirect(&self, isForAmp: bool, result: &mut Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, languageData: &LanguageData, resourceUrl: &ResourceUrl, inputCanonicalUrl: &Url) -> Result<(), CordialError>
+	pub(crate) fn lastModificationDateOrPublicationDate(&self) -> Option<DateTime<Utc>>
+	{
+		match self.modifications.keys().rev().next()
+		{
+			Some(date) => Some(*date),
+			None => self.publication_date
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn modifications<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &'a str>, CordialError>
+	{
+		let mut modifications = BTreeMap::new();
+		for (date, modificationTranslations) in self.modifications.iter()
+		{
+			let translation = match modificationTranslations.get(&iso639Dash1Alpha2Language)
+			{
+				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso639Dash1Alpha2Language))),
+				Some(translation) => translation.as_str(),
+			};
+			
+			modifications.insert(*date, translation);
+		}
+		Ok(modifications)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn expirationDate(&self) -> Option<DateTime<Utc>>
+	{
+		self.expiration_date
+	}
+	
+	#[inline(always)]
+	pub(crate) fn abstract_<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&'a Abstract, CordialError>
+	{
+		match self.abstracts.get(&iso639Dash1Alpha2Language)
+		{
+			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso639Dash1Alpha2Language))),
+			Some(abstract_) => Ok(abstract_),
+		}
+	}
+	
+	#[inline(always)]
+	fn addRedirect(&self, isForAmp: bool, result: &mut Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, languageData: &LanguageData, resourceUrl: &ResourceUrl, inputCanonicalUrl: &Url) -> Result<(), CordialError>
 	{
 		const RedirectsCanNotBeCompressed: bool = false;
 		
@@ -167,7 +218,7 @@ impl HtmlPipeline
 			{
 				self.redirectUrl(languageData, resourceUrl)?
 			};
-			result.push((redirectUrl, hashmap! { redirect => Rc::new(JsonValue::Null) }, StatusCode::MovedPermanently, ContentType::plaintext(), Self::redirectHeaders(inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
+			result.push((redirectUrl, hashmap! { redirect => Rc::new(UrlDataDetails::Empty) }, StatusCode::MovedPermanently, ContentType::plaintext(), Self::redirectHeaders(inputCanonicalUrl), Vec::new(), None, RedirectsCanNotBeCompressed));
 		}
 		
 		Ok(())
@@ -238,15 +289,10 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn renderMarkdown(&self, inputContentFilePath: &Path) -> Result<Vec<u8>, CordialError>
+	fn renderHandlebarsTemplateToHtml(&self, template: &str, markdown: &str, markdownParser: &MarkdownParser, languageData: &LanguageData, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract, pluginData: &MarkdownPluginData, isForAmp: bool) -> Result<RcDom, CordialError>
 	{
-		let markdown = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		MarkdownParser::defaultishParse(&self.header_id_prefix_with_trailing_dash, &markdown)
-	}
-	
-	#[inline(always)]
-	fn renderHandlebarsTemplateToHtml(&self, template: &str, htmlFromMarkdown: &[u8], languageData: &LanguageData, articleImage: &Option<(ResourceReference, Ref<ImageMetaData>)>, lastModificationDateOrPublicationDate: Option<DateTime<Utc>>, inputContentFilePath: &Path, configuration: &Configuration, handlebars: &mut Handlebars, abstract_: &Abstract) -> Result<RcDom, CordialError>
-	{
+		let htmlFromMarkdown = markdownParser.parse(&markdown, pluginData, isForAmp)?;
+		
 		let html =
 		{
 			let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
@@ -260,6 +306,8 @@ impl HtmlPipeline
 				&None => None,
 				&Some((_, ref imageMetaData)) => Some((imageResourceReference,imageMetaData.abstract_(iso639Dash1Alpha2Language)?)),
 			};
+			
+			let modifications = self.modifications(iso639Dash1Alpha2Language)?;
 			handlebars.template_render(template, &json!
 			({
 				"environment": &configuration.environment,
@@ -267,11 +315,11 @@ impl HtmlPipeline
 				"localization": &configuration.localization,
 				"deployment_date": configuration.deploymentDate,
 				"deployment_version": &configuration.deploymentVersion,
-				
+
 				"markdown": htmlFromMarkdown,
 				"publication_date": self.publication_date,
 				"lastModificationDateOrPublicationDate": lastModificationDateOrPublicationDate,
-				"modifications": self.modifications(iso639Dash1Alpha2Language)?,
+				"modifications": modifications,
 				"expiration_date": self.expiration_date,
 				"abstract": abstract_,
 				"image_abstract": imageAbstract,
@@ -302,15 +350,14 @@ impl HtmlPipeline
 				if let Some(resourceRefCell) = siteMapImageResourceUrl.get(resources)
 				{
 					let resourceRef = resourceRefCell.try_borrow()?;
-					if let Some(imageMetaData) = resourceRef.imageMetaData()
+					let imageMetaData = resourceRef.imageMetaData()?;
+					
+					let internalImage = ResourceReference
 					{
-						let internalImage = ResourceReference
-						{
-							resource: siteMapImageResourceUrl.clone(),
-							tag: ResourceTag::largest_image,
-						};
-						images.push(imageMetaData.siteMapWebPageImage(&internalImage, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?)
-					}
+						resource: siteMapImageResourceUrl.clone(),
+						tag: ResourceTag::largest_image,
+					};
+					images.push(imageMetaData.siteMapWebPageImage(&internalImage, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?)
 				}
 			}
 			
@@ -367,44 +414,6 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn lastModificationDateOrPublicationDate(&self) -> Option<DateTime<Utc>>
-	{
-		match self.modifications.keys().rev().next()
-		{
-			Some(date) => Some(*date),
-			None => self.publication_date
-		}
-	}
-	
-	#[inline(always)]
-	fn modifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &str>, CordialError>
-	{
-		let mut modifications = BTreeMap::new();
-		for (date, modificationTranslations) in self.modifications.iter()
-		{
-			let translation = match modificationTranslations.get(&iso639Dash1Alpha2Language)
-			{
-				None => return Err(CordialError::Configuration(format!("No modification translation for date {} for language '{}'", date, iso639Dash1Alpha2Language))),
-				Some(translation) => translation.as_str(),
-			};
-			
-			modifications.insert(*date, translation);
-		}
-		Ok(modifications)
-	}
-	
-	#[inline(always)]
-	fn abstract_(&self, languageData: &LanguageData) -> Result<&Abstract, CordialError>
-	{
-		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		match self.abstracts.get(&iso639Dash1Alpha2Language)
-		{
-			None => Err(CordialError::Configuration(format!("No abstract translation for language '{}'", iso639Dash1Alpha2Language))),
-			Some(abstract_) => Ok(abstract_),
-		}
-	}
-	
-	#[inline(always)]
 	fn extractNodes(selector: &str, document: &RcDom, selectorName: &str, capacityGuess: usize) -> Result<Vec<u8>, CordialError>
 	{
 		const html_head_and_body_tags_are_optional: bool = true;
@@ -441,9 +450,10 @@ impl HtmlPipeline
 		fn x(resourceRefCell: &RefCell<Resource>) -> Result<Option<Ref<ImageMetaData>>, CordialError>
 		{
 			let resourceRef = resourceRefCell.try_borrow()?;
-			if resourceRef.imageMetaData().is_none()
+			let doneTwiceBecauseOfLimitationOnRefMapMethod = resourceRef.imageMetaData();
+			if let Err(error) = doneTwiceBecauseOfLimitationOnRefMapMethod
 			{
-				return Ok(None);
+				return Err(error);
 			}
 			
 			Ok(Some(Ref::map(resourceRef, |resource| resource.imageMetaData().unwrap())))

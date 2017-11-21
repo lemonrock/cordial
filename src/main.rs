@@ -85,6 +85,7 @@ use self::domain::localization::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
+use ::css_purify::html5ever_ext::*;
 use ::handlebars::Handlebars;
 use ::hyper::mime;
 use ::hyper::mime::Mime;
@@ -110,6 +111,7 @@ use ::std::io::BufReader;
 use ::std::io::BufWriter;
 use ::std::io::Read;
 use ::std::io::Write;
+use ::std::ops::Deref;
 use ::std::os::unix::fs::PermissionsExt;
 use ::std::path::Path;
 use ::std::path::PathBuf;
@@ -134,6 +136,7 @@ include!("fatal.rs");
 include!("JsonValueExt.rs");
 include!("MimeExt.rs");
 include!("PathExt.rs");
+include!("UnattachedNodeHelperExt.rs");
 include!("UrlExt.rs");
 
 

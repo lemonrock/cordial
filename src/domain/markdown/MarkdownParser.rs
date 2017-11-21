@@ -13,9 +13,9 @@ pub(crate) struct MarkdownParser
 impl MarkdownParser
 {
 	#[inline(always)]
-	pub(crate) fn defaultishParse(headerIdPrefixWithTrailingDash: &str, markdown: &str) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn defaultish(headerIdPrefixWithTrailingDash: &str) -> Self
 	{
-		Self::new(headerIdPrefixWithTrailingDash, MarkdownBlockPlugin::registerAllPlugins(), MarkdownInlinePlugin::registerAllPlugins()).parseMarkdown(markdown)
+		Self::new(headerIdPrefixWithTrailingDash, MarkdownBlockPlugin::registerAllPlugins(), MarkdownInlinePlugin::registerAllPlugins())
 	}
 	
 	#[inline(always)]
@@ -42,7 +42,7 @@ impl MarkdownParser
 		}
 	}
 	
-	pub(crate) fn parseMarkdown(&self, markdown: &str) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn parse<'a>(&self, markdown: &str, pluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Vec<u8>, CordialError>
 	{
 		let arena = Arena::new();
 		
@@ -50,82 +50,21 @@ impl MarkdownParser
 		
 		root.useMarkdownAstNodeRecursively(&|node|
 		{
-			use self::NodeValue::*;
-			
-			let ref mut value = node.data.borrow_mut().value;
-			let updatedValue = match value
+			let updatedValue = match node.data.borrow().value
 			{
-				&mut CodeBlock(ref codeBlock) =>
-				{
-					if codeBlock.fenced
-					{
-						// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
-						const Space: u8 = 32;
-						let mut split = codeBlock.info.split(|byte| *byte == Space);
-						let languageOrMarkdownBlockPluginName = split.next().unwrap();
-						let mut mayBeEmptyArgumentsIterator = split;
-						
-						match self.blockPlugins.get(languageOrMarkdownBlockPluginName)
-						{
-							Some(markdownPlugin) =>
-							{
-								match markdownPlugin.execute(mayBeEmptyArgumentsIterator, &codeBlock.literal)
-								{
-									Ok(literal_html) => HtmlBlock(NodeHtmlBlock
-									{
-										literal: literal_html,
-										block_type: 0
-									}),
-									
-									Err(_) => CodeBlock(codeBlock.clone()),
-								}
-							},
-							
-							None => CodeBlock(codeBlock.clone()),
-						}
-					}
-					else
-					{
-						// NOTE: Ideally, this should be in a function but it requires the 'impl Trait' feature to be stable, which isn't currently the case (November 2017).
-						const Space: u8 = 32;
-						let mut split = codeBlock.info.split(|byte| *byte == Space);
-						let languageOrMarkdownBlockPluginName = split.next().unwrap();
-						let mut mayBeEmptyArgumentsIterator = split;
-						
-						// U+00A7, §, Section Sign
-						const SectionSign: &[u8] = b"\xC2\xA7";
-						if languageOrMarkdownBlockPluginName.len() >= 2 && &languageOrMarkdownBlockPluginName[0..2] == SectionSign
-						{
-							match self.inlinePlugins.get(&languageOrMarkdownBlockPluginName[1..])
-							{
-								Some(markdownPlugin) =>
-								{
-									match markdownPlugin.execute(mayBeEmptyArgumentsIterator)
-									{
-										Ok(literal_html) => HtmlBlock(NodeHtmlBlock
-										{
-											literal: literal_html,
-											block_type: 0
-										}),
-										
-										Err(_) => CodeBlock(codeBlock.clone()),
-									}
-								},
-								
-								None => CodeBlock(codeBlock.clone()),
-							}
-						}
-						else
-						{
-							CodeBlock(codeBlock.clone())
-						}
-					}
-				}
+				CodeBlock(ref codeBlock) => self.replaceCodeBlockWithHtmlFromPluginIfRequired(codeBlock, pluginData, isForAmp)?,
 				
-				_ => value.to_owned(),
+				_ => None,
 			};
-			*value = updatedValue;
-		});
+			
+			if let Some(updatedValue) = updatedValue
+			{
+				let ref mut value = node.data.borrow_mut().value;
+				*value = updatedValue;
+			}
+			
+			Ok(())
+		})?;
 		
 		let mut html = Vec::new();
 		if format_html(root, &self.options, &mut html).is_err()
@@ -137,4 +76,68 @@ impl MarkdownParser
 			Ok(html)
 		}
 	}
+	
+	#[inline(always)]
+	fn replaceCodeBlockWithHtmlFromPluginIfRequired<'a>(&self, codeBlock: &NodeCodeBlock, pluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Option<NodeValue>, CordialError>
+	{
+		if codeBlock.fenced && codeBlock.info.starts_with(Self::SectionSign)
+		{
+			Self::usePlugin(&codeBlock.info, &self.blockPlugins, |blockPlugin, arguments| blockPlugin.execute(arguments, pluginData, isForAmp, &codeBlock.literal))
+		}
+		else if codeBlock.literal.starts_with(Self::SectionSign)
+		{
+			Self::usePlugin(&codeBlock.literal, &self.inlinePlugins, |inlinePlugin, arguments| inlinePlugin.execute(arguments, pluginData, isForAmp))
+		}
+		else
+		{
+			Ok(None)
+		}
+	}
+	
+	#[inline(always)]
+	fn usePlugin<Plugin, PluginUser: FnOnce(&Plugin, &[u8]) -> Result<Vec<u8>, CordialError>>(functionLine: &[u8], plugins: &HashMap<Vec<u8>, Plugin>, pluginUser: PluginUser) -> Result<Option<NodeValue>, CordialError>
+	{
+		const Space: u8 = 32;
+		
+		let remainder = &functionLine[Self::SectionSign.len() .. ];
+		let length = remainder.len();
+		
+		let mut index = 0;
+		while index < length
+		{
+			if unsafe { *remainder.get_unchecked(index) } == Space
+			{
+				break;
+			}
+			
+			index += 1;
+		}
+		
+		let name = &remainder[ .. index ];
+		let result = match plugins.get(name)
+		{
+			None => None,
+			Some(plugin) =>
+			Some
+			(
+				HtmlBlock
+				(
+					NodeHtmlBlock
+					{
+						literal:
+						{
+							let arguments = &remainder[ index + 1 .. ];
+							pluginUser(plugin, arguments)?
+						},
+						block_type: 0
+					}
+				)
+			),
+		};
+		
+		Ok(result)
+	}
+	
+	// U+00A7, §, Section Sign
+	const SectionSign: &'static [u8] = b"\xC2\xA7";
 }

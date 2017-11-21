@@ -5,6 +5,11 @@
 use super::*;
 use self::stylesheets::*;
 use ::std::str::from_utf8_unchecked;
+use ::xml::attribute::Attribute as XmlAttribute;
+use ::xml::name::Name;
+use ::xml::namespace::Namespace;
+use ::xml::writer::EmitterConfig;
+use ::xml::writer::EventWriter;
 
 
 pub(crate) mod stylesheets;

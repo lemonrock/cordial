@@ -6,8 +6,8 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct EngiffenSource
 {
-	#[serde(default)] width: u16,
-	#[serde(default)] height: u16,
+	#[serde(default = "EngiffenSource::width_default")] pub(crate) width: u16,
+	#[serde(default = "EngiffenSource::height_default")] pub(crate) height: u16,
 	#[serde(default)] scaling_filter: ImageTransformationFilterType,
 	#[serde(default)] default: EngiffenFrame,
 	#[serde(default)] perImage: HashMap<usize, EngiffenFrame>,
@@ -20,8 +20,8 @@ impl Default for EngiffenSource
 	{
 		EngiffenSource
 		{
-			width: u16::default(),
-			height: u16::default(),
+			width: Self::width_default(),
+			height: Self::height_default(),
 			scaling_filter: ImageTransformationFilterType::default(),
 			default: EngiffenFrame::default(),
 			perImage: HashMap::default(),
@@ -32,7 +32,7 @@ impl Default for EngiffenSource
 impl EngiffenSource
 {
 	#[inline(always)]
-	fn transform<'a>(&'a self, sourceSets: &mut Vec<(Vec<::engiffen::Image>, Vec<&'a EngiffenFrame>)>, sourceSetIndex: usize, imageIndex: usize, image: &mut ::image::DynamicImage, frameWidthBySourceSet: &mut HashMap<usize, u16>, frameHeightBySourceSet: &mut HashMap<usize, u16>) -> Result<(), CordialError>
+	fn transform<'a>(&'a self, sourceSets: &mut SourceSets<'a>, sourceSetIndex: usize, imageIndex: usize, image: &mut ::image::DynamicImage, frameWidthBySourceSet: &mut HashMap<usize, u16>, frameHeightBySourceSet: &mut HashMap<usize, u16>) -> Result<(), CordialError>
 	{
 		let engiffenFrame = match self.perImage.get(&imageIndex)
 		{
@@ -117,7 +117,7 @@ impl EngiffenSource
 			}
 		};
 		
-		let engiffenImage = Self::toEngiffenImage(resizedImage);
+		let engiffenImage = Self::toEngiffenOutputImage(resizedImage);
 		
 		let sourceSet = sourceSets.get_mut(sourceSetIndex).unwrap();
 		sourceSet.0.push(engiffenImage);
@@ -127,7 +127,7 @@ impl EngiffenSource
 	}
 	
 	#[inline(always)]
-	fn toEngiffenImage(image: ::image::DynamicImage) -> ::engiffen::Image
+	fn toEngiffenOutputImage(image: EngiffenSourceImage) -> EngiffenOutputImage
 	{
 		const PixelSize: usize = 4;
 		
@@ -140,11 +140,23 @@ impl EngiffenSource
 			pixels.push(px.data);
 		}
 		
-		::engiffen::Image
+		EngiffenOutputImage
 		{
 			pixels,
 			width,
 			height,
 		}
+	}
+	
+	#[inline(always)]
+	fn width_default() -> u16
+	{
+		16
+	}
+	
+	#[inline(always)]
+	fn height_default() -> u16
+	{
+		16
 	}
 }

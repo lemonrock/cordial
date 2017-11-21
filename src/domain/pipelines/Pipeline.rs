@@ -5,9 +5,15 @@
 pub(crate) trait Pipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Option<&ImageMetaData>
+	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
 	{
-		None
+		Err(CordialError::Configuration("This resource is not an image".to_owned()))
+	}
+	
+	#[inline(always)]
+	fn addToImgAttributes(&self, _attributes: &mut Vec<Attribute>) -> Result<(), CordialError>
+	{
+		Ok(())
 	}
 	
 	#[inline(always)]
@@ -23,5 +29,5 @@ pub(crate) trait Pipeline
 	fn is<'a>(&self) -> (bool, bool);
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>;
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>;
 }

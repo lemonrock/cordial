@@ -34,7 +34,7 @@ impl Default for RssFeedlyChannel
 impl RssFeedlyChannel
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[Attribute<'c>], primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
 	{
 		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 		
@@ -42,7 +42,7 @@ impl RssFeedlyChannel
 		{
 			let attributes =
 			[
-				Attribute::new(Name::local("image"), urlData.urlOrDataUri.as_str()),
+				XmlAttribute::new(Name::local("image"), urlData.urlOrDataUri.as_str()),
 			];
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
@@ -63,8 +63,8 @@ impl RssFeedlyChannel
 		
 		let attributes =
 		[
-			Attribute::new(Name::local("layout"), "card"),
-			Attribute::new(Name::local("target"), "browser"),
+			XmlAttribute::new(Name::local("layout"), "card"),
+			XmlAttribute::new(Name::local("target"), "browser"),
 		];
 		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))?;
 		
@@ -74,8 +74,8 @@ impl RssFeedlyChannel
 			{
 				let attributes =
 				[
-					Attribute::new(Name::local("id"), code),
-					Attribute::new(Name::local("engine"), "GoogleAnalytics"),
+					XmlAttribute::new(Name::local("id"), code),
+					XmlAttribute::new(Name::local("engine"), "GoogleAnalytics"),
 				];
 				eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))
 			}

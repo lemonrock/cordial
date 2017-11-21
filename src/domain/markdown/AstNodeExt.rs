@@ -4,18 +4,20 @@
 
 trait AstNodeExt<'a>
 {
-	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self)>(&'a self, nodeUser: &F);
+	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &F) -> Result<(), CordialError>;
 }
 
 impl<'a> AstNodeExt<'a> for AstNode<'a>
 {
-	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self)>(&'a self, nodeUser: &F)
+	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &F) -> Result<(), CordialError>
 	{
-		nodeUser(self);
+		nodeUser(self)?;
 		
 		for childNode in self.children()
 		{
-			childNode.useMarkdownAstNodeRecursively(nodeUser);
+			childNode.useMarkdownAstNodeRecursively(nodeUser)?;
 		}
+		
+		Ok(())
 	}
 }

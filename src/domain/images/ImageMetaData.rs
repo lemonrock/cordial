@@ -6,11 +6,11 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ImageMetaData
 {
-	pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, ImageAbstract>,
+	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, ImageAbstract>,
 	
-	pub(crate) license_url: ResourceReference,
+	#[serde(default)] pub(crate) license_url: ResourceReference,
 	
-	pub(crate) credit: FullName,
+	#[serde(default)] pub(crate) credit: FullName,
 	
 	/*
 		A list of one or more strings separated by commas indicating a set of source sizes. Each source size consists of:
@@ -23,6 +23,34 @@ pub(crate) struct ImageMetaData
 
 	#[serde(default)] pub(crate) id: Option<String>,
 	#[serde(default)] pub(crate) classes: Vec<String>,
+	
+	#[serde(default)] pub(crate) is_server_side_map: bool,
+	#[serde(default)] pub(crate) map_id: Option<String>, // Without leading '#'
+	#[serde(default)] pub(crate) use_cross_origin_credentials: bool,
+	#[serde(default)] pub(crate) referrer_policy: ReferrerPolicy,
+	#[serde(default)] pub(crate) long_description: Option<LongDescription>,
+}
+
+impl Default for ImageMetaData
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			abstracts: Default::default(),
+			license_url: Default::default(),
+			credit: Default::default(),
+			sizes: None,
+			id: None,
+			classes: Default::default(),
+			is_server_side_map: false,
+			map_id: None,
+			use_cross_origin_credentials: false,
+			referrer_policy: Default::default(),
+			long_description: None,
+		}
+	}
 }
 
 impl ImageMetaData
@@ -37,26 +65,71 @@ impl ImageMetaData
 		}
 	}
 	
-	pub(crate) fn sizesAttribute(&self) -> Option<String>
+	#[inline(always)]
+	pub(crate) fn licenseUrlAndDescription<'a>(&self, resources: &'a Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, &'a str), CordialError>
+	{
+		match self.license_url.getUrlData(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?
+		{
+			None => Err(CordialError::Configuration(format!("No URL for license '{:?}'", &self.license_url))),
+			Some((urlData, resource)) => Ok((urlData.urlOrDataUri, &resource.htmlAbstract(iso639Dash1Alpha2Language)?.description)),
+		}
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, isForAmp: bool) -> Result<(), CordialError>
 	{
 		if let Some(ref sizes) = self.sizes
 		{
-			let mut buffer = String::new();
+			let mut sizesAttribute = String::new();
 			for size in sizes.0.iter()
 			{
-				buffer.push_str(&size.media);
-				buffer.push(' ');
-				buffer.push_str(&size.length);
-				buffer.push(',');
+				sizesAttribute.push_str(&size.media);
+				sizesAttribute.push(' ');
+				sizesAttribute.push_str(&size.length);
+				sizesAttribute.push(',');
 			}
-			buffer.push_str(&sizes.1);
+			sizesAttribute.push_str(&sizes.1);
 			
-			Some(buffer)
+			imgAttributes.push("sizes".string_attribute(sizesAttribute));
 		}
-		else
+		
+		if let Some(ref id) = self.id
 		{
-			None
+			imgAttributes.push("id".str_attribute(id));
 		}
+		
+		if self.classes.len() > 0
+		{
+			imgAttributes.push("class".space_separated_attribute(&self.classes));
+		}
+		
+		if !isForAmp
+		{
+			if self.is_server_side_map
+			{
+				imgAttributes.push("ismap".empty_attribute());
+			}
+			
+			if let Some(ref map_id) = self.map_id
+			{
+				imgAttributes.push("map".string_attribute(format!("#{}", map_id)));
+			}
+			
+			if self.use_cross_origin_credentials
+			{
+				imgAttributes.push("crossorigin".str_attribute("use-credentials"));
+			}
+			
+			self.referrer_policy.addToImgAttributes(imgAttributes);
+			
+			if let Some(ref longDescription) = self.long_description
+			{
+				longDescription.addToImgAttributes(imgAttributes, resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			}
+		}
+		
+		Ok(())
 	}
 	
 	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
@@ -106,17 +179,17 @@ impl ImageMetaData
 			
 			Some(urlData) =>
 			{
-				let jsonValue = &urlData.jsonValue;
+				let (width, height, mimeType, fileSize) = urlData.image()?;
 				
 				Ok
 				(
 					RssImage
 					{
-						width: jsonValue.u32("width")?,
-						height: jsonValue.u32("height")?,
+						width,
+						height,
 						url: urlData.urlOrDataUri.deref().clone(),
-						fileSize: jsonValue.u64("size")?,
-						mimeType: jsonValue.mime("mime")?,
+						fileSize,
+						mimeType: mimeType.clone(),
 						alt: alt.clone(),
 						credit: self.credit.clone(),
 						iso639Dash1Alpha2Language,

@@ -10,6 +10,8 @@ pub(crate) struct Language
 	language_tool_long_code: String,
 	#[serde(default = "Language::host_default")] pub(crate) host: String,
 	#[serde(default)] relative_root_url: RelativeRootUrl,
+	#[serde(default)] pub(crate) assume_right_to_left_script: bool,
+	native_name: String, // Native name for language, with correct Unicode accents, etc. See https://dribbble.com/shots/1202316-Language-menus-with-flags for an example of common Language descriptions
 }
 
 impl Default for Language
@@ -23,6 +25,8 @@ impl Default for Language
 			language_tool_long_code: "en-US".to_owned(),
 			host: Self::host_default(),
 			relative_root_url: RelativeRootUrl::default(),
+			assume_right_to_left_script: false,
+			native_name: "English".to_owned()
 		}
 	}
 }

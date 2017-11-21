@@ -203,13 +203,68 @@
 			// Make this false to prefer guetzli JPEG compression, which compresses more but is very slow indeed.
 			jpeg_speed_over_compression: true
 
-			transformations:
+			metadata:
+			{
+				abstracts:
+				{
+					en:
+					{
+						title: Some title in English
+						caption: Some caption in English
+						// Or a string
+						geographic_location: null
+
+						// Defaults to empty
+						alt: Some alt in English
+					}
+				}
+
+				license_url: relative/url/path/to/license
+
+				credit: Joe Bloggs
+
+				// Can be null
+				sizes:
+				[
+					{
+						// A media query
+						media: "(min-width: 36em)"
+						length: "33.3vw"
+					}
+					"100vw"
+				]
+
+				// Can also be a string, without a leading '#'
+				id: null
+
+				// Strings without leading '.'
+				classes:
+				[
+				]
+
+				is_server_side_map: false,
+
+				// Without leading '#'
+				map_id: null
+
+				use_cross_origin_credentials: false
+
+				referrer_policy: no_referrer_when_downgrade
+
+				// Can also be null
+				long_description:
+				{
+					resource: /path/to/url
+					// Can also be a string, without a leading '#'
+					id: null
+				}
+			}
+
+			source_set_excluding_original:
 			[
 			]
 
-			// eg  "(min-width: 36em) 33.3vw, 100vw"  from  https://ericportis.com/posts/2014/srcset-sizes/
-			img_sizes: null
-			img_srcset:
+			transformations:
 			[
 			]
 		}
@@ -283,7 +338,9 @@
 			}
 		}
 
-		is_data_uri: false
+		// Embeds raster images, etc as data-uris
+		// Embeds SVGs as <svg>
+		embed: false
 	}
 
 	localization:

@@ -16,3 +16,13 @@ pub(crate) struct ImageAbstract
 	// Will also supply Twitter OpenCard twitter:image:alt and Facebook OpenGraph og:image:alt
 	#[serde(default)] pub(crate) alt: String,
 }
+
+impl ImageAbstract
+{
+	#[inline(always)]
+	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>)
+	{
+		imgAttributes.push("title".str_attribute(&self.title));
+		imgAttributes.push("alt".str_attribute(&self.alt));
+	}
+}

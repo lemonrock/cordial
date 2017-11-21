@@ -37,7 +37,7 @@ impl ResourcesExt for Resources
 			Some(urlData) => urlData,
 		};
 		
-		let contentMimeTypeWithoutParameters = if let Some(ref response) = urlData.dataUriResponse
+		let contentMimeTypeWithoutParameters = if let Some(ref response) = urlData.dataUriOrRawResponse
 		{
 			response.contentMimeTypeWithoutParameters()
 		}

@@ -36,7 +36,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = "2.26.0"
 comrak = "0.2.4"
 css-autoprefix = "0.0.5"
-css-purify = "0.0.2"
+css-purify = "0.0.11"
 csv = "0.15"
 daemonize = "0.2.3"
 engiffen = "0.8.1"

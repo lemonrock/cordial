@@ -19,3 +19,12 @@ pub(crate) enum ResourceTag
 	amp,
 	amp_redirect,
 }
+
+impl Default for ResourceTag
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ResourceTag::default
+	}
+}

@@ -85,6 +85,11 @@ It also does a lot more to create a great experience for your users:-
 * RSS items are currently full, not partial, and are put in the `<description>` tag of the feed rather than `<content type="html">`.
 
 
+## Known Bugs
+
+* Image source sets use URLs, but if the image has been specified as a data-uri, the URL will be invalid because it won't exist. Image source sets don't really make a lot of sense when using data-uris.
+		
+
 ## Licensing
 
 The license for this project is AGPL-3.0.
@@ -105,22 +110,37 @@ The license for this project is AGPL-3.0.
 	* [octicons](https://docs.rs/octicons/0.1.1/octicons/)
 	* [raster-retrace](https://crates.io/crates/raster-retrace)
 	* [Primitive](https://www.michaelfogleman.com/projects/primitive/) - Go binary, uses randomness so not really reproducible
+* HTML Minification
+	* Identify specific attributes that can be additionally optimised
+	* Eg global attributes where some values can be just an empty attribute
+	* Eg class and srcset, where some spacing can be eliminated
+	* Remove leading and trailing space from some attributes (eg id, href, class, src, srcset, sizes, etc)
 * Formats
-	* Markdown: Lua plugins
+	* Markdown: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
 	* SASS: Lua plugins
 	* Handlebars: Lua Plugins
-	* Markdown: `code` plugins, eg for SVG, IMG, internal URL
+	* URLs: Minify to relative URLs
+	* CSS: When minifying, identify class names and replace, or have a class-names replacements list black list or white list
+	* Non-HTML, language-aware resources
+		* Indicate the alternative links using `Link: <http://es.example.com/document.pdf>;
+                                                rel="alternate"; hreflang="es", 
+                                                <http://en.example.com/document.pdf>; 
+                                                rel="alternate"; hreflang="en", 
+                                                <http://de.example.com/document.pdf>; 
+                                                rel="alternate"; hreflang="de"
+` in headers.
 	* SVG
 		- adjust or set or remove width & height in document
 		- support source set generation
-		- https://www.freepik.com/
 	* CSS
+		* Class name replacements
 		* Embedding images into the stylesheet as data-uris
 			* But nothing like cssembed for rust...
 	* SVG to PNG - for organization-logo (feedly, google) and favicon
 	* Favicon
 		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
+		* Is ICO still needed in 2017?
 	* HTML
 		* Add videos within web page to SiteMap.xml.
 * Modify zopfli crate to allow specifying options
@@ -135,7 +155,15 @@ The license for this project is AGPL-3.0.
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* Use Fontello's curl API to support Icon font creation
-
+Other
+	* Check http://www.accessify.com/r/play.rust-lang.org for page load speed analysis
+	* https://www.freepik.com/
+	* [BBC engineers on multi-lingual website design](http://responsivenews.co.uk/post/123104512468/13-tips-for-making-responsive-web-design)
+	* Make sure [PureCSS](https://purecss.io/layouts/) will work
+	* And also <https://duckduckgo.com/?q=language+menu+pure+css&t=ffab&ia=web>
+	* [Google Web Designer](https://www.google.com/webdesigner/)
+	* [Vega](https://vega.github.io/vega/)
+	
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly
 * UX ideas <https://www.nomensa.com/blog/2010/7-tips-for-multi-lingual-website-accessibility>

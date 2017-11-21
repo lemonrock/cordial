@@ -2,25 +2,50 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
-pub(crate) struct UrlData
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum UrlDataDetails
 {
-	urlOrDataUri: Rc<Url>,
-	urlDataDetails: Rc<UrlDataDetails>,
-	dataUriOrRawResponse: Option<Rc<RegularAndPjaxStaticResponse>>,
+	Empty,
+	
+	Image
+	{
+		width: u32,
+		height: u32,
+		mime: Mime,
+		size: u64,
+	}
 }
 
-impl UrlData
+impl Default for UrlDataDetails
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		UrlDataDetails::Empty
+	}
+}
+
+impl UrlDataDetails
 {
 	#[inline(always)]
 	fn dimensions(&self) -> Result<(u32, u32), CordialError>
 	{
-		self.urlDataDetails.dimensions()
+		match *self
+		{
+			UrlDataDetails::Image { width, height, .. } => Ok((width, height)),
+			
+			_ => Err(CordialError::Configuration("Not an image".to_owned()))
+		}
 	}
 	
 	#[inline(always)]
 	fn image(&self) -> Result<(u32, u32, &Mime, u64), CordialError>
 	{
-		self.urlDataDetails.image()
+		match *self
+		{
+			UrlDataDetails::Image { width, height, ref mime, size } => Ok((width, height, mime, size)),
+			
+			_ => Err(CordialError::Configuration("Not an image".to_owned()))
+		}
 	}
 }

@@ -189,6 +189,14 @@ quick_error!
 			from()
 		}
 		
+		SelfReferencingMutResource(cause: ::std::cell::BorrowMutError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Resource borrows mutably a resource that directly or indirectly references itself, eg an HTML page with a image resource url which is itself; {}", cause)
+			from()
+		}
+		
 		Other(cause: Box<::std::error::Error>)
 		{
 			cause(&**cause)

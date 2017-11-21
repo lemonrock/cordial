@@ -12,12 +12,15 @@ pub(crate) struct RasterImagePipeline
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<ImageInputFormat>,
 	
-	#[serde(default)] metadata: Option<ImageMetaData>,
+	#[serde(default)] metadata: ImageMetaData,
 	#[serde(default)] source_set_excluding_original: Vec<ImageSourceSetEntry>,
 	
 	#[serde(default)] jpeg_quality: Option<u8>,
 	#[serde(default)] jpeg_speed_over_compression: bool,
 	#[serde(default)] transformations: Vec<ImageTransformation>,
+
+	#[serde(default, skip_deserializing)] primaryImageDimensions: Cell<(u32, u32)>,
+	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
 }
 
 impl Default for RasterImagePipeline
@@ -32,11 +35,13 @@ impl Default for RasterImagePipeline
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
 			input_format: None,
-			metadata: None,
+			metadata: Default::default(),
 			source_set_excluding_original: Default::default(),
 			jpeg_quality: None,
 			jpeg_speed_over_compression: false,
 			transformations: Default::default(),
+			primaryImageDimensions: Default::default(),
+			processedImageSourceSet: ProcessedImageSourceSet::processedImageSourceSet_default(),
 		}
 	}
 }
@@ -44,9 +49,26 @@ impl Default for RasterImagePipeline
 impl Pipeline for RasterImagePipeline
 {
 	#[inline(always)]
-	fn imageMetaData(&self) -> Option<&ImageMetaData>
+	fn imageMetaData(&self) -> Result<&ImageMetaData, CordialError>
 	{
-		self.metadata.as_ref()
+		Ok(&self.metadata)
+	}
+	
+	#[inline(always)]
+	fn addToImgAttributes(&self, attributes: &mut Vec<Attribute>) -> Result<(), CordialError>
+	{
+		let dimensions = self.primaryImageDimensions.get();
+		attributes.push("width".u32_attribute(dimensions.0));
+		attributes.push("height".u32_attribute(dimensions.1));
+		
+		if self.source_set_excluding_original.len() > 0
+		{
+			ProcessedImageSourceSet::addToImgAttributes(&self.processedImageSourceSet, attributes)
+		}
+		else
+		{
+			Ok(())
+		}
 	}
 	
 	#[inline(always)]
@@ -68,7 +90,7 @@ impl Pipeline for RasterImagePipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		// load original
 		let mut imageBeforeTransformation = match ImageInputFormat::load(self.input_format, inputContentFilePath)
@@ -98,9 +120,11 @@ impl Pipeline for RasterImagePipeline
 		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, &resourceUrl, self.jpeg_quality, self.jpeg_speed_over_compression, imageAfterTransformation, languageData);
 		imageSourceSet.add(&self.source_set_excluding_original)?;
 		
-		//TODO: Need a way to pass this back
-		let primaryImageDimensions = imageSourceSet.primaryImageDimensions();
-		let processedImageSourceSet = imageSourceSet.processedImageSourceSet();
+		self.primaryImageDimensions.set(imageSourceSet.primaryImageDimensions());
+		{
+			let mut borrowed = self.processedImageSourceSet.try_borrow_mut()?;
+			imageSourceSet.processedImageSourceSet(&mut borrowed.2)?;
+		}
 		
 		const CanNotBeCompressed: bool = false;
 		let urls = imageSourceSet.urls(|url| generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanNotBeCompressed, self.max_age_in_seconds, self.is_downloadable, url))?;

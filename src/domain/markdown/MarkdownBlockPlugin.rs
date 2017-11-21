@@ -26,34 +26,33 @@ impl MarkdownBlockPlugin
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(&self, mayBeEmptyArguments: ArgumentsIterator, data: &[u8]) -> Result<Vec<u8>, ()>
+	pub(crate) fn execute(&self, arguments: &[u8], _pluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<Vec<u8>, CordialError>
 	{
-		let nonEmptyArguments = mayBeEmptyArguments.filter(|item| !item.is_empty());
-		
 		use self::MarkdownBlockPlugin::*;
+		
+		let string = match from_utf8(data)
+		{
+			Err(_) => return Err(CordialError::Configuration("Markdown block plugins use UTF-8 data".to_owned())),
+			Ok(string) => string,
+		};
 		
 		let string = match *self
 		{
-			csv => Self::csv(data, nonEmptyArguments)?,
-			svgbob => Self::svgbob(data, nonEmptyArguments)?,
+			csv => Self::csv(arguments, string)?,
+			svgbob => Self::svgbob(arguments, string)?,
 		};
 		Ok(string.into_bytes())
 	}
 	
 	//noinspection SpellCheckingInspection
-	fn csv<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], arguments: ArgumentsIterator) -> Result<String, ()>
+	fn csv(arguments: &[u8], block: &str) -> Result<String, CordialError>
 	{
-		if arguments.count() != 0
+		if !arguments.is_empty()
 		{
-			return Err(());
+			return Err(CordialError::Configuration("Markdown block plugin csv takes no arguments".to_owned()));
 		}
 		
-		let string = match from_utf8(data)
-		{
-			Err(_) => return Err(()),
-			Ok(string) => string,
-		};
-		let mut reader = Reader::from_string(string);
+		let mut reader = Reader::from_string(block);
 		
 		let mut buffer = String::new();
 		buffer.push_str("<table>");
@@ -87,32 +86,16 @@ impl MarkdownBlockPlugin
 	}
 	
 	//noinspection SpellCheckingInspection
-	fn svgbob<'a, ArgumentsIterator: Iterator<Item=&'a [u8]>>(data: &[u8], mut arguments: ArgumentsIterator) -> Result<String, ()>
+	fn svgbob(arguments: &[u8], block: &str) -> Result<String, CordialError>
 	{
-		let enableLens = match arguments.next()
+		let enableLens = match arguments
 		{
-			None => false,
-			Some(ref value) =>
-			{
-				if arguments.next().is_some()
-				{
-					return Err(());
-				}
-				if value != b"lens"
-				{
-					return Err(());
-				}
-				true
-			}
+			b"" => false,
+			b"enable_lens" => true,
+			_ => return Err(CordialError::Configuration("Markdown block plugin svgbob takes no arguments or just 'enable_lens'".to_owned()))
 		};
 		
-		let string = match from_utf8(data)
-		{
-			Err(_) => return Err(()),
-			Ok(string) => string,
-		};
-		
-		Ok(Self::svgbobFromStr(string, enableLens))
+		Ok(Self::svgbobFromStr(block, enableLens))
 	}
 	
 	#[inline(always)]

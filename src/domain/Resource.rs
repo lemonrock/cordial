@@ -16,7 +16,7 @@ pub(crate) struct Resource
 	#[serde(default)] svg: SvgPipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
-	#[serde(default)] is_data_uri: bool,
+	#[serde(default)] embed: ResourceEmbedding,
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
@@ -32,6 +32,12 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn embedAsXmlData(&self) -> bool
+	{
+		self.embed == ResourceEmbedding::xml
+	}
+	
+	#[inline(always)]
 	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<Rc<UrlData>>
 	{
 		let urlKey = self.urlKey(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
@@ -39,6 +45,56 @@ impl Resource
 		{
 			None => None,
 			Some(resourceTagToUrlDataMap) => resourceTagToUrlDataMap.get(resourceTag).map(|urlData| urlData.clone())
+		}
+	}
+	
+	#[inline(always)]
+	fn htmlPipeline(&self) -> Result<&HtmlPipeline, CordialError>
+	{
+		match self.pipeline
+		{
+			ResourcePipeline::html => Ok(&self.html),
+			_ => Err(CordialError::Configuration("Not a HTML resource".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlLastModificationDateOrPublicationDate(&self) -> Result<Option<DateTime<Utc>>, CordialError>
+	{
+		match self.htmlPipeline()
+		{
+			Err(error) => Err(error),
+			Ok(htmlPipeline) => Ok(htmlPipeline.lastModificationDateOrPublicationDate()),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlModifications<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, &'a str>, CordialError>
+	{
+		match self.htmlPipeline()
+		{
+			Err(error) => Err(error),
+			Ok(htmlPipeline) => htmlPipeline.modifications(iso639Dash1Alpha2Language),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlExpirationDate(&self) -> Result<Option<DateTime<Utc>>, CordialError>
+	{
+		match self.htmlPipeline()
+		{
+			Err(error) => Err(error),
+			Ok(htmlPipeline) => Ok(htmlPipeline.expirationDate()),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlAbstract<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&'a Abstract, CordialError>
+	{
+		match self.htmlPipeline()
+		{
+			Err(error) => Err(error),
+			Ok(htmlPipeline) => htmlPipeline.abstract_(iso639Dash1Alpha2Language),
 		}
 	}
 	
@@ -140,7 +196,7 @@ impl Resource
 				// Always inserts, as this language code will only occur once.
 				let urls = self.urlData.entry(iso639Dash1Alpha2Language).or_insert(HashMap::with_capacity(result.len()));
 				
-				for (mut url, mut resourceTagssWithJsonValues, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
+				for (mut url, mut resourceTagsWithJsonValues, statusCode, contentType, regularHeaders, regularBody, pjax, canBeCompressed) in result
 				{
 					let hasPjax = pjax.is_some();
 					
@@ -179,30 +235,36 @@ impl Resource
 						}
 					};
 					
-					debug_assert!(!resourceTagssWithJsonValues.is_empty(), "resourceTagss is empty");
-					let (urlOrDataUri, dataUriResponse) = if self.is_data_uri
+					debug_assert!(!resourceTagsWithJsonValues.is_empty(), "resourceTagsWithJsonValues is empty");
+					
+					use self::ResourceEmbedding::*;
+					let (urlOrDataUri, dataUriOrRawResponse) = match self.embed
 					{
-						(newResponse.toDataUri(), Some(Rc::new(newResponse)))
-					}
-					else
-					{
-						if isVersioned
+						none =>
 						{
-							url.set_query(Some(&format!("v={}", newResponse.entityTag())));
+							if isVersioned
+							{
+								url.set_query(Some(&format!("v={}", newResponse.entityTag())));
+							}
+							
+							newResponses.addResponse(url.clone(), newResponse, oldResponses.clone());
+							
+							(url, None)
 						}
 						
-						newResponses.addResponse(url.clone(), newResponse, oldResponses.clone());
-						(url, None)
+						data_uri => (newResponse.toDataUri(), Some(Rc::new(newResponse))),
+						
+						xml => (newResponse.toDataUri(), Some(Rc::new(newResponse))),
 					};
 					
 					let urlOrDataUri = Rc::new(urlOrDataUri);
-					for (resourceTags, jsonValue) in resourceTagssWithJsonValues.drain()
+					for (resourceTags, urlDataDetails) in resourceTagsWithJsonValues.drain()
 					{
 						urls.insert(resourceTags, Rc::new(UrlData
 						{
 							urlOrDataUri: urlOrDataUri.clone(),
-							jsonValue,
-							dataUriResponse: dataUriResponse.clone(),
+							urlDataDetails,
+							dataUriOrRawResponse: dataUriOrRawResponse.clone(),
 						}));
 					}
 				}
@@ -263,7 +325,23 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn imageMetaData<'a>(&'a self) -> Option<&'a ImageMetaData>
+	pub(crate) fn addToImgAttributes(&self, attributes: &mut Vec<Attribute>) -> Result<(), CordialError>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.addToImgAttributes(attributes),
+			font => self.font.addToImgAttributes(attributes),
+			gif_animation => self.gif_animation.addToImgAttributes(attributes),
+			html => self.html.addToImgAttributes(attributes),
+			raster_image => self.raster_image.addToImgAttributes(attributes),
+			raw => self.raw.addToImgAttributes(attributes),
+			svg => self.svg.addToImgAttributes(attributes),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn imageMetaData<'a>(&'a self) -> Result<&'a ImageMetaData, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline
@@ -327,7 +405,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<JsonValue>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline

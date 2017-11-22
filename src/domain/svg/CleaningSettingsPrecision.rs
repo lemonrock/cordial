@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum CleaningSettingsPrecision
+pub(crate) enum CleaningSettingsPrecision
 {
 	one,
 	two,

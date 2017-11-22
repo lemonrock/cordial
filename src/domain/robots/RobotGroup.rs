@@ -27,7 +27,7 @@ impl Default for RobotGroup
 impl RobotGroup
 {
 	#[inline(always)]
-	pub(crate) fn writeTo<W: Write>(&self, writer: &mut W, relative_root_url: &Cow<'static, str>) -> io::Result<()>
+	pub(crate) fn writeTo<W: Write>(&self, writer: &mut W, relativeUrlPathForRobotDirective: &Cow<'static, str>) -> io::Result<()>
 	{
 		for userAgent in self.user_agents.iter()
 		{
@@ -43,7 +43,7 @@ impl RobotGroup
 		}
 		for directive in self.directives.iter()
 		{
-			writer.write_all(directive.withBaseUrl(relative_root_url).as_bytes())?;
+			writer.write_all(directive.withBaseUrl(relativeUrlPathForRobotDirective).as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
 		writer.write_all(b"\n")?;

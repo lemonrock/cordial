@@ -26,8 +26,9 @@ impl Default for SiteMap
 
 impl SiteMap
 {
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, siteMapIndexUrls: &mut BTreeSet<Url>, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -99,7 +100,7 @@ impl SiteMap
 			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
 			
-			siteMapIndexUrls.insert(unversionedCanonicalUrl.clone());
+			robotsTxtConfiguration.addSiteMapIndexUrl(&unversionedCanonicalUrl);
 			newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
 			
 			index += 1;

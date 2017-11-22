@@ -32,36 +32,36 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	pub(crate) fn renderResource(&self, hostName: &str, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, newRespones: &mut Responses, oldResponses: &Arc<Responses>) -> Result<(), CordialError>
+	pub(crate) fn renderResource(&self, hostName: &str, robotsTxtConfiguration: &RobotsTxtConfiguration, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
-		self.writeTo(&mut bodyUncompressed, relative_root_urls, &mixOfSiteMapAndSiteMapIndexUrls, primaryHostName).context(PathBuf::from("robots.txt"))?;
+		self.writeTo(&mut bodyUncompressed, robotsTxtConfiguration, primaryHostName).context(PathBuf::from("robots.txt"))?;
 		
 		let robotsTxtUrl = Url::parse(&format!("https://{}/robots.txt", hostName)).unwrap();
 		let headers = generateHeaders(handlebars, &self.headers, None, HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &robotsTxtUrl).unwrap();
 		
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
 		let response = StaticResponse::new(StatusCode::Ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));
-		newRespones.addResponse(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResponses.clone());
+		newResponses.addResponse(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResponses.clone());
 		
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn writeTo<W: Write>(&self, writer: &mut W, relative_root_urls: &BTreeSet<Cow<'static, str>>, mixOfSiteMapAndSiteMapIndexUrls: &BTreeSet<Url>, primaryHostName: &str) -> io::Result<()>
+	fn writeTo<W: Write>(&self, writer: &mut W, robotsTxtConfiguration: &RobotsTxtConfiguration, primaryHostName: &str) -> io::Result<()>
 	{
-		for relative_root_url in relative_root_urls.iter()
+		for relativeUrlPathForRobotDirective in robotsTxtConfiguration.relativeUrlPathsForRobotDirective.iter()
 		{
 			for group in self.groups.iter()
 			{
-				group.writeTo(writer, relative_root_url)?;
+				group.writeTo(writer, relativeUrlPathForRobotDirective)?;
 			}
 		}
 		
-		for siteMap in mixOfSiteMapAndSiteMapIndexUrls.iter()
+		for siteMapIndexUrl in robotsTxtConfiguration.siteMapIndexUrls.iter()
 		{
 			writer.write_all(b"Sitemap: ")?;
-			writer.write_all(siteMap.as_str().as_bytes())?;
+			writer.write_all(siteMapIndexUrl.as_str().as_bytes())?;
 			writer.write_all(b"\n")?;
 		}
 		if self.generate_yandex_primary_host

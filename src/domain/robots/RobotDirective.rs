@@ -12,19 +12,19 @@ pub(crate) enum RobotDirective
 impl RobotDirective
 {
 	#[inline(always)]
-	pub(crate) fn withBaseUrl(&self, relative_root_url: &str) -> String
+	pub(crate) fn withBaseUrl(&self, relativeUrlPathForRobotDirective: &str) -> String
 	{
 		use self::RobotDirective::*;
 		
 		match *self
 		{
-			Allow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Allow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relative_root_url),
-			Disallow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Disallow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relative_root_url),
+			Allow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Allow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relativeUrlPathForRobotDirective),
+			Disallow(ref asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded) => Self::formatUrl("Disallow", asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded, relativeUrlPathForRobotDirective),
 		}
 	}
 	
 	#[inline(always)]
-	fn formatUrl(name: &str, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded: &String, relative_root_url: &str) -> String
+	fn formatUrl(name: &str, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded: &String, relativeUrlPathForRobotDirective: &str) -> String
 	{
 		if asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded.as_str() == "*"
 		{
@@ -32,13 +32,13 @@ impl RobotDirective
 		}
 		else
 		{
-			if relative_root_url.ends_with('/')
+			if relativeUrlPathForRobotDirective.ends_with('/')
 			{
-				format!("{}: {}{}", name, relative_root_url, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded)
+				format!("{}: {}{}", name, relativeUrlPathForRobotDirective, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded)
 			}
 			else
 			{
-				format!("{}: {}/{}", name, relative_root_url, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded)
+				format!("{}: {}/{}", name, relativeUrlPathForRobotDirective, asteriskOrAbsolutePathWithWildcardsMightBePercentEncoded)
 			}
 		}
 	}

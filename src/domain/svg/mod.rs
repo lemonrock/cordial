@@ -25,6 +25,7 @@ include!("Barcode.rs");
 include!("BarcodeVariant.rs");
 include!("CleaningSettings.rs");
 include!("CleaningSettingsPrecision.rs");
+include!("CleaningSettingsStyleJoinMode.rs");
 include!("Meme.rs");
 include!("MonArtist.rs");
 include!("PlotKind.rs");

@@ -53,34 +53,12 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
-	{
-		use self::RelativeRootUrl::*;
-		match self.relative_root_url
-		{
-			host => Cow::Borrowed("/"),
-			iso => Cow::Owned(format!("/{}/", iso639Dash1Alpha2Language))
-		}
-	}
-	
-	#[inline(always)]
 	pub(crate) fn required_translation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
 	{
 		match self.required_translations.get(&requiredTranslation)
 		{
 			None => Err(CordialError::Configuration(format!("Missing translation for '{:?}'", requiredTranslation))),
 			Some(translation) => Ok(translation)
-		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn amp_relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
-	{
-		use self::RelativeRootUrl::*;
-		match self.relative_root_url
-		{
-			host => Cow::Borrowed("/amp/"),
-			iso => Cow::Owned(format!("/amp/{}/", iso639Dash1Alpha2Language))
 		}
 	}
 	
@@ -99,6 +77,39 @@ impl Language
 		let parsed = Url::parse(&formattedUrl);
 		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relative_root_url, self.iso3166Dash1Alpha2CountryCode()))?;
 		Ok(result)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn robotsTxtRelativeRootUrls(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Vec<Cow<'static, str>>
+	{
+		// TODO: Adjust if amp == canonical
+		vec!
+		[
+			self.relative_root_url(iso639Dash1Alpha2Language),
+			self.amp_relative_root_url(iso639Dash1Alpha2Language),
+		]
+	}
+	
+	#[inline(always)]
+	fn relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
+	{
+		use self::RelativeRootUrl::*;
+		match self.relative_root_url
+		{
+			host => Cow::Borrowed("/"),
+			iso => Cow::Owned(format!("/{}/", iso639Dash1Alpha2Language))
+		}
+	}
+	
+	#[inline(always)]
+	fn amp_relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
+	{
+		use self::RelativeRootUrl::*;
+		match self.relative_root_url
+		{
+			host => Cow::Borrowed("/amp/"),
+			iso => Cow::Owned(format!("/amp/{}/", iso639Dash1Alpha2Language))
+		}
 	}
 	
 	#[inline(always)]

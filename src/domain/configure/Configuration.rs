@@ -183,18 +183,20 @@ impl Configuration
 		
 		self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
 		{
-			let siteMapIndexUrlsAndListOfLanguageUrls = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| (BTreeSet::new(), BTreeSet::new()));
-			self.site_map.renderResource(languageData, handlebars, self, newResponses, oldResponses, &mut siteMapIndexUrlsAndListOfLanguageUrls.0, siteMapWebPages)?;
-			siteMapIndexUrlsAndListOfLanguageUrls.1.insert(languageData.language.relative_root_url(languageData.iso639Dash1Alpha2Language));
+			let mut robotsConfiguration = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| RobotsTxtConfiguration::default());
+			
+			self.site_map.renderResource(languageData, handlebars, self, newResponses, oldResponses, &mut robotsConfiguration, siteMapWebPages)?;
+			
+			robotsConfiguration.addRelativeUrlPathForRobotDirective(languageData);
 			
 			Ok(())
 		})?;
 		
 		let primaryHostName = self.primaryLanguageHost()?;
 		
-		for (hostName, siteMapIndexUrlsAndListOfLanguageUrls) in robotsTxtByHostName.iter()
+		for (hostName, robotsTxtConfiguration) in robotsTxtByHostName.iter()
 		{
-			self.robots.renderResource(hostName, &siteMapIndexUrlsAndListOfLanguageUrls.1, &siteMapIndexUrlsAndListOfLanguageUrls.0, primaryHostName, handlebars, self, newResponses, oldResponses)?;
+			self.robots.renderResource(hostName, robotsTxtConfiguration, primaryHostName, handlebars, self, newResponses, oldResponses)?;
 		}
 		
 		Ok(())

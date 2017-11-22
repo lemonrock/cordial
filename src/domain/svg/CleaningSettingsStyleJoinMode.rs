@@ -4,35 +4,36 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum CleaningSettingsPrecisionStyleJoinMode
+pub(crate) enum CleaningSettingsStyleJoinMode
 {
 	none,
 	all,
 	some,
 }
 
-impl Default for CleaningSettingsPrecisionStyleJoinMode
+impl Default for CleaningSettingsStyleJoinMode
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		CleaningSettingsPrecisionStyleJoinMode::some
+		CleaningSettingsStyleJoinMode::some
 	}
 }
 
-impl CleaningSettingsPrecisionStyleJoinMode
+impl CleaningSettingsStyleJoinMode
 {
-	#[inline(always)]
-	fn toStyleJoinMode(&self) -> StyleJoinMode
-	{
-		use self::CleaningSettingsPrecisionStyleJoinMode::*;
-		use self::StyleJoinMode::*;
-		
-		match *self
-		{
-			none => None,
-			all => All,
-			some => Some,
-		}
-	}
+	// StyleJoinMode is NOT public at this time
+//	#[inline(always)]
+//	fn toStyleJoinMode(&self) -> StyleJoinMode
+//	{
+//		use self::CleaningSettingsStyleJoinMode::*;
+//		use self::StyleJoinMode::*;
+//
+//		match *self
+//		{
+//			none => None,
+//			all => All,
+//			some => Some,
+//		}
+//	}
 }

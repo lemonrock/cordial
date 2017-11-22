@@ -8,3 +8,4 @@ use super::*;
 include!("RobotDirective.rs");
 include!("RobotGroup.rs");
 include!("RobotsTxt.rs");
+include!("RobotsTxtConfiguration.rs");

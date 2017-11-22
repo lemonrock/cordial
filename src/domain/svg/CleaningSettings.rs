@@ -33,7 +33,7 @@ pub(crate) struct CleaningSettings
 	remove_xmlns_xlink_attribute: bool,
 	remove_needless_attributes: bool,
 	remove_gradient_attributes: bool,
-	//join_style_attributes: StyleJoinMode,
+	join_style_attributes: CleaningSettingsStyleJoinMode,
 	apply_transform_to_gradients: bool,
 	apply_transform_to_shapes: bool,
 	
@@ -81,7 +81,7 @@ impl Default for CleaningSettings
 			remove_xmlns_xlink_attribute: true,
 			remove_needless_attributes: true,
 			remove_gradient_attributes: true,
-			//join_style_attributes: StyleJoinMode::some,
+			join_style_attributes: CleaningSettingsStyleJoinMode::default(),
 			apply_transform_to_gradients: true,
 			apply_transform_to_shapes: true,
 			
@@ -131,7 +131,7 @@ impl CleaningSettings
 		options.remove_xmlns_xlink_attribute = self.remove_xmlns_xlink_attribute;
 		options.remove_needless_attributes = self.remove_needless_attributes;
 		options.remove_gradient_attributes = self.remove_gradient_attributes;
-		//options.join_style_attributes = self.join_style_attributes;
+		//options.join_style_attributes = self.join_style_attributes.toStyleJoinMode;
 		options.apply_transform_to_gradients = self.apply_transform_to_gradients;
 		options.apply_transform_to_shapes = self.apply_transform_to_shapes;
 		

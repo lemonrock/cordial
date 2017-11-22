@@ -347,18 +347,15 @@ impl HtmlPipeline
 			
 			for siteMapImageResourceUrl in self.site_map_images.iter()
 			{
-				if let Some(resourceRefCell) = siteMapImageResourceUrl.get(resources)
+				let resourceRef = siteMapImageResourceUrl.resourceMandatory(resources)?;
+				let imageMetaData = resourceRef.imageMetaData()?;
+				
+				let internalImage = ResourceReference
 				{
-					let resourceRef = resourceRefCell.try_borrow()?;
-					let imageMetaData = resourceRef.imageMetaData()?;
-					
-					let internalImage = ResourceReference
-					{
-						resource: siteMapImageResourceUrl.clone(),
-						tag: ResourceTag::largest_image,
-					};
-					images.push(imageMetaData.siteMapWebPageImage(&internalImage, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?)
-				}
+					resource: siteMapImageResourceUrl.clone(),
+					tag: ResourceTag::largest_image,
+				};
+				images.push(imageMetaData.siteMapWebPageImage(&internalImage, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?)
 			}
 			
 			let mut urlsByIso639Dash1Alpha2Language = BTreeMap::new();
@@ -452,20 +449,21 @@ impl HtmlPipeline
 			None => Ok(None),
 			Some(ref resourceUrl) =>
 			{
-				match resourceUrl.get(resources)
-				{
-					None => Err(CordialError::Configuration(format!("Missing article image resource {:?}", resourceUrl))),
-					Some(resourceRefCell) => Ok
+				let resourceRef = resourceUrl.resourceMandatory(resources)?;
+				Ok
+				(
+					Some
 					(
-						Some
 						(
-							(
-								ResourceReference { resource: resourceUrl.clone(), tag: ResourceTag::largest_image, },
-								resourceRefCell.try_borrow()?.imageMetaData()?.clone(),
-							)
+							ResourceReference
+							{
+								resource: resourceUrl.clone(),
+								tag: ResourceTag::largest_image,
+							},
+							resourceRef.imageMetaData()?.clone(),
 						)
-					),
-				}
+					)
+				)
 			}
 		}
 	}

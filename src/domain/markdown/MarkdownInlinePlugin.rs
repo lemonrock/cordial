@@ -70,7 +70,7 @@ impl MarkdownInlinePlugin
 		// on="tap:lightbox1" role="button" tabindex="0"    aria-describedby="imageDescription" (if not figcaption)
 		
 		
-		// TODO: Animated GIFs need an alternative syntax of amp-anim
+		// TODO:Include <script async custom-element="amp-anim" src="https://cdn.ampproject.org/v0/amp-anim-0.1.js"></script>
 		// - Include <script async custom-element="amp-anim" src="https://cdn.ampproject.org/v0/amp-anim-0.1.js"></script> in the head of your page to use this component.
 		// - Need to generate a GIF 'placeholder' image (ie from first frame)
 		// - See https://ampbyexample.com/components/amp-anim/
@@ -86,10 +86,9 @@ impl MarkdownInlinePlugin
 		
 		// TODO: Add to a list of resources that will need to be added to the page after rendering
 		// TODO: Deserialize ResourceTag
-		// TODO: For SVG, need to append / replace id, classes, title
-		// TODO: embedding of SVG needs to be addressed
-		// TODO: data-uris need to be addressed - is it really a resource-level property?
-		// - they have lots of issues with google sitemaps, etc.
+		// TODO: For embedded SVG, need to append / replace id, classes
+		// TODO: For embedded SVG, strip xmlns="http://www.w3.org/2000/svg" namespace
+		// TODO: data-uri embedding - worthwhile?
 		// TODO: Make URLs relative
 		
 		use self::CaptionPosition::*;

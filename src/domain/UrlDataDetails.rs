@@ -11,7 +11,6 @@ pub enum UrlDataDetails
 	{
 		width: u32,
 		height: u32,
-		mime: Mime,
 		size: u64,
 	}
 }
@@ -39,11 +38,11 @@ impl UrlDataDetails
 	}
 	
 	#[inline(always)]
-	fn image(&self) -> Result<(u32, u32, &Mime, u64), CordialError>
+	fn image(&self) -> Result<(u32, u32, u64), CordialError>
 	{
 		match *self
 		{
-			UrlDataDetails::Image { width, height, ref mime, size } => Ok((width, height, mime, size)),
+			UrlDataDetails::Image { width, height, size } => Ok((width, height, size)),
 			
 			_ => Err(CordialError::Configuration("Not an image".to_owned()))
 		}

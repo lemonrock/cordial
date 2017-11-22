@@ -36,23 +36,40 @@ impl ResourceReference
 	}
 	
 	#[inline(always)]
-	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
+	pub(crate) fn resourceMandatory<'resources>(&self, resources: &'resources Resources) ->  Result<Ref<'resources, Resource>, CordialError>
 	{
-		self.resource.get(resources)
+		self.resource.resourceMandatory(resources)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn getUrlData<'resources>(&self, resources: &'resources Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) ->  Result<Option<(Rc<UrlData>, Ref<'resources, Resource>)>, CordialError>
+	pub(crate) fn urlDataMandatory<'resources>(&self, resources: &'resources Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) ->  Result<Rc<UrlData>, CordialError>
 	{
-		match self.get(resources)
-		{
-			None => Ok(None),
-			Some(resource) =>
-			{
-				let borrowedResource = resource.try_borrow()?;
-				let urlData = borrowedResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag)?.clone();
-				Ok(Some((urlData, borrowedResource)))
-			}
-		}
+		let borrowedResource = self.resourceMandatory(resources)?;
+		borrowedResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag).map(|urlData| urlData.clone())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn urlDataAndResourceMandatory<'resources>(&self, resources: &'resources Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) ->  Result<(Rc<UrlData>, Ref<'resources, Resource>), CordialError>
+	{
+		let borrowedResource = self.resourceMandatory(resources)?;
+		let urlData = borrowedResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag)?.clone();
+		Ok((urlData, borrowedResource))
+	}
+	
+	#[inline(always)]
+	pub(crate) fn urlMandatory<'resources>(&self, resources: &'resources Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) ->  Result<(Rc<Url>), CordialError>
+	{
+		let borrowedResource = self.resourceMandatory(resources)?;
+		borrowedResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag).map(|urlData| urlData.url().clone())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn urlAndHtmlDescriptionMandatory<'a>(&self, resources: &'a Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	{
+		let (urlData, resource) = self.urlDataAndResourceMandatory(resources, primaryIso639Dash1Alpha2Language,Some(iso639Dash1Alpha2Language))?;
+		
+		let htmlAbstract = resource.htmlAbstract(iso639Dash1Alpha2Language)?;
+		
+		Ok((urlData.url().clone(), htmlAbstract.description.clone()))
 	}
 }

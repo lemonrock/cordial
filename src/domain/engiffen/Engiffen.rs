@@ -134,7 +134,6 @@ impl<'a> Engiffen<'a>
 			{
 				width,
 				height,
-				mime: Self::GifMimeType,
 				size: body.len() as u64,
 			}
 		);
@@ -179,7 +178,6 @@ impl<'a> Engiffen<'a>
 				{
 					width,
 					height,
-					mime: Self::GifMimeType,
 					size: body.len() as u64,
 				}
 			),

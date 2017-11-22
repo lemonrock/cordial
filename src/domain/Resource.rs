@@ -16,7 +16,6 @@ pub(crate) struct Resource
 	#[serde(default)] svg: SvgPipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
-	#[serde(default)] embed: ResourceEmbedding,
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] resourceInputName: String,
 	#[serde(default, skip_deserializing)] resourceInputContentFileNamesWithExtension: Vec<String>,
@@ -209,6 +208,8 @@ impl Resource
 						None
 					};
 					
+					let mimeType = contentType.0.clone();
+					
 					let newResponse = if hasPjax
 					{
 						let (pjaxHeaders, pjaxBody) = pjax.unwrap();
@@ -237,34 +238,25 @@ impl Resource
 					
 					debug_assert!(!resourceTagsWithJsonValues.is_empty(), "resourceTagsWithJsonValues is empty");
 					
-					use self::ResourceEmbedding::*;
-					let (urlOrDataUri, dataUriOrRawResponse) = match self.embed
+					let url =
 					{
-						none =>
+						if isVersioned
 						{
-							if isVersioned
-							{
-								url.set_query(Some(&format!("v={}", newResponse.entityTag())));
-							}
-							
-							newResponses.addResponse(url.clone(), newResponse, oldResponses.clone());
-							
-							(url, None)
+							url.set_query(Some(&format!("v={}", newResponse.entityTag())));
 						}
 						
-						data_uri => (newResponse.toDataUri(), Some(Rc::new(newResponse))),
+						newResponses.addResponse(url.clone(), newResponse, oldResponses.clone());
 						
-						xml => (newResponse.toDataUri(), Some(Rc::new(newResponse))),
+						Rc::new(url)
 					};
 					
-					let urlOrDataUri = Rc::new(urlOrDataUri);
 					for (resourceTags, urlDataDetails) in resourceTagsWithJsonValues.drain()
 					{
 						urls.insert(resourceTags, Rc::new(UrlData
 						{
-							urlOrDataUri: urlOrDataUri.clone(),
+							url: url.clone(),
+							mimeType: mimeType.clone(),
 							urlDataDetails,
-							dataUriOrRawResponse: dataUriOrRawResponse.clone(),
 						}));
 					}
 				}

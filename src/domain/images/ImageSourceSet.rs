@@ -133,7 +133,6 @@ impl<'a> ImageSourceSet<'a>
 				{
 					width,
 					height,
-					mime: contentType.0.clone(),
 					size: body.len() as u64,
 				}
 			);

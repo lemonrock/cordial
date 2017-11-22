@@ -72,20 +72,6 @@ impl StaticResponseVersions
 	}
 	
 	#[inline(always)]
-	pub(crate) fn latestResponse<'a>(&'a self) -> &'a RegularAndPjaxStaticResponse
-	{
-		use self::StaticResponseVersions::*;
-		
-		match *self
-		{
-			Unversioned { ref currentResponse, .. } => currentResponse,
-			SingleVersion { ref currentResponse, .. } => currentResponse,
-			HasPrevisionVersion { ref currentResponse, .. } => currentResponse,
-			Discontinued { ref previousResponse, .. } => previousResponse,
-		}
-	}
-	
-	#[inline(always)]
 	fn staticResponse<'a>(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, query: Option<Cow<'a, str>>, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		use self::StaticResponseVersions::*;

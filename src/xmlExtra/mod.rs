@@ -2,6 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+use super::CordialError;
 use ::std::borrow::Cow;
 use ::std::cell::Cell;
 use ::std::io;
@@ -16,4 +17,3 @@ use ::xml::writer::events::XmlEvent;
 
 include!("EventWriterExt.rs");
 include!("LengthTrackingWriter.rs");
-include!("XmlWriterResult.rs");

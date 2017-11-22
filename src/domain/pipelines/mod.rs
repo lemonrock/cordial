@@ -4,6 +4,7 @@
 
 use super::*;
 use super::markdown::*;
+use super::svg::*;
 use super::super::webserver::headers::commonCacheControlHeader;
 use self::ProcessingPriority::*;
 use self::ResourceTag::*;

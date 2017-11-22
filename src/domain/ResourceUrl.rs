@@ -69,15 +69,23 @@ impl Serialize for ResourceUrl
 impl ResourceUrl
 {
 	#[inline(always)]
-	pub(crate) fn string<S: Into<String>>(value: S) -> Self
+	pub(crate) fn resource<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
 	{
-		ResourceUrl(Rc::new(value.into()))
+		resources.get(self)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn get<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
+	pub(crate) fn resourceMandatory<'resources>(&self, resources: &'resources Resources) ->  Result<Ref<'resources, Resource>, CordialError>
 	{
-		resources.get(self)
+		let resourceRefCell = self.resource(resources).ok_or_else(|| CordialError::Configuration(format!("Could not obtain resource '{:?}'", self)))?;
+		let borrowedResource = resourceRefCell.try_borrow()?;
+		Ok(borrowedResource)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn string<S: Into<String>>(value: S) -> Self
+	{
+		ResourceUrl(Rc::new(value.into()))
 	}
 	
 	#[inline(always)]

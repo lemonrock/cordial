@@ -290,11 +290,65 @@
 			is_versioned: true
 			language_aware: false
 
-			// Exists solely because of potential bugs in svg optimizer
-			do_not_optimize: false
-
-			// Optionally SVG from mon artist or QR code
+			// Optionally SVG generated using a meme, a mon artist diagram, a svgbob diagram, a QR code, a barcode or a simple plot
 			input_format: SVG
+
+			metadata:
+			{
+				abstracts:
+				{
+					en:
+					{
+						title: Some title in English
+						caption: Some caption in English
+						// Or a string
+						geographic_location: null
+
+						// Defaults to empty
+						alt: Some alt in English
+					}
+				}
+
+				license_url: relative/url/path/to/license
+
+				credit: Joe Bloggs
+
+				// Can be null
+				sizes:
+				[
+					{
+						// A media query
+						media: "(min-width: 36em)"
+						length: "33.3vw"
+					}
+					"100vw"
+				]
+
+				// Can also be a string, without a leading '#'
+				id: null
+
+				// Strings without leading '.'
+				classes:
+				[
+				]
+
+				is_server_side_map: false,
+
+				// Without leading '#'
+				map_id: null
+
+				use_cross_origin_credentials: false
+
+				referrer_policy: no_referrer_when_downgrade
+
+				// Can also be null
+				long_description:
+				{
+					resource: /path/to/url
+					// Can also be a string, without a leading '#'
+					id: null
+				}
+			}
 		}
 
 		headers:
@@ -337,10 +391,6 @@
 				compressMode: utf8
 			}
 		}
-
-		// Embeds raster images, etc as data-uris
-		// Embeds SVGs as <svg>
-		embed: false
 	}
 
 	localization:

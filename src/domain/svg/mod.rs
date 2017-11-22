@@ -18,10 +18,13 @@ use ::qrcode::render::svg::Color as SvgColor;
 use ::qrcode::types::EcLevel;
 use ::qrcode::types::Version;
 use ::svg::Document as PlotSvgDocument;
+use ::svgcleaner::CleaningOptions as SvgCleanOptions;
 
 
 include!("Barcode.rs");
 include!("BarcodeVariant.rs");
+include!("CleaningSettings.rs");
+include!("CleaningSettingsPrecision.rs");
 include!("Meme.rs");
 include!("MonArtist.rs");
 include!("PlotKind.rs");

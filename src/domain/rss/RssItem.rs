@@ -15,7 +15,7 @@ impl RssItem
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
 	{
 		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
 		
@@ -53,42 +53,7 @@ impl RssItem
 			
 			if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
 			{
-				let fileSize = format!("{}", primaryImage.fileSize);
-				let width = format!("{}", primaryImage.width);
-				let height = format!("{}", primaryImage.height);
-				
-				let enclosureAttributes =
-				[
-					XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
-					XmlAttribute::new(Name::local("length"), &fileSize),
-					XmlAttribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
-				];
-				eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
-				
-				let contentAttributes =
-				[
-					XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
-					XmlAttribute::new(Name::local("medium"), "image"),
-					XmlAttribute::new(Name::local("height"), &height),
-					XmlAttribute::new(Name::local("width"), &width),
-					XmlAttribute::new(Name::local("fileSize"), &fileSize),
-					XmlAttribute::new(Name::local("type"), primaryImage.mimeType.as_ref()),
-					XmlAttribute::new(Name::local("lang"), primaryImage.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
-				];
-				eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
-				{
-					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &primaryImage.imageAbstract.alt)?;
-					
-					eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("credit", "media"), &primaryImage.credit)?;
-					
-					let thumbnailAttributes =
-					[
-						XmlAttribute::new(Name::local("width"), &width),
-						XmlAttribute::new(Name::local("height"), &height),
-						XmlAttribute::new(Name::local("url"), primaryImage.url.as_ref()),
-					];
-					eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
-				})?;
+				primaryImage.writeXml(eventWriter, namespace, emptyAttributes)?;
 			}
 			Ok(())
 		})

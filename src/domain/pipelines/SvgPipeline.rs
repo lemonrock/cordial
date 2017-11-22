@@ -14,8 +14,7 @@ pub(crate) struct SvgPipeline
 	
 	#[serde(default)] metadata: Rc<ImageMetaData>,
 	
-	// Exists solely because of potential bugs in svg optimizer
-	#[serde(default)] do_not_optimize: bool,
+	#[serde(default = "SvgPipeline::optimize_default")] optimize: Option<CleaningSettings>,
 	
 	// Responsive tips: https://useiconic.com/guides/using-iconic-responsively
 	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
@@ -37,7 +36,7 @@ impl Default for SvgPipeline
 			language_aware: false,
 			input_format: Default::default(),
 			metadata: Default::default(),
-			do_not_optimize: false,
+			optimize: Self::optimize_default(),
 			primaryImageDimensions: Default::default(),
 		}
 	}
@@ -102,16 +101,11 @@ impl Pipeline for SvgPipeline
 		
 		self.primaryImageDimensions.set((width, height));
 		
-		let body = if self.do_not_optimize
+		let body = match self.optimize
 		{
-			svgString.into_bytes()
-		}
-		else
-		{
-			Self::clean(document, svgString)?
+			None => svgString.into_bytes(),
+			Some(ref cleaningSettings) => Self::clean(document, svgString, cleaningSettings)?,
 		};
-		
-		let mimeType = mimeType("image/svg+xml");
 		
 		let urlDataDetails = Rc::new
 		(
@@ -119,7 +113,6 @@ impl Pipeline for SvgPipeline
 			{
 				width,
 				height,
-				mime: mimeType.clone(),
 				size: body.len() as u64,
 			}
 		);
@@ -136,7 +129,7 @@ impl Pipeline for SvgPipeline
 			width_height_image(width, height) => urlDataDetails.clone(),
 		};
 		
-		Ok(vec![(url, tags, StatusCode::Ok, ContentType(mimeType), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, tags, StatusCode::Ok, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
 	}
 }
 
@@ -163,13 +156,12 @@ impl SvgPipeline
 		}
 	}
 	
-	fn clean(document: ::svgdom::Document, svgString: String) -> Result<Vec<u8>, CordialError>
+	fn clean(document: ::svgdom::Document, svgString: String, cleaningSettings: &CleaningSettings) -> Result<Vec<u8>, CordialError>
 	{
-		use ::svgcleaner::CleaningOptions as SvgCleanOptions;
 		use ::svgcleaner::cleaner::clean_doc as svgDocumentCleaner;
+		use ::svgcleaner::cleaner::write_buffer;
 		use ::svgdom::WriteOptions as SvgWriteOptions;
 		use ::svgdom::WriteOptionsPaths as SvgWriteOptionsPaths;
-		use ::svgcleaner::cleaner::write_buffer;
 		
 		static MinifyingWriteOptions: SvgWriteOptions = SvgWriteOptions
 		{
@@ -189,7 +181,7 @@ impl SvgPipeline
 		};
 		
 		// NOTE: write options aren't used by this method but are required...
-		if let Err(error) = svgDocumentCleaner(&document, &SvgCleanOptions::default(), &MinifyingWriteOptions)
+		if let Err(error) = svgDocumentCleaner(&document, &cleaningSettings.toSvgCleanOptions(), &MinifyingWriteOptions)
 		{
 			return Err(CordialError::CouldNotCleanSvg(error));
 		}
@@ -240,5 +232,11 @@ impl SvgPipeline
 			},
 			_ => None,
 		}
+	}
+	
+	#[inline(always)]
+	fn optimize_default() -> Option<CleaningSettings>
+	{
+		Some(CleaningSettings::default())
 	}
 }

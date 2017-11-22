@@ -98,7 +98,7 @@ impl RegularAndPjaxStaticResponse
 	}
 	
 	#[inline(always)]
-	pub(crate) fn contentMimeType<'a>(&'a self) -> &'a Mime
+	fn contentMimeType<'a>(&'a self) -> &'a Mime
 	{
 		&self.response().contentType.0
 	}
@@ -108,12 +108,6 @@ impl RegularAndPjaxStaticResponse
 	{
 		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.response().uncompressedBody, STANDARD));
 		Url::parse(&dataUriString).unwrap()
-	}
-	
-	#[inline(always)]
-	pub(crate) fn contentMimeTypeWithoutParameters<'a>(&'a self) -> Mime
-	{
-		self.contentMimeType().withoutParameters()
 	}
 	
 	#[inline(always)]

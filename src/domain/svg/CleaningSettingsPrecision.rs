@@ -3,19 +3,53 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ResourceEmbedding
+#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum CleaningSettingsPrecision
 {
-	none,
-	data_uri,
-	xml,
+	one,
+	two,
+	three,
+	four,
+	five,
+	six,
+	seven,
+	eight,
+	nine,
+	ten,
+	eleven,
+	twelve,
 }
 
-impl Default for ResourceEmbedding
+impl Default for CleaningSettingsPrecision
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ResourceEmbedding::none
+		CleaningSettingsPrecision::one
+	}
+}
+
+impl CleaningSettingsPrecision
+{
+	#[inline(always)]
+	fn to_u8(&self) -> u8
+	{
+		use self::CleaningSettingsPrecision::*;
+		
+		match *self
+		{
+			one => 1,
+			two => 2,
+			three => 3,
+			four => 4,
+			five => 5,
+			six => 6,
+			seven => 7,
+			eight => 8,
+			nine => 9,
+			ten => 10,
+			eleven => 11,
+			twelve => 12,
+		}
 	}
 }

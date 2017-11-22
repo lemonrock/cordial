@@ -34,27 +34,27 @@ impl Default for RssFeedlyChannel
 impl RssFeedlyChannel
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> XmlWriterResult
+	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 		
-		if let Some(urlData) = resources.urlDataMandatory(&self.png_cover_image, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
+			let url = self.png_cover_image.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			let attributes =
 			[
-				XmlAttribute::new(Name::local("image"), urlData.urlOrDataUri.as_str()),
+				XmlAttribute::new(Name::local("image"), url.as_str()),
 			];
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(urlData) = resources.urlDataMandatory(&self.svg_icon, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.urlOrDataUri.as_str())?;
+			let url = self.svg_icon.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
 		}
 		
-		if let Some(urlData) = resources.urlDataMandatory(&self.svg_logo, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.urlOrDataUri.as_str())?;
+			let url = self.svg_logo.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
 		}
 		
 		let accentColor = format!("{:02X}{:02X}{:02X}", self.accent_color[0], self.accent_color[1], self.accent_color[2]);
@@ -70,7 +70,7 @@ impl RssFeedlyChannel
 		
 		if let Some(ref googleAnalytics) = self.google_analytics
 		{
-			fn writeGoogleAnalyticsCode<W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, code: &str) -> XmlWriterResult
+			fn writeGoogleAnalyticsCode<W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, code: &str) -> Result<(), CordialError>
 			{
 				let attributes =
 				[

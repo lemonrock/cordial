@@ -16,7 +16,7 @@ impl SiteMapWebPage
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> ::xml::writer::Result<bool>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<bool, CordialError>
 	{
 		let locationUrl = self.urlsByIso639Dash1Alpha2Language.get(&iso639Dash1Alpha2Language);
 		if locationUrl.is_none()
@@ -52,7 +52,7 @@ impl SiteMapWebPage
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, url: &Url) -> XmlWriterResult
+	fn writeXhtmlTranslationElement<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, url: &Url) -> Result<(), CordialError>
 	{
 		eventWriter.writeEmptyElement(namespace,
 		&[

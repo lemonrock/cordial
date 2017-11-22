@@ -17,25 +17,19 @@ impl LongDescription
 	#[inline(always)]
 	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		match self.resource.getUrlData(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?
+		let url = self.resource.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let url = url.as_str();
+		
+		let attribute = if let Some(ref id) = self.id
 		{
-			None => Err(CordialError::Configuration(format!("No URL for long description '{:?}'", &self.resource))),
-			Some((urlData, _)) =>
-			{
-				let url = &urlData.urlOrDataUri.as_str();
-				
-				let attribute = if let Some(ref id) = self.id
-				{
-					"longdesc".string_attribute(format!("{}#{}", url, id))
-				}
-				else
-				{
-					"longdesc".str_attribute(url)
-				};
-				imgAttributes.push(attribute);
-				
-				Ok(())
-			}
+			"longdesc".string_attribute(format!("{}#{}", url, id))
 		}
+		else
+		{
+			"longdesc".str_attribute(url)
+		};
+		imgAttributes.push(attribute);
+		
+		Ok(())
 	}
 }

@@ -46,7 +46,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	fn licenseUrlAndDescription(&self) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	fn licenseUrlAndDescription(&'a self) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
 		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
 		let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
@@ -61,12 +61,12 @@ impl<'a> ImageMarkdownPluginData<'a>
 			match self.animationPlaceholderImageUrlData
 			{
 				None => Err(CordialError::Configuration("This is not an animated image".to_owned())),
-				Some(ref animationPlaceholderImageUrlData) => Ok(animationPlaceholderImageUrlData.urlOrDataUri.as_str()),
+				Some(ref animationPlaceholderImageUrlData) => Ok(animationPlaceholderImageUrlData.url_str()),
 			}
 		}
 		else
 		{
-			Ok(self.primaryImageUrlData.urlOrDataUri.as_str())
+			Ok(self.primaryImageUrlData.url_str())
 		}
 	}
 	

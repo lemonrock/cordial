@@ -16,41 +16,20 @@ impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a, 'b: 'a>(&'a self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resources: &'a Resources, newResponses: &'b Responses) -> Result<String, CordialError>
+	pub(crate) fn render<'a>(&'a self, resources: &'a Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<String, CordialError>
 	{
-		let (urlData, contentMimeTypeWithoutParameters) = Self::urlDataWithContentMimeTypeWithoutParameters(resources, &self.url, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, newResponses)?;
-		Ok(self.formatXmlString(&urlData.urlOrDataUri, &contentMimeTypeWithoutParameters))
-	}
-
-	#[inline(always)]
-	fn formatXmlString(&self, url: &Url, mimeType: &Mime) -> String
-	{
-		match self.media
-		{
-			None => format!("type=\"{}\" href=\"{}\"", mimeType, url),
-			Some(ref mediaQuery) => format!("type=\"{}\" media=\"{}\" href=\"{}\"", mimeType, mediaQuery, url),
-		}
-	}
-	
-	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters<'resources>(resources: &'resources Resources, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<(Rc<UrlData>, Mime), CordialError>
-	{
-		let urlData = resources.urlDataMandatory(resourceReference, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let urlData = self.url.urlDataMandatory(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 		
-		let contentMimeTypeWithoutParameters = if let Some(ref response) = urlData.dataUriOrRawResponse
+		let mimeTypeWithoutParameters = urlData.mimeTypeWithoutParameters();
+		let url = urlData.url_str();
+		
+		let xml = match self.media
 		{
-			response.contentMimeTypeWithoutParameters()
-		}
-		else
-		{
-			match newResponses.getLatestResponse(&urlData.urlOrDataUri)
-			{
-				None => return Err(CordialError::Configuration("Unsatisfied stylesheet link".to_owned())),
-				Some(response) => response.contentMimeTypeWithoutParameters(),
-			}
+			None => format!("type=\"{}\" href=\"{}\"", mimeTypeWithoutParameters, url),
+			Some(ref mediaQuery) => format!("type=\"{}\" media=\"{}\" href=\"{}\"", mimeTypeWithoutParameters, mediaQuery, url),
 		};
 		
-		Ok((urlData, contentMimeTypeWithoutParameters))
+		Ok(xml)
 	}
 	
 	#[inline(always)]

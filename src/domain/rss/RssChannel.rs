@@ -20,8 +20,6 @@ pub(crate) struct RssChannel
 
 impl RssChannel
 {
-	const ImageResourceTag: ResourceTag = ResourceTag::primary_image;
-	
 	#[inline(always)]
 	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
@@ -40,14 +38,12 @@ impl RssChannel
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}
 		
-		let resource = self.image_url.get(resources).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
-		let imageMetaData = resource.imageMetaData()?;
-		let urlData = resource.urlDataMandatory(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag)?;
-		let imageUrl = urlData.urlOrDataUri.deref();
-		let imageAbstract = imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?;
-		let (imageWidth, imageHeight) = urlData.dimensions()?;
+		let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		let imageUrl = urlData.url_str();
+		let imageAbstract = resource.imageMetaData()?.imageAbstract(iso639Dash1Alpha2Language)?;
 		let image_alt = imageAbstract.alt.as_str();
 		let image_tooltip = imageAbstract.title.as_str();
+		let (imageWidth, imageHeight) = urlData.dimensions()?;
 		
 		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let timeToLiveInMinutes =
@@ -69,9 +65,9 @@ impl RssChannel
 		
 		eventWriter.writeBasicXmlDocumentPreamble()?;
 		
-		for stylesheet in self.stylesheets.iter()
+		for stylesheetLink in self.stylesheets.iter()
 		{
-			let data = stylesheet.render(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), resources, newResponses)?;
+			let data = stylesheetLink.render(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
@@ -127,7 +123,7 @@ impl RssChannel
 				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "ttl", &format!("{}", timeToLiveInMinutes))?;
 				eventWriter.writeWithinElement(Name::local("image"), &namespace, &emptyAttributes, |eventWriter|
 				{
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "url", imageUrl.as_str())?;
+					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "url", imageUrl)?;
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", image_alt)?;
 					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", image_tooltip)?;
 					if imageWidth != 0

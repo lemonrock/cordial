@@ -5,27 +5,45 @@
 #[derive(Debug, Clone)]
 pub(crate) struct UrlData
 {
-	urlOrDataUri: Rc<Url>,
+	url: Rc<Url>,
+	mimeType: Mime,
 	urlDataDetails: Rc<UrlDataDetails>,
-	dataUriOrRawResponse: Option<Rc<RegularAndPjaxStaticResponse>>,
 }
 
 impl UrlData
 {
 	#[inline(always)]
-	fn url(&self) -> &Rc<Url>
+	pub(crate) fn url(&self) -> &Rc<Url>
 	{
-		&self.urlOrDataUri
+		&self.url
 	}
 	
 	#[inline(always)]
-	fn dimensions(&self) -> Result<(u32, u32), CordialError>
+	pub(crate) fn url_str(&self) -> &str
+	{
+		self.url().as_ref().as_str()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn mimeType(&self) -> &Mime
+	{
+		&self.mimeType
+	}
+	
+	#[inline(always)]
+	pub(crate) fn mimeTypeWithoutParameters(&self) -> Mime
+	{
+		self.mimeType().withoutParameters()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn dimensions(&self) -> Result<(u32, u32), CordialError>
 	{
 		self.urlDataDetails.dimensions()
 	}
 	
 	#[inline(always)]
-	fn image(&self) -> Result<(u32, u32, &Mime, u64), CordialError>
+	pub(crate) fn image(&self) -> Result<(u32, u32, u64), CordialError>
 	{
 		self.urlDataDetails.image()
 	}

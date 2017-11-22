@@ -122,7 +122,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 			(
 				"div"
 					.with_empty_attribute("fallback")
-					.with_child_text(self.markdownPluginData.required_translation(RequiredTranslation::missing_image_fallback)?.as_str())
+					.with_child_text(self.markdownPluginData.requiredTranslation(RequiredTranslation::missing_image_fallback)?.as_str())
 			);
 		
 		if isForAnimationPlaceholder

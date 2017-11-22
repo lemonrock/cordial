@@ -53,7 +53,7 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn required_translation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
+	pub(crate) fn requiredTranslation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
 	{
 		match self.required_translations.get(&requiredTranslation)
 		{
@@ -63,19 +63,19 @@ impl Language
 	}
 	
 	#[inline(always)]
-	pub(crate) fn baseUrl(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, is_for_amp: bool) -> Result<Url, CordialError>
+	fn baseUrl(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, isForAmp: bool) -> Result<Url, CordialError>
 	{
-		let relative_root_url = if is_for_amp
+		let relativeRootUrl = if isForAmp
 		{
-			self.amp_relative_root_url(iso639Dash1Alpha2Language)
+			self.ampRelativeRootUrl(iso639Dash1Alpha2Language)
 		}
 		else
 		{
-			self.relative_root_url(iso639Dash1Alpha2Language)
+			self.relativeRootUrl(iso639Dash1Alpha2Language)
 		};
-		let formattedUrl = format!("https://{}{}", &self.host, relative_root_url);
+		let formattedUrl = format!("https://{}{}", &self.host, relativeRootUrl);
 		let parsed = Url::parse(&formattedUrl);
-		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relative_root_url, self.iso3166Dash1Alpha2CountryCode()))?;
+		let result = parsed.context(format!("either the host '{}' or relative root url '{}' is invalid for the language '{}'", &self.host, relativeRootUrl, self.iso3166Dash1Alpha2CountryCode()))?;
 		Ok(result)
 	}
 	
@@ -85,13 +85,13 @@ impl Language
 		// TODO: Adjust if amp == canonical
 		vec!
 		[
-			self.relative_root_url(iso639Dash1Alpha2Language),
-			self.amp_relative_root_url(iso639Dash1Alpha2Language),
+			self.relativeRootUrl(iso639Dash1Alpha2Language),
+			self.ampRelativeRootUrl(iso639Dash1Alpha2Language),
 		]
 	}
 	
 	#[inline(always)]
-	fn relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
+	fn relativeRootUrl(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url
@@ -102,7 +102,7 @@ impl Language
 	}
 	
 	#[inline(always)]
-	fn amp_relative_root_url(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
+	fn ampRelativeRootUrl(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Cow<'static, str>
 	{
 		use self::RelativeRootUrl::*;
 		match self.relative_root_url

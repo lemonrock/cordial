@@ -21,8 +21,8 @@ impl<'a> LanguageData<'a>
 	}
 
 	#[inline(always)]
-	pub(crate) fn baseUrl(&self, is_for_amp: bool) -> Result<Url, CordialError>
+	pub(crate) fn baseUrl(&self, isForAmp: bool) -> Result<Url, CordialError>
 	{
-		self.language.baseUrl(self.iso639Dash1Alpha2Language, is_for_amp)
+		self.language.baseUrl(self.iso639Dash1Alpha2Language, isForAmp)
 	}
 }

@@ -31,9 +31,9 @@ impl<'a> MarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn required_translation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
+	pub(crate) fn requiredTranslation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
 	{
-		self.language.language.required_translation(requiredTranslation)
+		self.language.language.requiredTranslation(requiredTranslation)
 	}
 	
 	#[inline(always)]

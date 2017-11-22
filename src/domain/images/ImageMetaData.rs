@@ -134,27 +134,18 @@ impl ImageMetaData
 	
 	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
 	{
-		let url = match resources.urlData(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?
-		{
-			None => return Err(CordialError::Configuration(format!("Could not locate a resource for url '{:?}'", internalImage))),
-			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
-		};
-		
-		let licenseUrl = match resources.urlData(&self.license_url, primaryIso639Dash1Alpha2Language, None)?
-		{
-			None => return Err(CordialError::Configuration(format!("Could not locate a resource for license url '{:?}'", &self.license_url))),
-			Some(urlData) => urlData.urlOrDataUri.deref().clone(),
-		};
-		
 		match self.abstracts.get(&primaryIso639Dash1Alpha2Language)
 		{
 			None => Err(CordialError::Configuration(format!("Could not locate an image abstract for '{:?}'", primaryIso639Dash1Alpha2Language))),
-			Some(ref imageAbstract) => Ok(SiteMapWebPageImage
-			{
-				url,
-				imageAbstract: (*imageAbstract).clone(),
-				licenseUrl,
-			})
+			Some(ref imageAbstract) => Ok
+			(
+				SiteMapWebPageImage
+				{
+					url: resources.urlDataMandatory(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?.url().clone(),
+					imageAbstract: (*imageAbstract).clone(),
+					licenseUrl: resources.urlDataMandatory(&self.license_url, primaryIso639Dash1Alpha2Language, None)?.url().clone(),
+				}
+			)
 		}
 	}
 	
@@ -171,29 +162,21 @@ impl ImageMetaData
 			Some(imageAbstract) => imageAbstract.clone(),
 		};
 		
-		match resources.urlData(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?
-		{
-			None => Err(CordialError::Configuration(format!("Could not find article image for RSS feed for '{:?}'", internalImage))),
-			
-			Some(urlData) =>
+		let urlData = resources.urlDataMandatory(internalImage, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		let (width, height, mimeType, fileSize) = urlData.image()?;
+		Ok
+		(
+			RssImage
 			{
-				let (width, height, mimeType, fileSize) = urlData.image()?;
-				
-				Ok
-				(
-					RssImage
-					{
-						width,
-						height,
-						url: urlData.urlOrDataUri.deref().clone(),
-						fileSize,
-						mimeType: mimeType.clone(),
-						imageAbstract,
-						credit: self.credit.clone(),
-						iso639Dash1Alpha2Language,
-					}
-				)
+				width,
+				height,
+				url: urlData.urlOrDataUri.deref().clone(),
+				fileSize,
+				mimeType: mimeType.clone(),
+				imageAbstract,
+				credit: self.credit.clone(),
+				iso639Dash1Alpha2Language,
 			}
-		}
+		)
 	}
 }

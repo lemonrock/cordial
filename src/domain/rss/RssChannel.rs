@@ -42,7 +42,7 @@ impl RssChannel
 		
 		let resource = self.image_url.get(resources).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS resource for image_url '{:?}'", &self.image_url)))?.try_borrow()?;
 		let imageMetaData = resource.imageMetaData()?;
-		let urlData = resource.urlData(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag).ok_or_else(|| CordialError::Configuration(format!("Could not find RSS {:?} for image_url '{:?}'", Self::ImageResourceTag, &self.image_url)))?;
+		let urlData = resource.urlDataMandatory(primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &Self::ImageResourceTag)?;
 		let imageUrl = urlData.urlOrDataUri.deref();
 		let imageAbstract = imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?;
 		let (imageWidth, imageHeight) = urlData.dimensions()?;

@@ -62,7 +62,7 @@ impl MarkdownInlinePlugin
 		let image = match imageResourceUrl
 		{
 			None => return Err(CordialError::Configuration("image inline plugin resource can not be omitted".to_owned())),
-			Some(url) => markdownPluginData.image(&ResourceReference::primary_image(url))?,
+			Some(imageResourceUrl) => markdownPluginData.image(imageResourceUrl)?,
 		};
 		
 		// TODO: Support the image lightbox: https://ampbyexample.com/components/amp-image-lightbox/
@@ -74,6 +74,7 @@ impl MarkdownInlinePlugin
 		// - Include <script async custom-element="amp-anim" src="https://cdn.ampproject.org/v0/amp-anim-0.1.js"></script> in the head of your page to use this component.
 		// - Need to generate a GIF 'placeholder' image (ie from first frame)
 		// - See https://ampbyexample.com/components/amp-anim/
+		
 		
 		// TODO: Generate images suitable for Google VR View
 		
@@ -93,52 +94,39 @@ impl MarkdownInlinePlugin
 		
 		use self::CaptionPosition::*;
 		
-		let node = if isForAmp
+		let imageNodeToWrapWithFigure = if isForAmp
 		{
-			let ampImgNode = image.ampImgNode()?;
-			
-			match captionPosition
+			if image.isAnimated()
 			{
-				top =>
-				{
-					"figure"
-					.with_child_element(image.figcaptionNode()?)
-					.with_child_element(ampImgNode)
-				}
-				bottom =>
-				{
-					"figure"
-					.with_child_element(ampImgNode)
-					.with_child_element(image.figcaptionNode()?)
-				}
-				none => ampImgNode,
+				image.ampAnimNode()?
+			}
+			else
+			{
+				image.ampImgNode(image.isAnimated())?
 			}
 		}
 		else
 		{
-			let imgNode = image.imgNode()?;
-			
-			match captionPosition
-			{
-				top =>
-				{
-					"figure"
-					.with_child_element(image.figcaptionNode()?)
-					.with_child_element(imgNode)
-				}
-				bottom =>
-				{
-					"figure"
-					.with_child_element(imgNode)
-					.with_child_element(image.figcaptionNode()?)
-				}
-				none => imgNode,
-			}
+			image.imgNode()?
 		};
 		
-		let mut rcDom = RcDom::default();
-		node.attach_to_document_node(&mut rcDom);
-		const html_head_and_body_tags_are_optional: bool = false;
-		Ok(rcDom.minify_to_string(html_head_and_body_tags_are_optional))
+		let figureNode = match captionPosition
+		{
+			top =>
+			{
+				"figure"
+				.with_child_element(image.figcaptionNode()?)
+				.with_child_element(imageNodeToWrapWithFigure)
+			}
+			bottom =>
+			{
+				"figure"
+				.with_child_element(imageNodeToWrapWithFigure)
+				.with_child_element(image.figcaptionNode()?)
+			}
+			none => imageNodeToWrapWithFigure,
+		};
+		
+		Ok(figureNode.to_html_fragment())
 	}
 }

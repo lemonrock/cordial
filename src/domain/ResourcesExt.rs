@@ -5,51 +5,23 @@
 pub(crate) trait ResourcesExt
 {
 	#[inline(always)]
-	fn urlData<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>;
-	
-	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>;
+	fn urlDataMandatory<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Rc<UrlData>, CordialError>;
 }
 
 impl ResourcesExt for Resources
 {
 	#[inline(always)]
-	fn urlData<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Option<Rc<UrlData>>, CordialError>
+	fn urlDataMandatory<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Rc<UrlData>, CordialError>
 	{
 		match resourceReference.get(self)
 		{
-			None => Ok(None),
+			None => Err(CordialError::Configuration(format!("Missing resource {:?}", resourceReference))),
 			Some(resourceRefCell) =>
 			{
 				let refResource = resourceRefCell.try_borrow()?;
 				
-				Ok(refResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &resourceReference.tag).cloned())
+				refResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &resourceReference.tag).map(|urlDataRef| urlDataRef.clone())
 			},
 		}
-	}
-	
-	#[inline(always)]
-	fn urlDataWithContentMimeTypeWithoutParameters<'resources>(&'resources self, resourceReference: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, newResponses: &Responses) -> Result<Option<(Rc<UrlData>, Mime)>, CordialError>
-	{
-		let urlData = match self.urlData(resourceReference, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?
-		{
-			None => return Ok(None),
-			Some(urlData) => urlData,
-		};
-		
-		let contentMimeTypeWithoutParameters = if let Some(ref response) = urlData.dataUriOrRawResponse
-		{
-			response.contentMimeTypeWithoutParameters()
-		}
-		else
-		{
-			match newResponses.getLatestResponse(&urlData.urlOrDataUri)
-			{
-				None => return Ok(None),
-				Some(response) => response.contentMimeTypeWithoutParameters(),
-			}
-		};
-		
-		Ok(Some((urlData, contentMimeTypeWithoutParameters)))
 	}
 }

@@ -32,6 +32,12 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn urlDataMandatory(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Result<&Rc<UrlData>, CordialError>
+	{
+		self.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resourceTag).ok_or_else(|| CordialError::Configuration(format!("Resource '{:?}' urlData missing", self.name())))
+	}
+	
+	#[inline(always)]
 	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<&Rc<UrlData>>
 	{
 		let urlKey = self.urlKey(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);

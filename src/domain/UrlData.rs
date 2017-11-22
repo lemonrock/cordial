@@ -13,6 +13,12 @@ pub(crate) struct UrlData
 impl UrlData
 {
 	#[inline(always)]
+	fn url(&self) -> &Rc<Url>
+	{
+		&self.urlOrDataUri
+	}
+	
+	#[inline(always)]
 	fn dimensions(&self) -> Result<(u32, u32), CordialError>
 	{
 		self.urlDataDetails.dimensions()

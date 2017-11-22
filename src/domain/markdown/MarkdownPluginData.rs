@@ -37,19 +37,24 @@ impl<'a> MarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn image(&'a self, imageResourceReference: &ResourceReference) -> Result<ImageMarkdownPluginData<'a>, CordialError>
+	pub(crate) fn image(&'a self, imageResourceUrl: ResourceUrl) -> Result<ImageMarkdownPluginData<'a>, CordialError>
 	{
-		match imageResourceReference.get(self.resources)
+		use self::ResourceTag::*;
+		
+		match self.resources.get(&imageResourceUrl)
 		{
-			None => Err(CordialError::Configuration(format!("image inline plugin resource '{:?}' not found", imageResourceReference))),
-			Some(imageResource) =>
+			None => Err(CordialError::Configuration(format!("Could not get image for '{:?}'", imageResourceUrl))),
+			Some(resourceRefCell) =>
 			{
-				let imageResource = imageResource.try_borrow()?;
+				let imageResource = resourceRefCell.try_borrow()?;
 				
 				let imageMetaData = imageResource.imageMetaData()?.clone();
-				
 				let imageAbstract = imageMetaData.imageAbstract(self.iso639Dash1Alpha2Language())?.clone();
-				let imageUrlData = imageResource.urlData(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &imageResourceReference.tag).ok_or_else(|| CordialError::Configuration(format!("image resource '{:?}' urlData missing", imageResourceReference)))?.clone();
+				
+				let primaryImageUrlData = imageResource.urlDataMandatory(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &primary_image)?.clone();
+				
+				let animationPlaceholderImageUrlData = imageResource.urlData(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &animation_placeholder(0)).cloned();
+				
 				Ok
 				(
 					ImageMarkdownPluginData
@@ -57,7 +62,8 @@ impl<'a> MarkdownPluginData<'a>
 						markdownPluginData: self,
 						imageAbstract,
 						imageMetaData,
-						imageUrlData,
+						primaryImageUrlData,
+						animationPlaceholderImageUrlData,
 						imageResource,
 					}
 				)

@@ -38,7 +38,7 @@ impl RssFeedlyChannel
 	{
 		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.png_cover_image, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
+		if let Some(urlData) = resources.urlDataMandatory(&self.png_cover_image, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			let attributes =
 			[
@@ -47,12 +47,12 @@ impl RssFeedlyChannel
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.svg_icon, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
+		if let Some(urlData) = resources.urlDataMandatory(&self.svg_icon, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.urlOrDataUri.as_str())?;
 		}
 		
-		if let Some(Some(urlData)) = resources.urlData(&self.svg_logo, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
+		if let Some(urlData) = resources.urlDataMandatory(&self.svg_logo, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language).ok()
 		{
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.urlOrDataUri.as_str())?;
 		}

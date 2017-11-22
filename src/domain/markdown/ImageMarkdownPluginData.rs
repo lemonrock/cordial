@@ -8,7 +8,8 @@ pub struct ImageMarkdownPluginData<'a>
 	markdownPluginData: &'a MarkdownPluginData<'a>,
 	imageResource: Ref<'a, Resource>,
 	imageMetaData: Rc<ImageMetaData>,
-	imageUrlData: Rc<UrlData>,
+	primaryImageUrlData: Rc<UrlData>,
+	animationPlaceholderImageUrlData: Option<Rc<UrlData>>,
 	imageAbstract: Rc<ImageAbstract>,
 }
 
@@ -53,13 +54,44 @@ impl<'a> ImageMarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	fn url(&self) -> &str
+	fn url(&self, isForAnimationPlaceholder: bool) -> Result<&str, CordialError>
 	{
-		self.imageUrlData.urlOrDataUri.as_str()
+		if isForAnimationPlaceholder
+		{
+			match self.animationPlaceholderImageUrlData
+			{
+				None => Err(CordialError::Configuration("This is not an animated image".to_owned())),
+				Some(ref animationPlaceholderImageUrlData) => Ok(animationPlaceholderImageUrlData.urlOrDataUri.as_str()),
+			}
+		}
+		else
+		{
+			Ok(self.primaryImageUrlData.urlOrDataUri.as_str())
+		}
+	}
+	
+	pub(crate) fn isAnimated(&self) -> bool
+	{
+		self.animationPlaceholderImageUrlData.is_some()
+	}
+	
+	pub(crate) fn ampAnimNode(&self) -> Result<UnattachedNode, CordialError>
+	{
+		/*
+			<amp-anim width="245" height="300" src="/img/gopher.gif" alt="an animation" attribution="The Go gopher was designed by Reneee French and is licensed under CC 3.0 attributions.">
+				<amp-img placeholder width="245" height="300" src="/img/gopher.png"></amp-img>
+			</amp-anim>
+		*/
+		let node = "amp-img"
+			.with_attributes(self.imgLikeAttributes(true, false)?)
+			.with_attribute(AmpLayout::responsive.toAttribute())
+			.with_attribute("attribution".str_attribute(self.credit()))
+			.with_child_element(self.ampImgNode(true)?);
+		Ok(node)
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub(crate) fn ampImgNode<'resources>(&self) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn ampImgNode(&self, isForAnimationPlaceholder: bool) -> Result<UnattachedNode, CordialError>
 	{
 		/*
 			<figure>
@@ -77,52 +109,36 @@ impl<'a> ImageMarkdownPluginData<'a>
 			</figure>
 		*/
 		
-		Ok
-		(
-			"amp-img"
-				.with_attributes(self.imgLikeAttributes(true)?)
-				.with_attribute(AmpLayout::responsive.toAttribute())
-				.with_attribute("attribution".str_attribute(self.credit()))
-				.with_child_element
-				(
-					"noscript"
-						.with_child_element(self.imgNode()?)
-				)
-				.with_child_element
-				(
-					"div"
-						.with_empty_attribute("fallback")
-						.with_child_text(self.markdownPluginData.required_translation(RequiredTranslation::missing_image_fallback)?.as_str())
-				)
-		)
+		let node = "amp-img"
+			.with_attributes(self.imgLikeAttributes(true, isForAnimationPlaceholder)?)
+			.with_attribute(AmpLayout::responsive.toAttribute())
+			.with_attribute("attribution".str_attribute(self.credit()))
+			.with_child_element
+			(
+				"noscript"
+					.with_child_element(self.imgNode()?)
+			)
+			.with_child_element
+			(
+				"div"
+					.with_empty_attribute("fallback")
+					.with_child_text(self.markdownPluginData.required_translation(RequiredTranslation::missing_image_fallback)?.as_str())
+			);
+		
+		if isForAnimationPlaceholder
+		{
+			Ok(node.with_attribute("placeholder".empty_attribute()))
+		}
+		else
+		{
+			Ok(node)
+		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn imgNode(&self) -> Result<UnattachedNode, CordialError>
 	{
-		Ok("img".with_attributes(self.imgLikeAttributes(false)?))
-	}
-	
-	#[inline(always)]
-	pub(crate) fn imgLikeAttributes(&self, isForAmp: bool) -> Result<Vec<Attribute>, CordialError>
-	{
-		let mut attributes = vec!
-		[
-			"src".str_attribute(self.url()),
-		];
-		self.imageAbstract.addToImgAttributes(&mut attributes);
-		self.addImageMetaDataToImgAttributes(&mut attributes, isForAmp)?;
-		self.imageResource.addToImgAttributes(&mut attributes)?;
-		
-		Ok(attributes)
-	}
-	
-	#[inline(always)]
-	fn addImageMetaDataToImgAttributes(&self, attributes: &mut Vec<Attribute>, isForAmp: bool) -> Result<(), CordialError>
-	{
-		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
-		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
-		self.imageMetaData.addToImgAttributes(attributes, self.resources(), primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
+		Ok("img".with_attributes(self.imgLikeAttributes(false, false)?))
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -186,5 +202,27 @@ impl<'a> ImageMarkdownPluginData<'a>
 		);
 		
 		Ok(figcaptionNode)
+	}
+	
+	#[inline(always)]
+	fn imgLikeAttributes(&self, isForAmp: bool, isForAnimationPlaceholder: bool) -> Result<Vec<Attribute>, CordialError>
+	{
+		let mut attributes = vec!
+		[
+			"src".str_attribute(self.url(isForAnimationPlaceholder)?),
+		];
+		self.imageAbstract.addToImgAttributes(&mut attributes);
+		self.addImageMetaDataToImgAttributes(&mut attributes, isForAmp)?;
+		self.imageResource.addToImgAttributes(&mut attributes)?;
+		
+		Ok(attributes)
+	}
+	
+	#[inline(always)]
+	fn addImageMetaDataToImgAttributes(&self, attributes: &mut Vec<Attribute>, isForAmp: bool) -> Result<(), CordialError>
+	{
+		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
+		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
+		self.imageMetaData.addToImgAttributes(attributes, self.resources(), primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
 	}
 }

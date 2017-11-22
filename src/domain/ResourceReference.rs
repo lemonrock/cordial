@@ -26,16 +26,6 @@ impl Default for ResourceReference
 impl ResourceReference
 {
 	#[inline(always)]
-	pub(crate) fn primary_image(resource: ResourceUrl) -> Self
-	{
-		Self
-		{
-			resource,
-			tag: ResourceTag::primary_image,
-		}
-	}
-	
-	#[inline(always)]
 	pub(crate) fn new<S: Into<String>>(resource: S, tag: ResourceTag) -> Self
 	{
 		Self
@@ -60,12 +50,8 @@ impl ResourceReference
 			Some(resource) =>
 			{
 				let borrowedResource = resource.try_borrow()?;
-				let urlData = borrowedResource.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag).cloned();
-				match urlData
-				{
-					None => Err(CordialError::Configuration(format!("Could not get urlData for '{:?}'", self))),
-					Some(urlData) => Ok(Some((urlData.clone(), borrowedResource))),
-				}
+				let urlData = borrowedResource.urlDataMandatory(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.tag)?.clone();
+				Ok(Some((urlData, borrowedResource)))
 			}
 		}
 	}

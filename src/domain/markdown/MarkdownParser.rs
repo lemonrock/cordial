@@ -42,17 +42,17 @@ impl MarkdownParser
 		}
 	}
 	
-	pub(crate) fn parse<'a>(&self, markdown: &str, pluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn parse<'a>(&self, markdown: &str, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Vec<u8>, CordialError>
 	{
 		let arena = Arena::new();
 		
 		let root = parse_document(&arena, markdown, &self.options);
 		
-		root.useMarkdownAstNodeRecursively(&|node|
+		root.useMarkdownAstNodeRecursively(&mut |node|
 		{
 			let updatedValue = match node.data.borrow().value
 			{
-				CodeBlock(ref codeBlock) => self.replaceCodeBlockWithHtmlFromPluginIfRequired(codeBlock, pluginData, isForAmp)?,
+				CodeBlock(ref codeBlock) => self.replaceCodeBlockWithHtmlFromPluginIfRequired(codeBlock, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp)?,
 				
 				_ => None,
 			};
@@ -78,15 +78,15 @@ impl MarkdownParser
 	}
 	
 	#[inline(always)]
-	fn replaceCodeBlockWithHtmlFromPluginIfRequired<'a>(&self, codeBlock: &NodeCodeBlock, pluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Option<NodeValue>, CordialError>
+	fn replaceCodeBlockWithHtmlFromPluginIfRequired<'a>(&self, codeBlock: &NodeCodeBlock, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &'a MarkdownPluginData, isForAmp: bool) -> Result<Option<NodeValue>, CordialError>
 	{
 		if codeBlock.fenced && codeBlock.info.starts_with(Self::SectionSign)
 		{
-			Self::usePlugin(&codeBlock.info, &self.blockPlugins, |blockPlugin, arguments| blockPlugin.execute(arguments, pluginData, isForAmp, &codeBlock.literal))
+			Self::usePlugin(&codeBlock.info, &self.blockPlugins, |blockPlugin, arguments| blockPlugin.execute(arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp, &codeBlock.literal))
 		}
 		else if codeBlock.literal.starts_with(Self::SectionSign)
 		{
-			Self::usePlugin(&codeBlock.literal, &self.inlinePlugins, |inlinePlugin, arguments| inlinePlugin.execute(arguments, pluginData, isForAmp))
+			Self::usePlugin(&codeBlock.literal, &self.inlinePlugins, |inlinePlugin, arguments| inlinePlugin.execute(arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp))
 		}
 		else
 		{
@@ -95,7 +95,7 @@ impl MarkdownParser
 	}
 	
 	#[inline(always)]
-	fn usePlugin<Plugin, PluginUser: FnOnce(&Plugin, &[u8]) -> Result<Vec<u8>, CordialError>>(functionLine: &[u8], plugins: &HashMap<Vec<u8>, Plugin>, pluginUser: PluginUser) -> Result<Option<NodeValue>, CordialError>
+	fn usePlugin<Plugin, PluginUser: FnOnce(&Plugin, &[u8], ) -> Result<MarkdownPluginResult, CordialError>>(functionLine: &[u8], plugins: &HashMap<Vec<u8>, Plugin>, pluginUser: PluginUser) -> Result<Option<NodeValue>, CordialError>
 	{
 		const Space: u8 = 32;
 		
@@ -127,7 +127,8 @@ impl MarkdownParser
 						literal:
 						{
 							let arguments = &remainder[ index + 1 .. ];
-							pluginUser(plugin, arguments)?
+							let markdownPluginResult = pluginUser(plugin, arguments)?;
+							markdownPluginResult.nodesToHtmlBytes()
 						},
 						block_type: 0
 					}

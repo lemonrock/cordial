@@ -23,6 +23,7 @@ extern crate css_purify;
 extern crate csv;
 extern crate daemonize;
 #[cfg(any(target_os = "android", target_os = "linux"))] extern crate dpdk_unix;
+extern crate either;
 extern crate engiffen;
 extern crate futures;
 extern crate gif;

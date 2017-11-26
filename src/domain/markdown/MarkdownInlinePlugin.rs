@@ -23,24 +23,25 @@ impl MarkdownInlinePlugin
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, arguments: &[u8], markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, arguments: &[u8], nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
 	{
 		use self::MarkdownInlinePlugin::*;
 		
 		let mut arguments = parseQueryString(arguments);
 		
-		let string = match *self
+		match *self
 		{
-			image => Self::image(&mut arguments, markdownPluginData, isForAmp)?,
-		};
-		Ok(string.into_bytes())
+			image => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+		}
 	}
 	
 	//noinspection SpellCheckingInspection
-	fn image(arguments: &mut ParsedQueryString, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<String, CordialError>
+	fn image(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
 	{
 		let mut imageResourceUrl = None;
 		let mut captionPosition = CaptionPosition::default();
+		let mut lightboxId = None;
+		let mut displayAmpLoadingIndicator = true;
 		for (name, value) in arguments
 		{
 			match name.deref()
@@ -55,6 +56,25 @@ impl MarkdownInlinePlugin
 					captionPosition = CaptionPosition::parse(value.deref())?
 				},
 				
+				"lightbox_id" if isForAmp =>
+				{
+					lightboxId = match value.deref()
+					{
+						"" => return Err(CordialError::Configuration("Empty is not a valid value for a lightbox_id".to_owned())),
+						value @ _ => Some(value.to_owned()),
+					};
+				}
+				
+				"hide_loading_indicator" if isForAmp =>
+				{
+					displayAmpLoadingIndicator = match value.deref()
+					{
+						"" | "n" => false,
+						"n" => true,
+						_ => return Err(CordialError::Configuration("Any value other than empty or y or n is not a valid value for a hide_loading_indicator".to_owned())),
+					};
+				}
+				
 				_ => return Err(CordialError::Configuration(format!("image inline plugin does not take the argument '{}'", name))),
 			}
 		}
@@ -65,43 +85,23 @@ impl MarkdownInlinePlugin
 			Some(imageResourceUrl) => markdownPluginData.image(imageResourceUrl)?,
 		};
 		
-		// TODO: Support the image lightbox: https://ampbyexample.com/components/amp-image-lightbox/
-		// - Need to add a hidden element to the page contents
-		// on="tap:lightbox1" role="button" tabindex="0"    aria-describedby="imageDescription" (if not figcaption)
-		
-		
-		// TODO:Include <script async custom-element="amp-anim" src="https://cdn.ampproject.org/v0/amp-anim-0.1.js"></script>
-		// - Include <script async custom-element="amp-anim" src="https://cdn.ampproject.org/v0/amp-anim-0.1.js"></script> in the head of your page to use this component.
-		// - Need to generate a GIF 'placeholder' image (ie from first frame)
-		// - See https://ampbyexample.com/components/amp-anim/
-		
-		
-		// TODO: Generate images suitable for Google VR View
-		
-		// NOTE: ampbyexample.org is a good example of a simple, responsive site although its load time is a little slow
-		// Very clean, simple HTML, with header, footer, main, aside, article and section usage
-		// h2 headings are the first element of a section
-		// Looks like they are serving up 'amp' files on a non-amp URL.
-		
-		
-		// TODO: Add to a list of resources that will need to be added to the page after rendering
-		// TODO: Deserialize ResourceTag
-		// TODO: For embedded SVG, need to append / replace id, classes
-		// TODO: For embedded SVG, strip xmlns="http://www.w3.org/2000/svg" namespace
-		// TODO: data-uri embedding - worthwhile?
-		// TODO: Make URLs relative
-		
 		use self::CaptionPosition::*;
 		
 		let imageNodeToWrapWithFigure = if isForAmp
 		{
 			if image.isAnimated()
 			{
-				image.ampAnimNode()?
+				nodesForOtherPlacesInHtml.ampScript("amp-anim", "https://cdn.ampproject.org/v0/amp-anim-0.1.js");
+				image.ampAnimNode(displayAmpLoadingIndicator)?
 			}
 			else
 			{
-				image.ampImgNode(image.isAnimated())?
+				if let Some(ref lightboxId) = lightboxId
+				{
+					nodesForOtherPlacesInHtml.ampScript("amp-image-lightbox", "https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js");
+					nodesForOtherPlacesInHtml.hiddenBody(format!("amp-image-lightbox-{}", &lightboxId), "amp-image-lightbox".with_id_attribute(lightboxId).with_attribute(AmpLayout::nodisplay.toAttribute()) )
+				}
+				image.ampImgNode(image.isAnimated(), lightboxId, displayAmpLoadingIndicator)?
 			}
 		}
 		else
@@ -126,6 +126,6 @@ impl MarkdownInlinePlugin
 			none => imageNodeToWrapWithFigure,
 		};
 		
-		Ok(figureNode.to_html_fragment())
+		MarkdownPluginResult::ok(vec![figureNode])
 	}
 }

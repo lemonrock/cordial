@@ -22,18 +22,6 @@ pub(crate) struct HtmlUrls<'a>
 	pub(crate) license: Option<ResourceUrl>,
 }
 
-/*
-	There are also site-language-level link rel="" tags
-		link rel="manifest"
-		link rel="icon" (multiple possible)
-	
-	(We could do these with defaults that are overridden)
-	
-	preconnect prefetch preload prerender dns-prefetch
-	
-	see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types
-*/
-
 impl<'a> HtmlUrls<'a>
 {
 	// rel="canonical"

@@ -4,12 +4,12 @@
 
 trait AstNodeExt<'a>
 {
-	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &F) -> Result<(), CordialError>;
+	fn useMarkdownAstNodeRecursively<F: FnMut(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &mut F) -> Result<(), CordialError>;
 }
 
 impl<'a> AstNodeExt<'a> for AstNode<'a>
 {
-	fn useMarkdownAstNodeRecursively<F: Fn(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &F) -> Result<(), CordialError>
+	fn useMarkdownAstNodeRecursively<F: FnMut(&'a Self) -> Result<(), CordialError>>(&'a self, nodeUser: &mut F) -> Result<(), CordialError>
 	{
 		nodeUser(self)?;
 		

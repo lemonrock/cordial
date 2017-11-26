@@ -101,7 +101,24 @@ impl<'a> HtmlDocumentData<'a>
 	#[inline(always)]
 	pub(crate) fn renderHtmlDocument(&self, inputContentFilePath: &Path, isForAmp: bool, handlebars: &HandlebarsWrapper, handlebarsTemplate: &str) -> Result<(RcDom, Vec<u8>), CordialError>
 	{
-		let htmlFromMarkdown = self.markdownParser.parse(&self.markdown, &self.markdownPluginData, isForAmp)?;
+		/*
+			nodesForHtmlHead is where we can push in a lot of extra stuff
+				- title
+				- description
+				- link ref=""
+				- meta charset for amp (see https://www.ampproject.org/docs/reference/spec)
+				- AMP boilerplate
+				- stylesheet links or embedded CSS
+				- Open Graph
+				- Twitter Cards
+				- schema.org
+				- etc
+		*/
+		
+		let mut nodesForHtmlHead = NodesForOtherPlacesInHtml::new();
+		let htmlFromMarkdown = self.markdownParser.parse(&self.markdown, &mut nodesForHtmlHead, &self.markdownPluginData, isForAmp)?;
+		
+		let (headHtml, hiddenBodyHtml) = nodesForHtmlHead.headAndHiddenBodyHtml();
 		
 		let html =
 		{
@@ -138,6 +155,8 @@ impl<'a> HtmlDocumentData<'a>
 				"image_abstract": imageAbstract,
 				"image_article": imageResourceReference,
 				"site_map_images": self.siteMapImages,
+				"headHtml": headHtml,
+				"hiddenBodyHtml": hiddenBodyHtml,
 			}))?
 		};
 		

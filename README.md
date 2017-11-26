@@ -147,8 +147,23 @@ The license for this project is AGPL-3.0.
 	// TODO: Take HTML and run it through languagetool
 	// TODO: Validate length of title and description, content, etc
 	// TODO: Sitemap videos?
-	// TODO: More markdown plugins, external + internal (eg for a URL, SVG, IMAGE)
-	// TODO: markdown plugins using `` syntax, markdown plugins using arguments from ```CODE``` syntax
+	// TODO: For embedded SVG, need to append / replace id, classes
+	// TODO: For embedded SVG, strip xmlns="http://www.w3.org/2000/svg" namespace
+	// TODO: data-uri embedding - worthwhile?
+	// TODO: Make URLs relative
+	// TODO: Generate images suitable for Google VR View
+	
+/*
+	There are also site-language-level link rel="" tags
+		link rel="manifest"
+		link rel="icon" (multiple possible)
+	
+	(We could do these with defaults that are overridden)
+	
+	preconnect prefetch preload prerender dns-prefetch (but not allowed in AMP)
+	
+	see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types and http://microformats.org/wiki/existing-rel-values
+*/
 	
 		* Add videos within web page to SiteMap.xml.
 * Modify zopfli crate to allow specifying options

@@ -26,7 +26,7 @@ impl MarkdownBlockPlugin
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, arguments: &[u8], _markdownPluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn execute(&self, arguments: &[u8], _nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, _markdownPluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<MarkdownPluginResult, CordialError>
 	{
 		use self::MarkdownBlockPlugin::*;
 		
@@ -41,7 +41,8 @@ impl MarkdownBlockPlugin
 			csv => Self::csv(arguments, string)?,
 			svgbob => Self::svgbob(arguments, string)?,
 		};
-		Ok(string.into_bytes())
+		
+		MarkdownPluginResult::fromHtmlFragment(string)
 	}
 	
 	//noinspection SpellCheckingInspection

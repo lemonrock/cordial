@@ -15,83 +15,39 @@ pub struct ImageMarkdownPluginData<'a>
 
 impl<'a> ImageMarkdownPluginData<'a>
 {
-	#[inline(always)]
-	fn caption(&self) -> &str
-	{
-		self.imageAbstract.caption.as_str()
-	}
-	
-	#[inline(always)]
-	fn credit(&self) -> &str
-	{
-		self.imageMetaData.credit.as_str()
-	}
-	
-	#[inline(always)]
-	fn resources(&self) -> &'a Resources
-	{
-		self.markdownPluginData.resources
-	}
-	
-	#[inline(always)]
-	fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
-	{
-		self.markdownPluginData.fallbackIso639Dash1Alpha2Language()
-	}
-	
-	#[inline(always)]
-	fn iso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
-	{
-		self.markdownPluginData.iso639Dash1Alpha2Language()
-	}
-	
-	#[inline(always)]
-	fn licenseUrlAndAnchorTitleAttribute(&'a self) -> Result<(Rc<Url>, Rc<String>), CordialError>
-	{
-		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
-		let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
-		self.imageMetaData.licenseUrlAndAnchorTitleAttribute(self.resources(), fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
-	}
-	
-	#[inline(always)]
-	fn url(&self, isForAnimationPlaceholder: bool) -> Result<&str, CordialError>
-	{
-		if isForAnimationPlaceholder
-		{
-			match self.animationPlaceholderImageUrlData
-			{
-				None => Err(CordialError::Configuration("This is not an animated image".to_owned())),
-				Some(ref animationPlaceholderImageUrlData) => Ok(animationPlaceholderImageUrlData.url_str()),
-			}
-		}
-		else
-		{
-			Ok(self.primaryImageUrlData.url_str())
-		}
-	}
-	
 	pub(crate) fn isAnimated(&self) -> bool
 	{
 		self.animationPlaceholderImageUrlData.is_some()
 	}
 	
-	pub(crate) fn ampAnimNode(&self) -> Result<UnattachedNode, CordialError>
+	//noinspection SpellCheckingInspection
+	pub(crate) fn ampAnimNode(&self, displayAmpLoadingIndicator: bool) -> Result<UnattachedNode, CordialError>
 	{
 		/*
 			<amp-anim width="245" height="300" src="/img/gopher.gif" alt="an animation" attribution="The Go gopher was designed by Reneee French and is licensed under CC 3.0 attributions.">
 				<amp-img placeholder width="245" height="300" src="/img/gopher.png"></amp-img>
 			</amp-anim>
 		*/
-		let node = "amp-img"
+		let node = "amp-anim"
 			.with_attributes(self.imgLikeAttributes(true, false)?)
 			.with_attribute(AmpLayout::responsive.toAttribute())
 			.with_attribute("attribution".str_attribute(self.credit()))
-			.with_child_element(self.ampImgNode(true)?);
+			.with_child_element(self.ampImgNode(true, None, displayAmpLoadingIndicator)?);
+		
+		let node = if !displayAmpLoadingIndicator
+		{
+			node.with_attribute("noloading".empty_attribute())
+		}
+		else
+		{
+			node
+		};
+		
 		Ok(node)
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub(crate) fn ampImgNode(&self, isForAnimationPlaceholder: bool) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn ampImgNode(&self, isForAnimationPlaceholder: bool, lightboxId: Option<String>, displayAmpLoadingIndicator: bool) -> Result<UnattachedNode, CordialError>
 	{
 		/*
 			<figure>
@@ -125,14 +81,37 @@ impl<'a> ImageMarkdownPluginData<'a>
 					.with_child_text(self.markdownPluginData.requiredTranslation(RequiredTranslation::missing_image_fallback)?.as_str())
 			);
 		
-		if isForAnimationPlaceholder
+		let node = if isForAnimationPlaceholder
 		{
-			Ok(node.with_attribute("placeholder".empty_attribute()))
+			node.with_attribute("placeholder".empty_attribute())
 		}
 		else
 		{
-			Ok(node)
+			node
+		};
+		
+		let node = if let Some(lightboxId) = lightboxId
+		{
+			node
+				.with_attribute("on".string_attribute(format!("tap:{}", lightboxId)))
+				.with_attribute("role".str_attribute("button"))
+				.with_tabindex_attribute(0)
 		}
+		else
+		{
+			node
+		};
+		
+		let node = if !displayAmpLoadingIndicator
+		{
+			node.with_attribute("noloading".empty_attribute())
+		}
+		else
+		{
+			node
+		};
+		
+		Ok(node)
 	}
 	
 	#[inline(always)]
@@ -224,5 +203,60 @@ impl<'a> ImageMarkdownPluginData<'a>
 		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
 		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
 		self.imageMetaData.addToImgAttributes(attributes, self.resources(), fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
+	}
+	
+	#[inline(always)]
+	fn caption(&self) -> &str
+	{
+		self.imageAbstract.caption.as_str()
+	}
+	
+	#[inline(always)]
+	fn credit(&self) -> &str
+	{
+		self.imageMetaData.credit.as_str()
+	}
+	
+	#[inline(always)]
+	fn resources(&self) -> &'a Resources
+	{
+		self.markdownPluginData.resources
+	}
+	
+	#[inline(always)]
+	fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	{
+		self.markdownPluginData.fallbackIso639Dash1Alpha2Language()
+	}
+	
+	#[inline(always)]
+	fn iso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	{
+		self.markdownPluginData.iso639Dash1Alpha2Language()
+	}
+	
+	#[inline(always)]
+	fn licenseUrlAndAnchorTitleAttribute(&'a self) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	{
+		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
+		let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
+		self.imageMetaData.licenseUrlAndAnchorTitleAttribute(self.resources(), fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
+	}
+	
+	#[inline(always)]
+	fn url(&self, isForAnimationPlaceholder: bool) -> Result<&str, CordialError>
+	{
+		if isForAnimationPlaceholder
+		{
+			match self.animationPlaceholderImageUrlData
+			{
+				None => Err(CordialError::Configuration("This is not an animated image".to_owned())),
+				Some(ref animationPlaceholderImageUrlData) => Ok(animationPlaceholderImageUrlData.url_str()),
+			}
+		}
+		else
+		{
+			Ok(self.primaryImageUrlData.url_str())
+		}
 	}
 }

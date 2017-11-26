@@ -49,6 +49,9 @@ pub(crate) trait UnattachedNodeHelperExt
 	}
 	
 	#[inline(always)]
+	fn with_id_attribute(&self, id: &str) -> UnattachedNode;
+	
+	#[inline(always)]
 	fn with_empty_attribute(&self, name: &str) -> UnattachedNode;
 	
 	#[inline(always)]
@@ -65,6 +68,9 @@ pub(crate) trait UnattachedNodeHelperExt
 	
 	#[inline(always)]
 	fn local_name(&self) -> LocalName;
+	
+	#[inline(always)]
+	fn amp_script(&self, url: &str) -> UnattachedNode;
 }
 
 impl UnattachedNodeHelperExt for str
@@ -91,6 +97,12 @@ impl UnattachedNodeHelperExt for str
 	fn u32_attribute(&self, value: u32) -> Attribute
 	{
 		self.string_attribute(format!("{}", value))
+	}
+	
+	#[inline(always)]
+	fn with_id_attribute(&self, id: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["id".str_attribute(id)])
 	}
 	
 	#[inline(always)]
@@ -128,5 +140,14 @@ impl UnattachedNodeHelperExt for str
 	fn local_name(&self) -> LocalName
 	{
 		LocalName::from(self)
+	}
+	
+	#[inline(always)]
+	fn amp_script(&self, url: &str) -> UnattachedNode
+	{
+		"script"
+			.with_empty_attribute("async")
+			.with_attribute("custom-element".str_attribute(self))
+			.with_attribute("src".str_attribute(url))
 	}
 }

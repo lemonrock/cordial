@@ -123,16 +123,6 @@ impl<'a> HtmlDocumentData<'a>
 		let html =
 		{
 			let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language;
-			let imageResourceReference = match self.articleImage
-			{
-				None => None,
-				Some((ref imageResourceReference, _)) => Some(imageResourceReference),
-			};
-			let imageAbstract = match self.articleImage
-			{
-				None => None,
-				Some((_, ref imageMetaData)) => Some((imageResourceReference, imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?)),
-			};
 			
 			// TODO: Needs tidy-up into a form that is JSON / handlebars friendly
 			
@@ -152,8 +142,14 @@ impl<'a> HtmlDocumentData<'a>
 				"modifications": self.modifications,
 				"expiration_date": self.expirationDate,
 				"document_abstract": self.htmlAbstract,
-				"image_abstract": imageAbstract,
-				"image_article": imageResourceReference,
+				"image_article": match self.articleImage
+				{
+					None => None,
+					Some((ref imageResourceReference, ref imageMetaData)) =>
+					{
+						Some((imageResourceReference, imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?))
+					},
+				},
 				"site_map_images": self.siteMapImages,
 				"headHtml": headHtml,
 				"hiddenBodyHtml": hiddenBodyHtml,

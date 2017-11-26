@@ -70,7 +70,7 @@ impl MarkdownInlinePlugin
 					displayAmpLoadingIndicator = match value.deref()
 					{
 						"" | "n" => false,
-						"n" => true,
+						"y" => true,
 						_ => return Err(CordialError::Configuration("Any value other than empty or y or n is not a valid value for a hide_loading_indicator".to_owned())),
 					};
 				}

@@ -70,7 +70,7 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn process<HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: HeaderGenerator) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn process<HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: HeaderGenerator) -> Result<Vec<PipelineResource>, CordialError>
 	{
 		let sourceImages = self.sourceImages()?;
 		

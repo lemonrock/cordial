@@ -11,7 +11,7 @@ pub(crate) struct CssPipeline
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<CssInputFormat>,
-	
+
 	#[serde(default = "CssPipeline::precision_default")] precision: u8,
 	#[serde(default)] is_template: bool,
 	#[serde(default = "CssPipeline::maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default")] maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16,
@@ -47,30 +47,37 @@ impl Pipeline for CssPipeline
 	{
 		DependsOnOthersEgStylesheet
 	}
-	
+
 	#[inline(always)]
 	fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
 	{
 		self.input_format.resourceInputContentFileNamesWithExtension(resourceInputName)
 	}
-	
+
 	#[inline(always)]
 	fn is<'a>(&self) -> (bool, bool)
 	{
 		(self.is_versioned, self.language_aware)
 	}
-	
+
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, _siteMapWebPages: &mut Vec<SiteMapWebPage>, _rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
 	{
-		const CanBeCompressed: bool = true;
-		
 		let url = resourceUrl.replaceFileNameExtension(".css").url(languageData)?;
 		
-		let headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
-		
+		const CanBeCompressed: bool = true;
+		let headers = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
+
 		let handlebars = if self.is_template
 		{
+			let ifLanguageAwareLanguageData = if self.language_aware
+			{
+				Some(languageData)
+			}
+			else
+			{
+				None
+			};
 			Some((handlebars, ifLanguageAwareLanguageData, CanBeCompressed))
 		}
 		else
@@ -78,7 +85,7 @@ impl Pipeline for CssPipeline
 			None
 		};
 		let body = CssInputFormat::toCss(self.input_format, inputContentFilePath, self.precision, configuration, handlebars, self.maximum_release_age_from_can_i_use_database_last_updated_in_weeks, self.minimum_usage_threshold, &self.regional_usages[..])?;
-		
+
 		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
 	}
 }
@@ -88,24 +95,24 @@ impl CssPipeline
 	#[inline(always)]
 	fn precision_default() -> u8
 	{
-		5
+		1
 	}
-	
+
 	#[inline(always)]
 	fn maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default() -> u16
 	{
 		const FirefoxCycleLengthInWeeks: u16 = 6;
 		const FirefoxCyclesPerYear: u16 = (52 / FirefoxCycleLengthInWeeks + 1);
-		
+
 		(FirefoxCyclesPerYear + 2) * FirefoxCycleLengthInWeeks
 	}
-	
+
 	#[inline(always)]
 	fn minimum_usage_threshold_default() -> UsagePercentage
 	{
 		UsagePercentage::OnePerMille
 	}
-	
+
 	#[inline(always)]
 	fn regional_usages_default() -> Vec<RegionalUsages>
 	{

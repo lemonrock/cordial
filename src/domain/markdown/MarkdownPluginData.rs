@@ -7,7 +7,7 @@ pub(crate) struct MarkdownPluginData<'a>
 {
 	pub(crate) resources: &'a Resources,
 	pub(crate) configuration: &'a Configuration,
-	pub(crate) language: &'a LanguageData<'a>,
+	pub(crate) languageData: &'a LanguageData<'a>,
 }
 
 impl<'a> MarkdownPluginData<'a>
@@ -15,25 +15,25 @@ impl<'a> MarkdownPluginData<'a>
 	#[inline(always)]
 	pub(crate) fn renderRightToLeft(&self) -> bool
 	{
-		self.language.language.assume_right_to_left_script
+		self.languageData.language.assume_right_to_left_script
 	}
 	
 	#[inline(always)]
-	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	pub(crate) fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.configuration.primaryIso639Dash1Alpha2Language()
+		self.configuration.fallbackIso639Dash1Alpha2Language()
 	}
 	
 	#[inline(always)]
 	pub(crate) fn iso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.language.iso639Dash1Alpha2Language
+		self.languageData.iso639Dash1Alpha2Language
 	}
 	
 	#[inline(always)]
 	pub(crate) fn requiredTranslation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
 	{
-		self.language.language.requiredTranslation(requiredTranslation)
+		self.languageData.language.requiredTranslation(requiredTranslation)
 	}
 	
 	#[inline(always)]
@@ -51,9 +51,9 @@ impl<'a> MarkdownPluginData<'a>
 				let imageMetaData = imageResource.imageMetaData()?.clone();
 				let imageAbstract = imageMetaData.imageAbstract(self.iso639Dash1Alpha2Language())?.clone();
 				
-				let primaryImageUrlData = imageResource.urlDataMandatory(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &primary_image)?.clone();
+				let primaryImageUrlData = imageResource.urlDataMandatory(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &primary_image)?.clone();
 				
-				let animationPlaceholderImageUrlData = imageResource.urlData(self.primaryIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &animation_placeholder(0)).cloned();
+				let animationPlaceholderImageUrlData = imageResource.urlData(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &animation_placeholder(0)).cloned();
 				
 				Ok
 				(

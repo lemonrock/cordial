@@ -3,11 +3,10 @@
 
 
 use super::*;
-use super::markdown::*;
 use super::svg::*;
-use super::super::webserver::headers::commonCacheControlHeader;
 use self::ProcessingPriority::*;
 use self::ResourceTag::*;
+use ::ordermap::OrderMap;
 use ::serde::de;
 
 
@@ -20,6 +19,7 @@ include!("is_versioned_true_default.rs");
 include!("max_age_in_seconds_long_default.rs");
 include!("mimeType.rs");
 include!("Pipeline.rs");
+include!("PipelineResource.rs");
 include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");
 include!("SvgPipeline.rs");

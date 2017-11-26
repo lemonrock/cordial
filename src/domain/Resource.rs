@@ -31,15 +31,15 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlDataMandatory(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Result<&Rc<UrlData>, CordialError>
+	pub(crate) fn urlDataMandatory(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Result<&Rc<UrlData>, CordialError>
 	{
-		self.urlData(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resourceTag).ok_or_else(|| CordialError::Configuration(format!("Resource '{:?}' urlData missing", self.name())))
+		self.urlData(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resourceTag).ok_or_else(|| CordialError::Configuration(format!("Resource '{:?}' urlData missing", self.name())))
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlData(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<&Rc<UrlData>>
+	pub(crate) fn urlData(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag) -> Option<&Rc<UrlData>>
 	{
-		let urlKey = self.urlKey(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
 		match self.urlData.get(&urlKey)
 		{
 			None => None,
@@ -58,52 +58,12 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn htmlLastModificationDateOrPublicationDate(&self) -> Result<Option<DateTime<Utc>>, CordialError>
-	{
-		match self.htmlPipeline()
-		{
-			Err(error) => Err(error),
-			Ok(htmlPipeline) => Ok(htmlPipeline.lastModificationDateOrPublicationDate()),
-		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn htmlModifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, Rc<String>>, CordialError>
-	{
-		match self.htmlPipeline()
-		{
-			Err(error) => Err(error),
-			Ok(htmlPipeline) => htmlPipeline.modifications(iso639Dash1Alpha2Language),
-		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn htmlExpirationDate(&self) -> Result<Option<DateTime<Utc>>, CordialError>
-	{
-		match self.htmlPipeline()
-		{
-			Err(error) => Err(error),
-			Ok(htmlPipeline) => Ok(htmlPipeline.expirationDate()),
-		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn htmlAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<Rc<Abstract>, CordialError>
-	{
-		match self.htmlPipeline()
-		{
-			Err(error) => Err(error),
-			Ok(htmlPipeline) => htmlPipeline.abstract_(iso639Dash1Alpha2Language).map(|abstractReference| abstractReference.clone()),
-		}
-	}
-	
-	#[inline(always)]
-	fn urlKey<'a>(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Iso639Dash1Alpha2Language
+	fn urlKey<'a>(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Iso639Dash1Alpha2Language
 	{
 		let (isForPrimaryLanguageOnly, _isVersioned) = self.is();
 		if isForPrimaryLanguageOnly
 		{
-			primaryIso639Dash1Alpha2Language
+			fallbackIso639Dash1Alpha2Language
 		}
 		else if let Some(iso639Dash1Alpha2Language) = iso639Dash1Alpha2Language
 		{
@@ -113,12 +73,12 @@ impl Resource
 			}
 			else
 			{
-				primaryIso639Dash1Alpha2Language
+				fallbackIso639Dash1Alpha2Language
 			}
 		}
 		else
 		{
-			primaryIso639Dash1Alpha2Language
+			fallbackIso639Dash1Alpha2Language
 		}
 	}
 	
@@ -153,7 +113,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	pub(crate) fn render(&mut self, resourceUrl: &ResourceUrl, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &mut Handlebars, siteMapWebPagesByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>, rssItemsByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>) -> Result<(), CordialError>
+	pub(crate) fn renderResource(&mut self, resourceUrl: &ResourceUrl, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, configuration: &Configuration, handlebars: &HandlebarsWrapper, rssChannelsByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, HashMap<Rc<RssChannelName>, Vec<RssItem>>>, siteMapWebPagesByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		#[inline(always)]
 		fn getOrDefault<'a, T>(map: &'a mut HashMap<Iso639Dash1Alpha2Language, Vec<T>>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> &'a mut Vec<T>
@@ -161,7 +121,7 @@ impl Resource
 			map.entry(iso639Dash1Alpha2Language).or_insert_with(|| Vec::with_capacity(4096))
 		}
 		
-		let primaryLanguage = configuration.localization.primaryIso639Dash1Alpha2Language();
+		let primaryLanguage = configuration.localization.fallbackIso639Dash1Alpha2Language();
 		
 		configuration.visitLanguagesWithPrimaryFirst(|languageData, isPrimaryLanguage|
 		{
@@ -186,10 +146,19 @@ impl Resource
 					{
 						(None, self.languageNeutralInputContentFilePath(primaryLanguage, None)?)
 					};
-					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso639Dash1Alpha2Language);
-					let mut rssItems = getOrDefault(rssItemsByLanguage, iso639Dash1Alpha2Language);
 					
-					self.execute(resources, &inputContentFilePath, resourceUrl, handlebars, &self.headers, languageData, ifLanguageAwareLanguageData, configuration, &mut siteMapWebPages, &mut rssItems)?
+					let mut rssChannelsToRssItems = rssChannelsByLanguage.get_mut(&iso639Dash1Alpha2Language).unwrap();
+					let mut siteMapWebPages = getOrDefault(siteMapWebPagesByLanguage, iso639Dash1Alpha2Language);
+					
+					let mut headerGenerator = HeaderGenerator
+					{
+						handlebars,
+						headerTemplates: &self.headers,
+						ifLanguageAwareLanguageData,
+						configuration,
+					};
+					
+					self.execute(resources, &inputContentFilePath, resourceUrl, handlebars, &mut headerGenerator, languageData, configuration, &mut rssChannelsToRssItems, &mut siteMapWebPages)?
 				};
 				
 				// Always inserts, as this language code will only occur once.
@@ -317,6 +286,22 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn anchorTitleAttribute(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<Option<Rc<String>>, CordialError>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			css => self.css.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			font => self.font.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			gif_animation => self.gif_animation.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			html => self.html.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			raster_image => self.raster_image.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			raw => self.raw.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			svg => self.svg.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn addToImgAttributes(&self, attributes: &mut Vec<Attribute>) -> Result<(), CordialError>
 	{
 		use self::ResourcePipeline::*;
@@ -397,18 +382,18 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, languageData: &LanguageData, ifLanguageAwareLanguageData: Option<&LanguageData>, configuration: &Configuration, siteMapWebPages: &mut Vec<SiteMapWebPage>, rssItems: &mut Vec<RssItem>) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
-			css => self.css.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			font => self.font.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			html => self.html.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			raw => self.raw.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
-			svg => self.svg.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerTemplates, languageData, ifLanguageAwareLanguageData, configuration, siteMapWebPages, rssItems),
+			css => self.css.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			font => self.font.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			html => self.html.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			raw => self.raw.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			svg => self.svg.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 		}
 	}
 }

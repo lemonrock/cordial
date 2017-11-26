@@ -66,13 +66,13 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn imageAbstractWithFallback(&self, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<ImageAbstract>, CordialError>
+	pub(crate) fn imageAbstractWithFallback(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<ImageAbstract>, CordialError>
 	{
 		match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
-			None => match self.abstracts.get(&primaryIso639Dash1Alpha2Language)
+			None => match self.abstracts.get(&fallbackIso639Dash1Alpha2Language)
 			{
-				None => Err(CordialError::Configuration(format!("Could not find image abstract for '{:?}' or fallback '{:?}'", iso639Dash1Alpha2Language, primaryIso639Dash1Alpha2Language))),
+				None => Err(CordialError::Configuration(format!("Could not find image abstract for '{:?}' or fallback '{:?}'", iso639Dash1Alpha2Language, fallbackIso639Dash1Alpha2Language))),
 				Some(primaryImageAbstract) => Ok(primaryImageAbstract)
 			},
 			Some(imageAbstract) => Ok(imageAbstract),
@@ -80,14 +80,14 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn licenseUrlAndDescription<'a>(&self, resources: &'a Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	pub(crate) fn licenseUrlAndAnchorTitleAttribute<'a>(&self, resources: &'a Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
-		self.license_url.urlAndHtmlDescriptionMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
+		self.license_url.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 	}
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, isForAmp: bool) -> Result<(), CordialError>
+	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, isForAmp: bool) -> Result<(), CordialError>
 	{
 		if let Some(ref sizes) = self.sizes
 		{
@@ -135,30 +135,25 @@ impl ImageMetaData
 			
 			if let Some(ref longDescription) = self.long_description
 			{
-				longDescription.addToImgAttributes(imgAttributes, resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+				longDescription.addToImgAttributes(imgAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}
 		}
 		
 		Ok(())
 	}
 	
-	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	#[inline(always)]
+	pub(crate) fn anchorTitleAttribute(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<Option<Rc<String>>, CordialError>
 	{
-		let imageAbstract = self.imageAbstractWithFallback(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
-		
-		let url = internalImage.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
-		let licenseUrl = self.license_url.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
-		let imageAbstract = imageAbstract.clone();
-		
-		Ok(SiteMapWebPageImage { url, licenseUrl, imageAbstract })
+		let imageAbstract = self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		Ok(Some(imageAbstract.title.clone()))
 	}
 	
-	// TODO: add <img> with a class of webfeedsFeaturedVisual for feedly OR if first img > 450px OR feedly will try to poll website for open graph or twitter card
-	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<RssImage, CordialError>
+	#[inline(always)]
+	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<RssImage, CordialError>
 	{
-		let imageAbstract = (*self.imageAbstractWithFallback(primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?).clone();
-		let urlData = internalImage.urlDataMandatory(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		let imageAbstract = (*self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?).clone();
+		let urlData = internalImage.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 		
 		let (width, height, fileSize) = urlData.image()?;
 		
@@ -176,5 +171,18 @@ impl ImageMetaData
 				iso639Dash1Alpha2Language,
 			}
 		)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	{
+		let imageAbstract = self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
+		
+		let url = internalImage.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
+		let licenseUrl = self.license_url.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
+		let imageAbstract = imageAbstract.clone();
+		
+		Ok(SiteMapWebPageImage { url, licenseUrl, imageAbstract })
 	}
 }

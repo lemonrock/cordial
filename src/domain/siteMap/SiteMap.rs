@@ -28,7 +28,7 @@ impl SiteMap
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn renderResource<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderSiteMap<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -92,7 +92,17 @@ impl SiteMap
 			})?;
 			
 			let unversionedCanonicalUrl = ResourceUrl::siteMapIndexUrl(iso639Dash1Alpha2Language, index).url(languageData)?;
-			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
+			
+			const CanBeCompressed: bool = true;
+			const CanBeDownloaded: bool = true;
+			let headers = HeaderGenerator
+			{
+				handlebars,
+				headerTemplates: &self.headers,
+				ifLanguageAwareLanguageData: Some(languageData),
+				configuration,
+			}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &unversionedCanonicalUrl)?;
+			
 			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapIndexBodyUncompressed.shrink_to_fit();
 			let siteMapIndexBodyCompressed = self.compression.compress(&siteMapIndexBodyUncompressed)?;
@@ -111,7 +121,7 @@ impl SiteMap
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
+	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -170,7 +180,17 @@ impl SiteMap
 			})?;
 			
 			let unversionedCanonicalUrl = ResourceUrl::siteMapUrl(iso639Dash1Alpha2Language, urlAndResponse.len()).url(languageData).unwrap();
-			let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
+			
+			const CanBeCompressed: bool = true;
+			const CanBeDownloaded: bool = true;
+			let headers = HeaderGenerator
+			{
+				handlebars,
+				headerTemplates: &self.headers,
+				ifLanguageAwareLanguageData: Some(languageData),
+				configuration,
+			}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &unversionedCanonicalUrl)?;
+			
 			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapBodyUncompressed.shrink_to_fit();
 			let siteMapBodyCompressed = self.compression.compress(&siteMapBodyUncompressed)?;

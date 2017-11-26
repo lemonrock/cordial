@@ -32,13 +32,22 @@ impl Default for RobotsTxt
 impl RobotsTxt
 {
 	#[inline(always)]
-	pub(crate) fn renderResource(&self, hostName: &str, robotsTxtConfiguration: &RobotsTxtConfiguration, primaryHostName: &str, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>) -> Result<(), CordialError>
+	pub(crate) fn renderRobotsTxt(&self, hostName: &str, robotsTxtConfiguration: &RobotsTxtConfiguration, primaryHostName: &str, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>) -> Result<(), CordialError>
 	{
 		let mut bodyUncompressed = Vec::with_capacity(1024);
 		self.writeTo(&mut bodyUncompressed, robotsTxtConfiguration, primaryHostName).context(PathBuf::from("robots.txt"))?;
 		
 		let robotsTxtUrl = Url::parse(&format!("https://{}/robots.txt", hostName)).unwrap();
-		let headers = generateHeaders(handlebars, &self.headers, None, HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &robotsTxtUrl).unwrap();
+		
+		const CanBeCompressed: bool = true;
+		const CanBeDownloaded: bool = true;
+		let headers = HeaderGenerator
+		{
+			handlebars,
+			headerTemplates: &self.headers,
+			ifLanguageAwareLanguageData: None,
+			configuration,
+		}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &robotsTxtUrl)?;
 		
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
 		let response = StaticResponse::new(StatusCode::Ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));

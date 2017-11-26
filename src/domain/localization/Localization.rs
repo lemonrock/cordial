@@ -28,7 +28,7 @@ impl Default for Localization
 impl Localization
 {
 	#[inline(always)]
-	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	pub(crate) fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
 		self.primary_iso_639_1_alpha_2_language
 	}
@@ -37,6 +37,16 @@ impl Localization
 	pub(crate) fn primaryLanguage(&self) -> Result<&Language, CordialError>
 	{
 		self.language(self.primary_iso_639_1_alpha_2_language)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn languageData<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<LanguageData<'a>, CordialError>
+	{
+		match self.languages.get(&iso639Dash1Alpha2Language)
+		{
+			None => Err(CordialError::Configuration(format!("iso639Dash1Alpha2Language '{}' does not have a defined language", iso639Dash1Alpha2Language))),
+			Some(language) => Ok(LanguageData::new(iso639Dash1Alpha2Language, language)),
+		}
 	}
 	
 	#[inline(always)]

@@ -16,22 +16,22 @@ impl StylesheetLink
 {
 	#[inline(always)]
 	#[inline(always)]
-	pub(crate) fn render<'a>(&'a self, resources: &'a Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<String, CordialError>
+	pub(crate) fn render<'a>(&'a self, resources: &'a Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<String, CordialError>
 	{
-		let urlData = self.url.urlDataMandatory(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
-		
+		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+
 		let mimeTypeWithoutParameters = urlData.mimeTypeWithoutParameters();
 		let url = urlData.url_str();
-		
+
 		let xml = match self.media
 		{
 			None => format!("type=\"{}\" href=\"{}\"", mimeTypeWithoutParameters, url),
 			Some(ref mediaQuery) => format!("type=\"{}\" media=\"{}\" href=\"{}\"", mimeTypeWithoutParameters, mediaQuery, url),
 		};
-		
+
 		Ok(xml)
 	}
-	
+
 	#[inline(always)]
 	fn url_default() -> ResourceReference
 	{

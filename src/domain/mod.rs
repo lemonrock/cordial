@@ -15,6 +15,7 @@ use self::compression::*;
 use self::daemon::*;
 use self::engiffen::*;
 use self::html::*;
+use self::markdown::*;
 use self::people::*;
 use self::pipelines::*;
 use self::robots::*;
@@ -96,8 +97,10 @@ pub(crate) mod siteMap;
 pub(crate) mod svg;
 
 
-include!("generateHeaders.rs");
-include!("HtmlVariant.rs");
+include!("HandlebarsTemplateRenderer.rs");
+include!("HandlebarsWrapper.rs");
+include!("HeaderGenerator.rs");
+include!("MimeNewType.rs");
 include!("ProcessingPriority.rs");
 include!("Resource.rs");
 include!("ResourcePipeline.rs");
@@ -107,3 +110,4 @@ include!("ResourceTag.rs");
 include!("ResourceUrl.rs");
 include!("UrlData.rs");
 include!("UrlDataDetails.rs");
+include!("UrlSerde.rs");

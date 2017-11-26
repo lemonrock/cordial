@@ -2,12 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::ResourceTag::*;
-use webserver::headers::commonCacheControlHeader;
-
-
-include!("HtmlAbstract.rs");
-include!("HtmlDocumentData.rs");
-include!("HtmlOutputFormat.rs");
-include!("HtmlUrls.rs");
+pub(crate) type PipelineResource = (Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool);

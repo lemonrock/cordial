@@ -7,8 +7,8 @@ pub(crate) struct RssItem
 {
 	pub(crate) rssItemLanguageVariant: RssItemLanguageVariant,
 	pub(crate) lastModificationDate: Option<DateTime<Utc>>,
-	pub(crate) author: EMailAddress,
-	pub(crate) categories: BTreeSet<String>,
+	pub(crate) author: Rc<EMailAddress>,
+	pub(crate) categories: Rc<BTreeSet<String>>,
 }
 
 impl RssItem

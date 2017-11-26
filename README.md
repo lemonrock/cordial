@@ -82,7 +82,7 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 * Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
-* RSS items are currently full, not partial, and are put in the `<description>` tag of the feed rather than `<content type="html">`.
+* Not all URLs are validated for existence. This because they are external (shortcodes, pingbacks).
 
 
 ## Known Bugs
@@ -142,6 +142,14 @@ The license for this project is AGPL-3.0.
 		* Svg2Png, then go from there, really. Multiple outputs.
 		* Is ICO still needed in 2017?
 	* HTML
+		* 
+	// TODO: How do we minify CSS across multiple HTML pages?
+	// TODO: Take HTML and run it through languagetool
+	// TODO: Validate length of title and description, content, etc
+	// TODO: Sitemap videos?
+	// TODO: More markdown plugins, external + internal (eg for a URL, SVG, IMAGE)
+	// TODO: markdown plugins using `` syntax, markdown plugins using arguments from ```CODE``` syntax
+	
 		* Add videos within web page to SiteMap.xml.
 * Modify zopfli crate to allow specifying options
 * RSS

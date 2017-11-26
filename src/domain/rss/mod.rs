@@ -15,7 +15,9 @@ use ::xml::writer::EventWriter;
 pub(crate) mod stylesheets;
 
 
+include!("RssCategoryName.rs");
 include!("RssChannel.rs");
+include!("RssChannelName.rs");
 include!("RssChannelLanguageSpecific.rs");
 include!("RssFeedlyChannel.rs");
 include!("RssFeedlyChannelGoogleAnalyticsCode.rs");

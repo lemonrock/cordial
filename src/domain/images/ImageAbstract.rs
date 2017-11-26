@@ -8,13 +8,13 @@ pub(crate) struct ImageAbstract
 {
 	// Used in Image Site Map
 	// Is also effectively the tooltip as it is <img title="{}">...
-	#[serde(default)] pub(crate) title: String,
-	#[serde(default)] pub(crate) caption: String,
-	#[serde(default)] pub(crate) geographic_location: Option<String>,
+	#[serde(default)] pub(crate) title: Rc<String>,
+	#[serde(default)] pub(crate) caption: Rc<String>,
+	#[serde(default)] pub(crate) geographic_location: Option<Rc<String>>,
 	
 	// Used in <img> tag and RSS feed
 	// Will also supply Twitter OpenCard twitter:image:alt and Facebook OpenGraph og:image:alt
-	#[serde(default)] pub(crate) alt: String,
+	#[serde(default)] pub(crate) alt: Rc<String>,
 }
 
 impl ImageAbstract

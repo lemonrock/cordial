@@ -49,7 +49,7 @@ impl InputFormat for CssInputFormat
 impl CssInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<(&mut Handlebars, Option<&LanguageData>, bool)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<(&HandlebarsWrapper, Option<&LanguageData>, bool)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
 	{
 		let format = match option
 		{
@@ -74,7 +74,7 @@ impl CssInputFormat
 	}
 	
 	#[inline(always)]
-	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, handlebars: Option<(&mut Handlebars, Option<&LanguageData>, bool)>) -> Result<String, CordialError>
+	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, handlebars: Option<(&HandlebarsWrapper, Option<&LanguageData>, bool)>) -> Result<String, CordialError>
 	{
 		if let Some((handlebars, languageData, canBeCompressed)) = handlebars
 		{
@@ -104,10 +104,7 @@ impl CssInputFormat
 				"deployment_version": deploymentVersion,
 			});
 			
-			handlebars.register_escape_fn(::handlebars::no_escape);
-			let rendered = handlebars.template_render(&raw, json)?;
-			handlebars.unregister_escape_fn();
-			Ok(rendered)
+			handlebars.renderWithEscapeFunction(::handlebars::no_escape, |templateRenderer| templateRenderer.template_render(&raw, json))
 		}
 		else
 		{
@@ -152,7 +149,7 @@ impl CssInputFormat
 			output_style: ::sass_rs::OutputStyle::Compressed,
 			precision: precision as usize,
 			indented_syntax: isSass,
-			include_paths: Self::findSassImportPaths(configuration)?,
+			include_paths: configuration.findSassImportPaths()?,
 		};
 		
 		match ::sass_rs::compile_string(&sassInput, options)
@@ -160,31 +157,5 @@ impl CssInputFormat
 			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css),
 		}
-	}
-	
-	#[inline(always)]
-	fn findSassImportPaths(configuration: &Configuration) -> Result<Vec<String>, CordialError>
-	{
-		let sassFolderPath = &configuration.inputFolderPath;
-		
-		let mut importPaths = Vec::with_capacity(16);
-		let sassImportsPath = sassFolderPath.join("sass-imports");
-		for entry in sassImportsPath.read_dir().context(&sassImportsPath)?
-		{
-			let entry = entry.context(&sassImportsPath)?;
-			
-			let path = entry.path();
-			
-			if entry.file_type().context(&path)?.is_dir()
-			{
-				match path.into_os_string().into_string()
-				{
-					Err(_) => return Err(CordialError::InvalidFile(entry.path(), "a component of the path is not valid UTF-8".to_owned())),
-					Ok(importPath) => importPaths.push(importPath),
-				}
-			}
-		}
-		
-		Ok(importPaths)
 	}
 }

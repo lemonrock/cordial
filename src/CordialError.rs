@@ -137,6 +137,14 @@ quick_error!
 			from()
 		}
 		
+		CouldNotRenderHandlebars(cause: ::handlebars::RenderError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not render handlebars because: {}", cause)
+			from()
+		}
+		
 		CouldNotRenderHandlebarsTemplate(cause: ::handlebars::TemplateRenderError)
 		{
 			cause(cause)

@@ -46,7 +46,7 @@ impl InputFormat for FontInputFormat
 impl FontInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<PipelineResource>, CordialError>
 	{
 		let format = match option
 		{
@@ -64,15 +64,14 @@ impl FontInputFormat
 			}
 		};
 		
-		format.process(resourceUrl, configuration, inputContentFilePath, handlebars, headerTemplates, ifLanguageAwareLanguageData, languageData, max_age_in_seconds, is_downloadable, &utf8_xml_metadata[..], &woff1_private_data[..], woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf)
+		format.process(resourceUrl, inputContentFilePath, headerGenerator, languageData, maximumAgeInSeconds, isDownloadable, &utf8_xml_metadata[..], &woff1_private_data[..], woff1_iterations, woff2_brotli_quality, woff2_disallow_transforms, include_ttf)
 	}
 	
 	#[inline(always)]
-	fn process(&self, resourceUrl: &ResourceUrl, configuration: &Configuration, inputContentFilePath: &Path, handlebars: &mut Handlebars, headerTemplates: &HashMap<String, String>, ifLanguageAwareLanguageData: Option<&LanguageData>, languageData: &LanguageData, max_age_in_seconds: u32, is_downloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool)>, CordialError>
+	fn process(&self, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, includeTrueTypeFont: bool) -> Result<Vec<PipelineResource>, CordialError>
 	{
-		use self::ResourceTag::*;
-		
-		const canBeCompressed: bool = false;
+		const CanBeCompressed: bool = true;
+		const CanNotBeCompressed: bool = false;
 		
 		let ttfBytes = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
 		
@@ -86,9 +85,10 @@ impl FontInputFormat
 				_ => 5000,
 			};
 			let woffUrl = resourceUrl.replaceFileNameExtension(".woff2").url(languageData)?;
-			let woffHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woffUrl)?;
+			let woffHeaders = headerGenerator.generateHeadersForAsset(CanNotBeCompressed, maximumAgeInSeconds, isDownloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
-			urls.push((woffUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, None, canBeCompressed));
+			let NoPjax = None;
+			urls.push((woffUrl, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, NoPjax, CanNotBeCompressed));
 		}
 		
 		// woff2
@@ -100,22 +100,30 @@ impl FontInputFormat
 				_ => 11,
 			};
 			let woff2Url = resourceUrl.replaceFileNameExtension(".woff2").url(languageData)?;
-			let woff2Headers = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, canBeCompressed, max_age_in_seconds, is_downloadable, &woff2Url)?;
+			let woff2Headers =  headerGenerator.generateHeadersForAsset(CanNotBeCompressed, maximumAgeInSeconds, isDownloadable, &woff2Url)?;
 			let woff2Body = match convertTtfToWoff2(&ttfBytes, utf8_xml_metadata, woff2BrotliQuality, !woff2_disallow_transforms)
 			{
 				Err(()) => return Err(CordialError::Configuration("Could not encode font to WOFF2".to_owned())),
 				Ok(body) => body,
 			};
-			urls.push((woff2Url, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, None, canBeCompressed));
+			let NoPjax = None;
+			urls.push((woff2Url, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, NoPjax, CanNotBeCompressed));
 		}
 		
-		if include_ttf
+		if includeTrueTypeFont
 		{
 			let ttfUrl = resourceUrl.url(languageData)?;
-			let ttfHeaders = generateHeaders(handlebars, headerTemplates, ifLanguageAwareLanguageData, HtmlVariant::Canonical, configuration, true, max_age_in_seconds, is_downloadable, &ttfUrl)?;
-			urls.push((ttfUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, None, canBeCompressed));
+			let ttfHeaders =  headerGenerator.generateHeadersForAsset(CanBeCompressed, maximumAgeInSeconds, isDownloadable, &ttfUrl)?;
+			let NoPjax = None;
+			urls.push((ttfUrl, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, NoPjax, CanBeCompressed));
 		}
 		
 		Ok(urls)
+	}
+	
+	#[inline(always)]
+	fn defaultHashMap() -> HashMap<ResourceTag, Rc<UrlDataDetails>>
+	{
+		hashmap! { ResourceTag::default => Rc::new(UrlDataDetails::Empty) }
 	}
 }

@@ -5,5 +5,4 @@
 use super::*;
 
 
-include!("MimeNewType.rs");
 include!("StylesheetLink.rs");

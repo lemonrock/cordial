@@ -15,9 +15,9 @@ impl LongDescription
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
+	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		let url = self.resource.urlMandatory(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let url = self.resource.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 		let url = url.as_str();
 		
 		let attribute = if let Some(ref id) = self.id

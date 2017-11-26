@@ -34,9 +34,9 @@ impl<'a> ImageMarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.markdownPluginData.primaryIso639Dash1Alpha2Language()
+		self.markdownPluginData.fallbackIso639Dash1Alpha2Language()
 	}
 	
 	#[inline(always)]
@@ -46,11 +46,11 @@ impl<'a> ImageMarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
-	fn licenseUrlAndDescription(&'a self) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	fn licenseUrlAndAnchorTitleAttribute(&'a self) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
-		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
+		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
 		let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
-		self.imageMetaData.licenseUrlAndDescription(self.resources(), primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
+		self.imageMetaData.licenseUrlAndAnchorTitleAttribute(self.resources(), fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 	}
 	
 	#[inline(always)]
@@ -170,7 +170,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 			}
 		*/
 		
-		let (licenseUrl, licenseDescription) = self.licenseUrlAndDescription()?;
+		let (licenseUrl, licenseAnchorTitleAttribute) = self.licenseUrlAndAnchorTitleAttribute()?;
 		
 		let captionNode = "span"
 			.with_class("caption")
@@ -179,7 +179,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 		let anchorNode = "a"
 			.with_class("caption")
 			.with_href_attribute(licenseUrl.as_str())
-			.with_title_attribute(licenseDescription.as_str())
+			.with_title_attribute(licenseAnchorTitleAttribute.as_str())
 			.with_child_text(self.credit())
 			.with_attribute("target".str_attribute("_blank"))
 			.with_attribute("rel".space_separated_attribute(&["license", "noopener", "noreferrer"]));
@@ -221,8 +221,8 @@ impl<'a> ImageMarkdownPluginData<'a>
 	#[inline(always)]
 	fn addImageMetaDataToImgAttributes(&self, attributes: &mut Vec<Attribute>, isForAmp: bool) -> Result<(), CordialError>
 	{
-		let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
+		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
 		let iso639Dash1Alpha2Language = Some(self.iso639Dash1Alpha2Language());
-		self.imageMetaData.addToImgAttributes(attributes, self.resources(), primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
+		self.imageMetaData.addToImgAttributes(attributes, self.resources(), fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, isForAmp)
 	}
 }

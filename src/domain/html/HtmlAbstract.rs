@@ -2,12 +2,12 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::ResourceTag::*;
-use webserver::headers::commonCacheControlHeader;
-
-
-include!("HtmlAbstract.rs");
-include!("HtmlDocumentData.rs");
-include!("HtmlOutputFormat.rs");
-include!("HtmlUrls.rs");
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) struct HtmlAbstract
+{
+	pub(crate) title: Rc<String>,
+	pub(crate) description: Rc<String>,
+	#[serde(default)] pub(crate) shortlink: Option<Rc<UrlSerde>>,
+	#[serde(default)] pub(crate) pingback: Option<Rc<UrlSerde>>,
+}

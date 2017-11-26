@@ -148,16 +148,17 @@
 			// If is_leaf is true, then '/my-page/' will redirect to '/my-age'
 			redirect_nearly_identical_url: true
 
-			// Publish AMP pages?
-			amp: true
+			// HTML, HTML & AMP, or AMP?
+			output_format:
+			{
+				"t": html_and_amp,
+			}
 
 			// Publish in Site Map?
 			site_map: true
 			site_map_change_frequency: weekly
 			site_map_priority: five
 
-			// Publish in RSS feed?
-			rss: true
 			rss_author:
 			{
 				full_name: Joe Blogs
@@ -486,102 +487,103 @@
 	// rating, textInput, skipHours and skipDays are not generated
 	rss:
 	{
-		headers:
+		// This becomes the name of the RSS feed, eg https://example.com/some_channel_name.rss
+		// It is also used as the name of a Handlebars template which generates the HTML description of the feed.
+		some_channel_name:
 		{
-		}
-
-		// Matches BBC as of Sep 2017.
-		max_age_in_seconds: 900
-
-		compression:
-		{
-			gzip:
+			headers:
 			{
-				iterations: 15
-
-				# Set to 0 for infinite
-				maximum_block_splits: 15
 			}
 
-			brotli:
+			// Matches BBC as of Sep 2017.
+			max_age_in_seconds: 900
+
+			compression:
 			{
-				compressMode: utf8
+				gzip:
+				{
+					iterations: 15
+
+					# Set to 0 for infinite
+					maximum_block_splits: 15
+				}
+
+				brotli:
+				{
+					compressMode: utf8
+				}
 			}
-		}
 
-		// These are resource references
-		stylesheets:
-		[
-		]
+			// These are resource references
+			stylesheets:
+			[
+			]
 
-		details:
-		{
-			en:
+			details:
 			{
-				title: Title of RSS Channel in English
-				description: Description of RSS Channel in English
-				copyright: Coypright © 2017 My Company. All rights reserved.
+				en:
+				{
+					title: Title of RSS Channel in English
+					description: Description of RSS Channel in English
+					copyright: Coypright © 2017 My Company. All rights reserved.
+				}
 			}
-		}
 
-		title:
-		{
-			en:
-		}
-
-		{
-			en:
-		}
-
-		image_url: "/rss-channel-image"
-
-		// May change to a back-reference to an users list
-		managing_editor:
-		{
-			full_name: Raphael James Cohn
-			email: rss_managing_editor@stormmq.com
-		}
-
-		// May change to a back-reference to an users list
-		web_master:
-		{
-			full_name: Raphael James Cohn
-			email: rss_web_master@stormmq.com
-		}
-
-		categories:
-		[
-		]
-
-		feedly:
-		{
-			png_cover_image:
+			title:
 			{
-				internal:
-				[
-					"/rss-feedly-png-cover-image"
-					default
-				]
+				en:
 			}
-			svg_icon:
+
+			image_url: "/rss-channel-image"
+
+			// May change to a back-reference to an users list
+			managing_editor:
 			{
-				internal:
-				[
-					"/rss-feedly-svg-icon"
-					default
-				]
+				full_name: Raphael James Cohn
+				email: rss_managing_editor@stormmq.com
 			}
-			svg_logo:
+
+			// May change to a back-reference to an users list
+			web_master:
 			{
-				internal:
-				[
-					"/rss-feedly-svg-logo"
-					default
-				]
+				full_name: Raphael James Cohn
+				email: rss_web_master@stormmq.com
 			}
-			accent_color: 00FF00
-			related: true
-			google_analytics: inherit
+
+			categories:
+			[
+			]
+
+			feedly:
+			{
+				png_cover_image:
+				{
+					internal:
+					[
+						"/rss-feedly-png-cover-image"
+						default
+					]
+				}
+				svg_icon:
+				{
+					internal:
+					[
+						"/rss-feedly-svg-icon"
+						default
+					]
+				}
+				svg_logo:
+				{
+					internal:
+					[
+						"/rss-feedly-svg-logo"
+						default
+					]
+				}
+				accent_color: 00FF00
+				related: true
+				google_analytics: inherit
+			}
 		}
 	}
 

@@ -13,7 +13,7 @@ pub(crate) struct Configuration
 	#[serde(default)] pub(crate) localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] site_map: SiteMap,
-	#[serde(default)] rss: Option<RssChannel>,
+	#[serde(default)] rss: HashMap<Rc<RssChannelName>, RssChannel>,
 	#[serde(default)] google_analytics: Option<String>,
 	#[serde(default, skip_deserializing)] pub(crate) inputFolderPath: PathBuf,
 	#[serde(default, skip_deserializing)] outputFolderPath: PathBuf,
@@ -37,7 +37,7 @@ impl Default for Configuration
 			localization: Localization::default(),
 			robots: RobotsTxt::default(),
 			site_map: SiteMap::default(),
-			rss: None,
+			rss: HashMap::default(),
 			google_analytics: None,
 			inputFolderPath: PathBuf::default(),
 			outputFolderPath: PathBuf::default(),
@@ -72,9 +72,33 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn primaryIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	pub(crate) fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
-		self.localization.primaryIso639Dash1Alpha2Language()
+		self.localization.fallbackIso639Dash1Alpha2Language()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn findSassImportPaths(&self) -> Result<Vec<String>, CordialError>
+	{
+		let mut importPaths = Vec::with_capacity(16);
+		let sassImportsPath = self.inputFolderPath.join("sass-imports");
+		for entry in sassImportsPath.read_dir().context(&sassImportsPath)?
+		{
+			let entry = entry.context(&sassImportsPath)?;
+			
+			let path = entry.path();
+			
+			if entry.file_type().context(&path)?.is_dir()
+			{
+				match path.into_os_string().into_string()
+				{
+					Err(_) => return Err(CordialError::InvalidFile(entry.path(), "a component of the path is not valid UTF-8".to_owned())),
+					Ok(importPath) => importPaths.push(importPath),
+				}
+			}
+		}
+		
+		Ok(importPaths)
 	}
 	
 	#[inline(always)]
@@ -114,31 +138,18 @@ impl Configuration
 	#[inline(always)]
 	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResponses: Arc<Responses>) -> Result<HttpsStaticRequestHandler, CordialError>
 	{
-		let mut handlebars = self.registerHandlebarsTemplates()?;
+		let handlebars = self.registerHandlebarsTemplates()?;
 		
 		let resources = self.discoverResources()?;
 		
-		let newResources = self.renderResources(resources, &oldResponses, &ourHostNames, &mut handlebars)?;
+		let newResources = self.render(resources, &oldResponses, &ourHostNames, &handlebars)?;
 		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production))
 	}
 	
 	#[inline(always)]
-	fn registerHandlebarsTemplates(&self) -> Result<Handlebars, CordialError>
+	fn registerHandlebarsTemplates(&self) -> Result<HandlebarsWrapper, CordialError>
 	{
-		let mut handlebars = Handlebars::new();
-		
-		// Register any default templates here
-		
-		// Register any helpers here
-		
-		// Register any decorators here
-		
-		let handlebarsTemplatesFolderPath = self.inputFolderPath.join("templates");
-		if handlebarsTemplatesFolderPath.exists() && handlebarsTemplatesFolderPath.is_dir()
-		{
-			handlebarsTemplatesFolderPath.registerAllHandlebarsTemplates(&handlebarsTemplatesFolderPath, &mut handlebars)?;
-		}
-		Ok(handlebars)
+		HandlebarsWrapper::new(&self.inputFolderPath.join("templates"))
 	}
 	
 	#[inline(always)]
@@ -148,12 +159,47 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn renderResources(&self, resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &mut Handlebars) -> Result<Responses, CordialError>
+	fn render(&self, resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &HandlebarsWrapper) -> Result<Responses, CordialError>
 	{
-		let mut newResources = Responses::new(self.deploymentDate, ourHostNames);
-		let mut siteMapWebPages = self.languagesHashMap();
-		let mut rssItems = self.languagesHashMap();
+		let mut newResponses = Responses::new(self.deploymentDate, ourHostNames);
 		
+		{
+			let mut rssChannelsByLanguage = self.rssChannelsByLanguage();
+			let mut siteMapWebPages = self.languagesHashMap();
+			
+			self.renderResources(&mut newResponses, oldResponses, handlebars, &resources, &mut rssChannelsByLanguage, &mut siteMapWebPages)?;
+			
+			self.renderRssFeeds(&mut newResponses, oldResponses, handlebars, &resources, &rssChannelsByLanguage)?;
+			
+			self.renderSiteMapsAndRobotsTxt(&mut newResponses, oldResponses, handlebars, &siteMapWebPages)?;
+		}
+		
+		newResponses.addAnythingThatIsDiscontinued(oldResponses);
+		
+		Ok(newResponses)
+	}
+	
+	#[inline(always)]
+	fn rssChannelsByLanguage(&self) -> HashMap<Iso639Dash1Alpha2Language, HashMap<Rc<RssChannelName>, Vec<RssItem>>>
+	{
+		let mut rssChannelsByLanguage = self.languagesHashMap();
+		self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
+		{
+			let mut rssChannelsToRssItems = HashMap::with_capacity(self.rss.len());
+			for rssChannelName in self.rss.keys()
+			{
+				rssChannelsToRssItems.insert(rssChannelName.clone(), Vec::new());
+			}
+			rssChannelsByLanguage.insert(languageData.iso639Dash1Alpha2Language, rssChannelsToRssItems);
+			
+			Ok(())
+		}).unwrap();
+		rssChannelsByLanguage
+	}
+	
+	#[inline(always)]
+	fn renderResources(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &HandlebarsWrapper, resources: &Resources, rssChannelsByLanguage: &mut HashMap<Iso639Dash1Alpha2Language, HashMap<Rc<RssChannelName>, Vec<RssItem>>>, siteMapWebPages: &mut HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	{
 		for processingPriority in ProcessingPriority::All.iter()
 		{
 			for (resourceUrl, resource) in resources.iter()
@@ -161,23 +207,34 @@ impl Configuration
 				let hasProcessingPriority = resource.borrow().hasProcessingPriority(*processingPriority);
 				if hasProcessingPriority
 				{
-					resource.borrow_mut().render(resourceUrl, &resources, &mut newResources, oldResponses, self, handlebars, &mut siteMapWebPages, &mut rssItems)?;
+					resource.borrow_mut().renderResource(resourceUrl, resources, newResponses, oldResponses, self, handlebars, rssChannelsByLanguage, siteMapWebPages)?;
 				}
 			}
 		}
-		
-		self.renderResourcesSiteMapsAndRobotsTxt(&mut newResources, oldResponses, handlebars, &siteMapWebPages)?;
-		
-		self.renderRssFeeds(&mut newResources, oldResponses, handlebars, &rssItems, &resources)?;
-		
-		newResources.addAnythingThatIsDiscontinued(oldResponses);
-		
-		Ok(newResources)
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &HandlebarsWrapper, resources: &Resources, rssChannelsByLanguage: &HashMap<Iso639Dash1Alpha2Language, HashMap<Rc<RssChannelName>, Vec<RssItem>>>) -> Result<(), CordialError>
+	{
+		let fallbackIso639Dash1Alpha2Language = self.fallbackIso639Dash1Alpha2Language();
+		let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
+		for (iso639Dash1Alpha2Language, rssChannels) in rssChannelsByLanguage.iter()
+		{
+			let languageData = self.languageData(*iso639Dash1Alpha2Language)?;
+			
+			for (rssChannelName, rssItems) in rssChannels.iter()
+			{
+				let rssChannel = self.rss.get(rssChannelName).unwrap();
+				rssChannel.renderRssChannel(fallbackIso639Dash1Alpha2Language, &languageData, handlebars, self, newResponses, oldResponses, resources, googleAnalytics, rssChannelName, rssItems)?;
+			}
+		}
+		Ok(())
 	}
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderResourcesSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, siteMapWebPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &HandlebarsWrapper, siteMapWebPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
@@ -185,7 +242,7 @@ impl Configuration
 		{
 			let mut robotsConfiguration = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| RobotsTxtConfiguration::default());
 			
-			self.site_map.renderResource(languageData, handlebars, self, newResponses, oldResponses, &mut robotsConfiguration, siteMapWebPages)?;
+			self.site_map.renderSiteMap(languageData, handlebars, self, newResponses, oldResponses, &mut robotsConfiguration, siteMapWebPages)?;
 			
 			robotsConfiguration.addRelativeUrlPathForRobotDirective(languageData);
 			
@@ -196,29 +253,10 @@ impl Configuration
 		
 		for (hostName, robotsTxtConfiguration) in robotsTxtByHostName.iter()
 		{
-			self.robots.renderResource(hostName, robotsTxtConfiguration, primaryHostName, handlebars, self, newResponses, oldResponses)?;
+			self.robots.renderRobotsTxt(hostName, robotsTxtConfiguration, primaryHostName, handlebars, self, newResponses, oldResponses)?;
 		}
 		
 		Ok(())
-	}
-	
-	#[inline(always)]
-	fn renderRssFeeds(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &mut Handlebars, rssItems: &HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>, resources: &Resources) -> Result<(), CordialError>
-	{
-		if let Some(rss) = self.rss.as_ref()
-		{
-			let primaryIso639Dash1Alpha2Language = self.primaryIso639Dash1Alpha2Language();
-			
-			self.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
-			{
-				let googleAnalytics = self.google_analytics.as_ref().map(|value| value.as_str());
-				rss.renderResource(languageData, handlebars, self, newResponses, oldResponses, rssItems, primaryIso639Dash1Alpha2Language, resources, googleAnalytics)
-			})
-		}
-		else
-		{
-			Ok(())
-		}
 	}
 	
 	#[inline(always)]
@@ -371,6 +409,12 @@ impl Configuration
 		{
 			errors.push(format!("{:?} is unknown (?Solaris Door?)", path));
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn languageData<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<LanguageData<'a>, CordialError>
+	{
+		self.localization.languageData(iso639Dash1Alpha2Language)
 	}
 	
 	#[inline(always)]

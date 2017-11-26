@@ -14,14 +14,14 @@ pub(crate) struct RssChannel
 	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
-	#[serde(default)] categories: Vec<String>,
+	#[serde(default)] categories: Vec<RssCategoryName>,
 	#[serde(default = "RssChannel::feedly_default")] feedly: Option<RssFeedlyChannel>,
 }
 
 impl RssChannel
 {
 	#[inline(always)]
-	pub fn renderResource<'a, 'b: 'a, 'c>(&'c self, languageData: &LanguageData, handlebars: &mut Handlebars, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, rssItems: &HashMap<Iso639Dash1Alpha2Language, Vec<RssItem>>, primaryIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
+	pub fn renderRssChannel<'a, 'b: 'a, 'c>(&'c self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>, rssChannelName: &Rc<RssChannelName>, rssItems: &Vec<RssItem>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -38,7 +38,7 @@ impl RssChannel
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}
 		
-		let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, primaryIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 		let imageUrl = urlData.url_str();
 		let imageAbstract = resource.imageMetaData()?.imageAbstract(iso639Dash1Alpha2Language)?;
 		let image_alt = imageAbstract.alt.as_str();
@@ -58,8 +58,7 @@ impl RssChannel
 				minutesRoundedDown
 			}
 		};
-		let unversionedCanonicalUrl = ResourceUrl::rssUrl(iso639Dash1Alpha2Language).url(languageData)?;
-		let rssItems = rssItems.get(&iso639Dash1Alpha2Language).unwrap();
+		let unversionedCanonicalUrl = ResourceUrl::rssUrl(rssChannelName, iso639Dash1Alpha2Language).url(languageData)?;
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
 		
@@ -67,7 +66,7 @@ impl RssChannel
 		
 		for stylesheetLink in self.stylesheets.iter()
 		{
-			let data = stylesheetLink.render(resources, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			let data = stylesheetLink.render(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
@@ -96,7 +95,7 @@ impl RssChannel
 				
 				if let Some(ref feedly) = self.feedly
 				{
-					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, primaryIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
+					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
 				}
 				
 				let attributes =
@@ -146,7 +145,16 @@ impl RssChannel
 			})
 		})?;
 		
-		let headers = generateHeaders(handlebars, &self.headers, Some(languageData), HtmlVariant::Canonical, configuration, true, self.max_age_in_seconds, true, &unversionedCanonicalUrl)?;
+		const CanBeCompressed: bool = true;
+		const CanBeDownloaded: bool = true;
+		let headers = HeaderGenerator
+		{
+			handlebars,
+			headerTemplates: &self.headers,
+			ifLanguageAwareLanguageData: Some(languageData),
+			configuration,
+		}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &unversionedCanonicalUrl)?;
+		
 		let mut bodyUncompressed = eventWriter.into_inner();
 		bodyUncompressed.shrink_to_fit();
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;

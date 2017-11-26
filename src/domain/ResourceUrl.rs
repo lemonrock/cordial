@@ -69,17 +69,23 @@ impl Serialize for ResourceUrl
 impl ResourceUrl
 {
 	#[inline(always)]
-	pub(crate) fn resource<'resources>(&self, resources: &'resources Resources) ->  Option<&'resources RefCell<Resource>>
+	pub(crate) fn resource<'resources>(&self, resources: &'resources Resources) -> Option<&'resources RefCell<Resource>>
 	{
 		resources.get(self)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn resourceMandatory<'resources>(&self, resources: &'resources Resources) ->  Result<Ref<'resources, Resource>, CordialError>
+	pub(crate) fn resourceMandatory<'resources>(&self, resources: &'resources Resources) -> Result<Ref<'resources, Resource>, CordialError>
 	{
 		let resourceRefCell = self.resource(resources).ok_or_else(|| CordialError::Configuration(format!("Could not obtain resource '{:?}'", self)))?;
 		let borrowedResource = resourceRefCell.try_borrow()?;
 		Ok(borrowedResource)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateResourceExists<'resources>(&self, resources: &'resources Resources) -> Result<(), CordialError>
+	{
+		self.resourceMandatory(resources).map(|_| ())
 	}
 	
 	#[inline(always)]
@@ -89,21 +95,21 @@ impl ResourceUrl
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Self
+	pub(crate) fn rssUrl(rssChannelName: &Rc<RssChannelName>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Self
 	{
-		Self::string(format!("{}.rss.xml", iso639Dash1Alpha2Language))
+		Self::string(format!("{}.{}.rss", rssChannelName, iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]
 	pub(crate) fn siteMapUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, index: usize) -> Self
 	{
-		Self::string(format!("{}.sitemap.{}.xml", index, iso639Dash1Alpha2Language))
+		Self::string(format!("{}.{}.sitemap.xml", index, iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]
 	pub(crate) fn siteMapIndexUrl(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, index: usize) -> Self
 	{
-		Self::string(format!("{}.sitemap-index.{}.xml", index, iso639Dash1Alpha2Language))
+		Self::string(format!("{}.{}.sitemap-index.xml", index, iso639Dash1Alpha2Language))
 	}
 	
 	#[inline(always)]
@@ -137,6 +143,15 @@ impl ResourceUrl
 		}
 		
 		primaryUrl(resourceRelativeUrlWithoutFileNameExtension, fileExtension).url(languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn leafUrl(&self) -> Self
+	{
+		let mut leafPath = String::with_capacity(&self.0.len() + 1);
+		leafPath.push_str(&self.0);
+		leafPath.push('/');
+		Self::string(leafPath)
 	}
 	
 	#[inline(always)]
@@ -189,25 +204,17 @@ impl ResourceUrl
 		}
 	}
 	
+	
 	#[inline(always)]
-	pub(crate) fn leafUrl(&self) -> Self
+	fn _leaf_url(&self, languageData: &LanguageData, isForAmp: bool) -> Result<Url, CordialError>
 	{
-		let mut leafPath = String::with_capacity(&self.0.len() + 1);
-		leafPath.push_str(&self.0);
-		leafPath.push('/');
-		Self::string(leafPath)
+		self.leafUrl()._url(languageData, isForAmp)
 	}
 	
 	#[inline(always)]
-	fn _leaf_url(&self, languageData: &LanguageData, is_for_amp: bool) -> Result<Url, CordialError>
+	fn _url(&self, languageData: &LanguageData, isForAmp: bool) -> Result<Url, CordialError>
 	{
-		self.leafUrl()._url(languageData, is_for_amp)
-	}
-	
-	#[inline(always)]
-	fn _url(&self, languageData: &LanguageData, is_for_amp: bool) -> Result<Url, CordialError>
-	{
-		self.toUrl(languageData.baseUrl(is_for_amp)?)
+		self.toUrl(languageData.baseUrl(isForAmp)?)
 	}
 	
 	#[inline(always)]

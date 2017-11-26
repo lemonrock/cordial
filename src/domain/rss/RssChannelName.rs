@@ -2,10 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct Abstract
-{
-	pub(crate) title: Rc<String>,
-	pub(crate) description: Rc<String>,
-}
+pub(crate) type RssChannelName = String;

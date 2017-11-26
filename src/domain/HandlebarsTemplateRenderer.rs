@@ -2,12 +2,19 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::ResourceTag::*;
-use webserver::headers::commonCacheControlHeader;
+pub struct HandlebarsTemplateRenderer<'b>(&'b mut Handlebars);
 
-
-include!("HtmlAbstract.rs");
-include!("HtmlDocumentData.rs");
-include!("HtmlOutputFormat.rs");
-include!("HtmlUrls.rs");
+impl<'b> HandlebarsTemplateRenderer<'b>
+{
+	#[inline(always)]
+	pub(crate) fn render<T: Serialize>(&self, name: &str, data: &T) -> Result<String, CordialError>
+	{
+		Ok(self.0.render(name, data)?)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn template_render<T: Serialize>(&self, template_string: &str, data: &T) -> Result<String, CordialError>
+	{
+		Ok(self.0.template_render(template_string, data)?)
+	}
+}

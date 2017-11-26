@@ -2,19 +2,6 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum HtmlVariant
-{
-	Canonical,
-	AMP,
-	PJAX,
-}
-
-impl Default for HtmlVariant
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		HtmlVariant::Canonical
-	}
-}
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) struct UrlSerde(#[serde(with = "url_serde")] pub(crate) Url);

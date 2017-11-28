@@ -60,6 +60,11 @@ impl NodesForOtherPlacesInHtml
 			startHeadNodes.push(meta_with_name_and_content("keywords", keywordsConcatenatedForBaidu.as_str()))
 		}
 		
+		if let Some(themeCssColor) = htmlDocumentData.themeCssColor()
+		{
+			startHeadNodes.push(meta_with_name_and_content("theme-color", themeCssColor.as_str()))
+		}
+		
 		if isForAmp
 		{
 			startHeadNodes.push

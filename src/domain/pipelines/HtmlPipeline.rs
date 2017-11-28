@@ -36,6 +36,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] license: Option<ResourceUrl>,
 	#[serde(default)] open_graph: Rc<FacebookOpenGraph>,
 	#[serde(default)] twitter_card: Rc<TwitterCard>,
+	#[serde(default)] theme_css_color: Option<Rc<String>>,
 }
 
 impl Default for HtmlPipeline
@@ -70,6 +71,7 @@ impl Default for HtmlPipeline
 			license: None,
 			open_graph: Default::default(),
 			twitter_card: Default::default(),
+			theme_css_color: None,
 		}
 	}
 }
@@ -177,6 +179,7 @@ impl Pipeline for HtmlPipeline
 			},
 			facebookOpenGraph: self.open_graph.clone(),
 			twitterCard: self.twitter_card.clone(),
+			themeCssColor: self.theme_css_color.clone(),
 		};
 		
 		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;

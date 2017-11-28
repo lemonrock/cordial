@@ -20,6 +20,7 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) htmlUrls: HtmlUrls<'a>,
 	pub(crate) facebookOpenGraph: Rc<FacebookOpenGraph>,
 	pub(crate) twitterCard: Rc<TwitterCard>,
+	pub(crate) themeCssColor: Option<Rc<String>>,
 }
 
 impl<'a> HtmlDocumentData<'a>
@@ -91,6 +92,12 @@ impl<'a> HtmlDocumentData<'a>
 		}
 		
 		Some(concatenatedKeywords)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn themeCssColor(&self) -> Option<&Rc<String>>
+	{
+		self.themeCssColor.as_ref()
 	}
 	
 	#[inline(always)]

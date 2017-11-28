@@ -144,19 +144,19 @@ impl FacebookOpenGraphType
 		
 		match *self
 		{
-			music_album { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::music_album),
-			music_song { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::music_song),
-			music_playlist { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::music_playlist),
-			music_radio_station { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::music_radio_station),
-			video_movie { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::video_movie),
-			video_episode { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::video_episode),
-			video_tv_show { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::video_tv_show),
-			video_other { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::video_other),
-			article { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::article),
-			book { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::book),
-			profile { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::profile),
-			website => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::website),
-			business { .. } => matches!(facebookOpenGraphTypeDiscriminant, FacebookOpenGraphTypeDiscriminant::business),
+			music_album { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::music_album,
+			music_song { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::music_song,
+			music_playlist { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::music_playlist,
+			music_radio_station { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::music_radio_station,
+			video_movie { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::video_movie,
+			video_episode { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::video_episode,
+			video_tv_show { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::video_tv_show,
+			video_other { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::video_other,
+			article { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::article,
+			book { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::book,
+			profile { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::profile,
+			website => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::website,
+			business { .. } => facebookOpenGraphTypeDiscriminant == FacebookOpenGraphTypeDiscriminant::business,
 		}
 	}
 	
@@ -329,7 +329,7 @@ impl FacebookOpenGraphType
 					endHeadNodes.push(meta_with_property_and_content("article:publisher", url.as_str()));
 				}
 				
-				let translatedSection = languageData.facebookOpenGraphArticleTagTranslation(section);
+				let translatedSection = languageData.facebookOpenGraphArticleSectionTranslation(section);
 				endHeadNodes.push(meta_with_property_and_content("article:section", translatedSection));
 				
 				for tag in tags.iter()

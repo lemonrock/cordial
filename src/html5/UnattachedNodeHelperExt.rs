@@ -53,6 +53,9 @@ pub(crate) trait UnattachedNodeHelperExt
 	fn with_id_attribute(&self, id: &str) -> UnattachedNode;
 	
 	#[inline(always)]
+	fn with_rel_attribute(&self, rel: &str) -> UnattachedNode;
+	
+	#[inline(always)]
 	fn with_charset_attribute(&self, charset: &str) -> UnattachedNode;
 	
 	#[inline(always)]
@@ -131,6 +134,12 @@ impl UnattachedNodeHelperExt for str
 	fn with_id_attribute(&self, id: &str) -> UnattachedNode
 	{
 		self.local_name().with_attributes(vec!["id".str_attribute(id)])
+	}
+	
+	#[inline(always)]
+	fn with_rel_attribute(&self, rel: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["rel".str_attribute(rel)])
 	}
 	
 	#[inline(always)]

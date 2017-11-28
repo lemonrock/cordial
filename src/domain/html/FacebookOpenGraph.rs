@@ -190,7 +190,7 @@ impl FacebookOpenGraph
 			endHeadNodes.push(meta_with_property_and_content("og:ttl", &format!("{}", ttl_in_seconds)));
 		}
 		
-		self.type_.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData, publicationDate, lastModificationDateOrPublicationDate, expirationDate);
+		self.type_.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData, publicationDate, lastModificationDateOrPublicationDate, expirationDate)?;
 		
 		Ok(())
 	}

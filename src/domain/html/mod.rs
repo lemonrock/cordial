@@ -19,7 +19,7 @@ include!("FacebookOpenGraphContentRestriction.rs");
 include!("FacebookOpenGraphCountryRestriction.rs");
 include!("FacebookOpenGraphDayOfWeek.rs");
 include!("FacebookOpenGraphDeterminer.rs");
-include!("FacebookOpenGraphProductGender.rs");
+//include!("FacebookOpenGraphProductGender.rs");
 include!("FacebookOpenGraphProfileGender.rs");
 include!("FacebookOpenGraphSong.rs");
 include!("FacebookOpenGraphType.rs");

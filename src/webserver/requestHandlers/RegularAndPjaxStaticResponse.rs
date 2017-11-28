@@ -72,19 +72,6 @@ impl RegularAndPjaxStaticResponse
 	}
 	
 	#[inline(always)]
-	fn response(&self) -> &StaticResponse
-	{
-		use self::RegularAndPjaxStaticResponse::*;
-		
-		match *self
-		{
-			Regular { ref response, .. } => response,
-			WithPjax { ref response, .. } => response,
-			Unadorned { ref response, .. } => response,
-		}
-	}
-	
-	#[inline(always)]
 	pub(crate) fn entityTag<'a>(&'a self) -> &'a str
 	{
 		use self::RegularAndPjaxStaticResponse::*;
@@ -97,18 +84,33 @@ impl RegularAndPjaxStaticResponse
 		}
 	}
 	
-	#[inline(always)]
-	fn contentMimeType<'a>(&'a self) -> &'a Mime
-	{
-		&self.response().contentType.0
-	}
-	
-	#[inline(always)]
-	pub(crate) fn toDataUri(&self) -> Url
-	{
-		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.response().uncompressedBody, STANDARD));
-		Url::parse(&dataUriString).unwrap()
-	}
+//	#[inline(always)]
+//	fn response(&self) -> &StaticResponse
+//	{
+//		use self::RegularAndPjaxStaticResponse::*;
+//
+//		match *self
+//		{
+//			Regular { ref response, .. } => response,
+//			WithPjax { ref response, .. } => response,
+//			Unadorned { ref response, .. } => response,
+//		}
+//	}
+//
+//	#[inline(always)]
+//	fn contentMimeType<'a>(&'a self) -> &'a Mime
+//	{
+//		&self.response().contentType.0
+//	}
+//
+//	#[inline(always)]
+//	pub(crate) fn toDataUri(&self) -> Url
+//	{
+//		use ::base64::encode_config as base64Encode;
+//		use ::base64::STANDARD;
+//		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.response().uncompressedBody, STANDARD));
+//		Url::parse(&dataUriString).unwrap()
+//	}
 	
 	#[inline(always)]
 	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredEncoding, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response

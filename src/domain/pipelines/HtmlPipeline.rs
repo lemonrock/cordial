@@ -176,6 +176,7 @@ impl Pipeline for HtmlPipeline
 				license: self.license.clone(),
 			},
 			facebookOpenGraph: self.open_graph.clone(),
+			twitterCard: self.twitter_card.clone(),
 		};
 		
 		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;

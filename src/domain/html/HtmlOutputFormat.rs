@@ -62,24 +62,24 @@ impl HtmlOutputFormat
 			html_only { ref html_template, ref pjax_css_selector } =>
 			{
 				Self::redirectToDocument(redirectToCanonicalUrl, &canonicalUrl, &mut result)?;
-				Self::regularHtmlDocument(resources, canonicalUrl, pjax_css_selector,  html_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result)?;
+				Self::regularHtmlDocument(resources, canonicalUrl, pjax_css_selector,  html_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result, false, false)?;
 			}
 			
 			html_and_amp { ref html_template, ref pjax_css_selector, ref amp_template } =>
 			{
 				Self::redirectToDocument(redirectToCanonicalUrl, &canonicalUrl, &mut result)?;
-				Self::regularHtmlDocument(resources, canonicalUrl, pjax_css_selector, html_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result)?;
+				Self::regularHtmlDocument(resources, canonicalUrl, pjax_css_selector, html_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result, true, false)?;
 				
 				let redirectToAmpUrl = htmlUrls.ampRedirectUrl()?;
 				let ampUrl = htmlUrls.ampUrl()?;
 				Self::redirectToDocument(redirectToAmpUrl, &ampUrl, &mut result)?;
-				Self::ampDocument(resources, ampUrl, false, amp_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result)?;
+				Self::ampDocument(resources, ampUrl, false, amp_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result, false)?;
 			}
 			
 			amp_only { ref amp_template } =>
 			{
 				Self::redirectToDocument(redirectToCanonicalUrl, &canonicalUrl, &mut result)?;
-				Self::ampDocument(resources, canonicalUrl, true, amp_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result)?;
+				Self::ampDocument(resources, canonicalUrl, true, amp_template.as_str(), htmlDocumentData, headerGenerator, maximumAge, inputContentFilePath, handlebars, &mut result, true)?;
 			}
 		}
 		
@@ -134,11 +134,11 @@ impl HtmlOutputFormat
 	}
 	
 	#[inline(always)]
-	fn regularHtmlDocument(resources: &Resources, htmlUrl: Url, pjaxCssSelector: &Option<String>, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn regularHtmlDocument(resources: &Resources, htmlUrl: Url, pjaxCssSelector: &Option<String>, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
 	{
 		// Canonical HTML document
 		let htmlHeaders = headerGenerator.generateHeaders(Self::IsNotPjax, Self::CanBeCompressed, maximumAge, Self::IsNotDownloadable, &htmlUrl)?;
-		let (htmlDocument, htmlBody) = htmlDocumentData.renderHtmlDocument(resources, pjaxCssSelector.is_some(), inputContentFilePath, Self::IsNotAmp, handlebars, template)?;
+		let (htmlDocument, htmlBody) = htmlDocumentData.renderHtmlDocument(resources, pjaxCssSelector.is_some(), inputContentFilePath, Self::IsNotAmp, addAmpLink, ampLinkIsCanonical, handlebars, template)?;
 		
 		// PJAX variant of HTML document
 		let pjax = if let &Some(ref pjaxCssSelector) = pjaxCssSelector
@@ -160,11 +160,11 @@ impl HtmlOutputFormat
 	}
 	
 	#[inline(always)]
-	fn ampDocument(resources: &Resources, ampUrl: Url, isAlsoCanonical: bool, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn ampDocument(resources: &Resources, ampUrl: Url, isAlsoCanonical: bool, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>, ampLinkIsCanonical: bool) -> Result<(), CordialError>
 	{
 		// Canonical HTML document
 		let htmlHeaders = headerGenerator.generateHeaders(Self::IsNotPjax, Self::CanBeCompressed, maximumAge, Self::IsNotDownloadable, &ampUrl)?;
-		let (_htmlDocument, htmlBody) = htmlDocumentData.renderHtmlDocument(resources, false, inputContentFilePath, Self::IsAmp, handlebars, template)?;
+		let (_htmlDocument, htmlBody) = htmlDocumentData.renderHtmlDocument(resources, false, inputContentFilePath, Self::IsAmp, Self::IsAmp, ampLinkIsCanonical, handlebars, template)?;
 		
 		// PJAX variant of HTML document
 		let pjax = None;

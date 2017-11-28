@@ -24,6 +24,73 @@ pub(crate) struct HtmlUrls<'a>
 
 impl<'a> HtmlUrls<'a>
 {
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn addLinkNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
+	{
+		endHeadNodes.push("link".with_rel_attribute("canonical").with_href_attribute(self.linkHeaderCanonicalUrl()?.as_ref()));
+		
+		if addAmpLink
+		{
+			let url = if ampLinkIsCanonical
+			{
+				self.htmlUrl()?
+			}
+			else
+			{
+				self.ampUrl()?
+			};
+			endHeadNodes.push("link".with_rel_attribute("amphtml").with_href_attribute(url.as_ref()));
+		}
+		
+		for (iso639Dash1Alpha2Language, url) in self.linkHeaderAlternativeLanguageUrlsIncludingSelf()?.iter()
+		{
+			endHeadNodes.push("link".with_rel_attribute("alternate").with_attribute("hreflang".str_attribute(iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code())).with_href_attribute(url.as_ref()));
+		}
+		
+		for rssUrl in self.linkHeaderRssUrls()?.iter()
+		{
+			endHeadNodes.push("link".with_rel_attribute("alternate").with_attribute("type".str_attribute("application/rss+xml")).with_href_attribute(rssUrl.as_ref()));
+		}
+		
+		if let Some(ref canonicalShortLink) = self.canonicalShortlink
+		{
+			endHeadNodes.push("link".with_rel_attribute("shortlink").with_href_attribute(canonicalShortLink.0.as_ref()));
+		}
+		
+		if let Some(ref pingback) = self.pingback
+		{
+			endHeadNodes.push("link".with_rel_attribute("pingback").with_href_attribute(pingback.0.as_ref()));
+		}
+		
+		if let Some(ref previous) = self.linkHeaderPreviousUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("prev").with_href_attribute(previous.as_ref()));
+		}
+		
+		if let Some(ref next) = self.linkHeaderNextUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("next").with_href_attribute(next.as_ref()));
+		}
+		
+		if let Some(ref help) = self.linkHeaderHelpUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("help").with_href_attribute(help.as_ref()));
+		}
+		
+		if let Some(ref author) = self.linkHeaderAuthorUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("author").with_href_attribute(author.as_ref()));
+		}
+		
+		if let Some(ref license) = self.linkHeaderLicenseUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("license").with_href_attribute(license.as_ref()));
+		}
+		
+		Ok(())
+	}
+	
 	// rel="canonical"
 	#[inline(always)]
 	pub(crate) fn linkHeaderCanonicalUrl(&self) -> Result<Url, CordialError>
@@ -35,7 +102,7 @@ impl<'a> HtmlUrls<'a>
 	// link rel="alternate" hreflang="ISO 631 CODE"
 	// Also, if there is a home-page that redirects to a particular language (eg based on browser) or there is a language selector page, then it should have hreflang="x-default"
 	#[inline(always)]
-	pub(crate) fn linkHeaderAlternativeLanguageUrlsIncludingSelf(&self) -> Result<BTreeMap<Iso639Dash1Alpha2Language, Url>, CordialError>
+	fn linkHeaderAlternativeLanguageUrlsIncludingSelf(&self) -> Result<BTreeMap<Iso639Dash1Alpha2Language, Url>, CordialError>
 	{
 		let mut urlsByLanguage = BTreeMap::new();
 		self.localization.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
@@ -50,7 +117,7 @@ impl<'a> HtmlUrls<'a>
 	// link rel="alternate" type="application/rss+xml"
 	// First feed in list is considered the default.
 	#[inline(always)]
-	pub(crate) fn linkHeaderRssUrls(&self) -> Result<Vec<Url>, CordialError>
+	fn linkHeaderRssUrls(&self) -> Result<Vec<Url>, CordialError>
 	{
 		let mut urls = Vec::with_capacity(self.rssChannelNames.len());
 		for rssChannelName in self.rssChannelNames.keys()
@@ -61,54 +128,37 @@ impl<'a> HtmlUrls<'a>
 		Ok(urls)
 	}
 	
-	// link rel="shortlink"
-	// The shortlink will always be on an external service. It is canonical for the particular language of this HTML document.
-	#[inline(always)]
-	pub(crate) fn linkHeaderCanonicalShortLinkUrl(&self) -> Option<Rc<UrlSerde>>
-	{
-		self.canonicalShortlink.clone()
-	}
-	
-	// link rel="pingback"
-	// Can also be used in X-Pingback: Header, which takes precedence.
-	// Since we are a static system, the pingback URL may not be under our control. It is canonical for the particular language of this HTML document.
-	#[inline(always)]
-	pub(crate) fn linkHeaderPingbackUrl(&self) -> Option<Rc<UrlSerde>>
-	{
-		self.pingback.clone()
-	}
-	
 	// link rel="prev"
 	#[inline(always)]
-	pub(crate) fn linkHeaderPreviousUrl(&self) -> Result<Option<Url>, CordialError>
+	fn linkHeaderPreviousUrl(&self) -> Result<Option<Url>, CordialError>
 	{
 		self.optionalUrl(&self.previous)
 	}
 	
 	// link rel="next"
 	#[inline(always)]
-	pub(crate) fn linkHeaderNextUrl(&self) -> Result<Option<Url>, CordialError>
+	fn linkHeaderNextUrl(&self) -> Result<Option<Url>, CordialError>
 	{
 		self.optionalUrl(&self.next)
 	}
 	
 	// link rel="help"
 	#[inline(always)]
-	pub(crate) fn linkHeaderHelpUrl(&self) -> Result<Option<Url>, CordialError>
+	fn linkHeaderHelpUrl(&self) -> Result<Option<Url>, CordialError>
 	{
 		self.optionalUrl(&self.help)
 	}
 	
 	// link rel="author"
 	#[inline(always)]
-	pub(crate) fn linkHeaderAuthorUrl(&self) -> Result<Option<Url>, CordialError>
+	fn linkHeaderAuthorUrl(&self) -> Result<Option<Url>, CordialError>
 	{
 		self.optionalUrl(&self.author)
 	}
 	
 	// link rel="license"
 	#[inline(always)]
-	pub(crate) fn linkHeaderLicenseUrl(&self) -> Result<Option<Url>, CordialError>
+	fn linkHeaderLicenseUrl(&self) -> Result<Option<Url>, CordialError>
 	{
 		self.optionalUrl(&self.license)
 	}

@@ -5,6 +5,7 @@
 pub(crate) struct ImageSourceSet<'a>
 {
 	inputContentFilePath: &'a Path,
+	imageInputFormat: Option<ImageInputFormat>,
 	resourceRelativeUrlWithoutFileNameExtension: &'a str,
 	jpegQuality: Option<u8>,
 	jpegSpeedOverCompression: bool,
@@ -17,7 +18,7 @@ pub(crate) struct ImageSourceSet<'a>
 impl<'a> ImageSourceSet<'a>
 {
 	#[inline(always)]
-	pub(crate) fn new(inputContentFilePath: &'a Path, resourceUrl: &'a ResourceUrl, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
+	pub(crate) fn new(inputContentFilePath: &'a Path, imageInputFormat: Option<ImageInputFormat>, resourceUrl: &'a ResourceUrl, jpegQuality: Option<u8>, jpegSpeedOverCompression: bool, primaryImage: ::image::DynamicImage, languageData: &'a LanguageData) -> Self
 	{
 		let resourceRelativeUrlWithoutFileNameExtension = resourceUrl.withoutFileNameExtension();
 		
@@ -30,25 +31,76 @@ impl<'a> ImageSourceSet<'a>
 		Self
 		{
 			inputContentFilePath,
+			imageInputFormat,
 			resourceRelativeUrlWithoutFileNameExtension,
 			jpegQuality,
 			jpegSpeedOverCompression,
 			primaryImageWidth,
 			primaryImageHeight,
 			imagesInOrder,
-			languageData
+			languageData,
+		}
+	}
+	
+	#[inline(always)]
+	fn overrideFilePath(&self, imageSourceSetEntry: &ImageSourceSetEntry, primaryImageDimensions: (u32, u32)) -> Result<Option<::image::DynamicImage>, CordialError>
+	{
+		let (width, height) = imageSourceSetEntry.computeCroppedAndResizedImageDimensions(primaryImageDimensions)?;
+		let fileStem = self.inputContentFilePath.file_stem().unwrap();
+		let extension = self.inputContentFilePath.extension().unwrap();
+		
+		let mut fileName = fileStem.to_os_string();
+		fileName.push(&format!("-{}w-{}h.", width, height));
+		fileName.push(extension);
+		let overrideFilePath = self.inputContentFilePath.with_file_name(fileName);
+		
+		if overrideFilePath.is_file()
+		{
+			match ImageInputFormat::load(self.imageInputFormat, &overrideFilePath)
+			{
+				None => Ok(None),
+				Some(result) =>
+				{
+					let image = result?;
+					Ok(Some(image))
+				}
+			}
+		}
+		else
+		{
+			Ok(None)
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn add(&mut self, imageSourceSetEntries: &[ImageSourceSetEntry]) -> Result<(), CordialError>
 	{
+		let primaryImageDimensions = self.primaryImage().dimensions();
+		
 		for imageSourceSetEntry in imageSourceSetEntries.iter()
 		{
-			let (width, image) = imageSourceSetEntry.cropAndResize(self.primaryImage())?;
+			let (width, image) = match self.overrideFilePath(imageSourceSetEntry, primaryImageDimensions)?
+			{
+				Some(overrideImage) => (overrideImage.width(), overrideImage),
+				None => imageSourceSetEntry.cropAndResize(self.primaryImage())?,
+			};
+			
 			self.imagesInOrder.insert(width, image);
 		}
 		Ok(())
+	}
+	
+	#[inline(always)]
+	fn contentTypeAndFileExtension(&self) -> (ContentType, &'static str)
+	{
+		if self.jpegQuality.is_some()
+		{
+			(ContentType::jpeg(), ".jpg")
+		}
+		else
+		{
+			(ContentType::png(), ".png")
+		}
 	}
 	
 	#[inline(always)]
@@ -68,14 +120,7 @@ impl<'a> ImageSourceSet<'a>
 	#[inline(always)]
 	pub(crate) fn processedImageSourceSet(&self, imageSourceSet: &mut Vec<(Url, u32)>) -> Result<(), CordialError>
 	{
-		let fileExtension = if self.jpegQuality.is_some()
-		{
-			".jpg"
-		}
-		else
-		{
-			".png"
-		};
+		let (_, fileExtension) = self.contentTypeAndFileExtension();
 		
 		imageSourceSet.reserve_exact(self.imagesInOrder.len());
 		
@@ -99,14 +144,7 @@ impl<'a> ImageSourceSet<'a>
 	#[inline(always)]
 	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<PipelineResource>, CordialError>
 	{
-		let (contentType, fileExtension) = if self.jpegQuality.is_some()
-		{
-			(ContentType::jpeg(), ".jpg")
-		}
-		else
-		{
-			(ContentType::png(), ".png")
-		};
+		let (contentType, fileExtension) = self.contentTypeAndFileExtension();
 		
 		let mut urls = Vec::with_capacity(self.imagesInOrder.len());
 		let mut index = 0;

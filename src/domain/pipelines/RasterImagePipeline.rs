@@ -101,14 +101,11 @@ impl Pipeline for RasterImagePipeline
 		// load original
 		let mut imageBeforeTransformation = match ImageInputFormat::load(self.input_format, inputContentFilePath)
 		{
-			Some(result) =>
+			Some(result) => match result
 			{
-				match result
-				{
-					Err(error) => return Err(error),
-					Ok(image) => image,
-				}
-			},
+				Err(error) => return Err(error),
+				Ok(image) => image,
+			}
 			None => panic!("Should not be possible"),
 		};
 
@@ -123,7 +120,7 @@ impl Pipeline for RasterImagePipeline
 		};
 
 		// generate image src set
-		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, &resourceUrl, self.jpeg_quality, self.jpeg_speed_over_compression, imageAfterTransformation, languageData);
+		let mut imageSourceSet = ImageSourceSet::new(inputContentFilePath, self.input_format, &resourceUrl, self.jpeg_quality, self.jpeg_speed_over_compression, imageAfterTransformation, languageData);
 		imageSourceSet.add(&self.source_set_excluding_original)?;
 
 		self.primaryImageDimensions.set(imageSourceSet.primaryImageDimensions());

@@ -16,9 +16,9 @@ impl ImageSourceSetEntry
 	#[inline(always)]
 	pub(crate) fn cropAndResize(&self, image: &mut ::image::DynamicImage) -> Result<(u32, ::image::DynamicImage), CordialError>
 	{
-		if let Some(crop) = self.crop
+		if let Some(ref imageCrop) = self.crop
 		{
-			self.resizeExact(&crop.crop(image))
+			self.resizeExact(&imageCrop.crop(image))
 		}
 		else
 		{
@@ -38,5 +38,20 @@ impl ImageSourceSetEntry
 		let resizedImage = image.resize_exact(newWidth, newHeight, filter);
 		
 		Ok((newWidth, resizedImage))
+	}
+	
+	#[inline(always)]
+	fn computeCroppedAndResizedImageDimensions(&self, dimensions: (u32, u32)) -> Result<(u32, u32), CordialError>
+	{
+		let afterCropDimensions = if let Some(ref imageCrop) = self.crop
+		{
+			imageCrop.dimensionsAfterCrop(dimensions)
+		}
+		else
+		{
+			dimensions
+		};
+		
+		self.scale.scale(afterCropDimensions)
 	}
 }

@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone)]
+#[derive(Deserialize, Debug, Clone)]
 pub(crate) struct ImageCrop
 {
 	x: u32,
@@ -17,6 +17,48 @@ impl ImageCrop
 	#[inline(always)]
 	fn crop(&self, image: &mut ::image::DynamicImage) -> ::image::DynamicImage
 	{
-		image.crop(self.x, self.y, self.width,self.height)
+		image.crop(self.x, self.y, self.width, self.height)
+	}
+	
+	#[inline(always)]
+	fn dimensionsAfterCrop(&self, dimensions: (u32, u32)) -> (u32, u32)
+	{
+		let (beforeWidth, beforeHeight) = dimensions;
+		
+		let afterWidth = if self.x >= beforeWidth
+		{
+			0
+		}
+		else
+		{
+			let maximumAfterWidth = beforeWidth - self.x;
+			if self.width >= maximumAfterWidth
+			{
+				maximumAfterWidth
+			}
+			else
+			{
+				self.width
+			}
+		};
+		
+		let afterHeight = if self.y >= beforeHeight
+		{
+			0
+		}
+		else
+		{
+			let maximumAfterHeight = beforeHeight - self.x;
+			if self.height >= maximumAfterHeight
+			{
+				maximumAfterHeight
+			}
+			else
+			{
+				self.height
+			}
+		};
+		
+		(afterWidth, afterHeight)
 	}
 }

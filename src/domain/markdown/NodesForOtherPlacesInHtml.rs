@@ -23,6 +23,8 @@ impl NodesForOtherPlacesInHtml
 	pub(crate) fn new
 	(
 		isForAmp: bool,
+		addAmpLink: bool,
+		ampLinkIsCanonical: bool,
 		pjaxIsSupported: bool,
 		configuration: &Configuration,
 		htmlDocumentData: &HtmlDocumentData,
@@ -95,7 +97,9 @@ impl NodesForOtherPlacesInHtml
 		{
 			endHeadNodes.push(meta_with_http_equiv_and_content("X-PJAX-Version", &configuration.deploymentVersion));
 		}
+		htmlDocumentData.addLinkNodes(&mut endHeadNodes, addAmpLink, ampLinkIsCanonical)?;
 		htmlDocumentData.addFacebookOpenGraphHtmlNodes(&mut endHeadNodes, resources)?;
+		htmlDocumentData.addTwitterCardHtmlNodes(&mut endHeadNodes, resources)?;
 		
 		Ok
 		(

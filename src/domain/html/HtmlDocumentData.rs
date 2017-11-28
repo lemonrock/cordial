@@ -19,6 +19,7 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) configuration: &'a Configuration,
 	pub(crate) htmlUrls: HtmlUrls<'a>,
 	pub(crate) facebookOpenGraph: Rc<FacebookOpenGraph>,
+	pub(crate) twitterCard: Rc<TwitterCard>,
 }
 
 impl<'a> HtmlDocumentData<'a>
@@ -27,6 +28,18 @@ impl<'a> HtmlDocumentData<'a>
 	pub(crate) fn addFacebookOpenGraphHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
 	{
 		self.facebookOpenGraph.facebookOpenGraph(endHeadNodes, self.title(), self.description(), &self.htmlUrls.linkHeaderCanonicalUrl()?, self.publicationDate, self.lastModificationDateOrPublicationDate, self.expirationDate, self.configuration, resources, &self.articleImage, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn addTwitterCardHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	{
+		self.twitterCard.addTo(endHeadNodes, &self.articleImage, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn addLinkNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
+	{
+		self.htmlUrls.addLinkNodes(endHeadNodes, addAmpLink, ampLinkIsCanonical)
 	}
 	
 	#[inline(always)]
@@ -99,7 +112,7 @@ impl<'a> HtmlDocumentData<'a>
 				Some(mut rssItems) =>
 				{
 					const IsNotForAmp: bool = false;
-					let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, handlebars, rssChannelName)?;
+					let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, IsNotForAmp, IsNotForAmp, handlebars, rssChannelName)?;
 					rssItems.push
 					(
 						RssItem
@@ -179,7 +192,7 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn renderHtmlDocument(&self, resources: &Resources, pjaxIsSupported: bool, inputContentFilePath: &Path, isForAmp: bool, handlebars: &HandlebarsWrapper, handlebarsTemplate: &str) -> Result<(RcDom, Vec<u8>), CordialError>
+	pub(crate) fn renderHtmlDocument(&self, resources: &Resources, pjaxIsSupported: bool, inputContentFilePath: &Path, isForAmp: bool, addAmpLink: bool, ampLinkIsCanonical: bool, handlebars: &HandlebarsWrapper, handlebarsTemplate: &str) -> Result<(RcDom, Vec<u8>), CordialError>
 	{
 		/*
 			nodesForHtmlHead is where we can push in a lot of extra stuff
@@ -232,7 +245,7 @@ impl<'a> HtmlDocumentData<'a>
 		
 		*/
 		
-		let mut nodesForHtmlHead = NodesForOtherPlacesInHtml::new(isForAmp, pjaxIsSupported, self.configuration, self, resources)?;
+		let mut nodesForHtmlHead = NodesForOtherPlacesInHtml::new(isForAmp, addAmpLink, ampLinkIsCanonical, pjaxIsSupported, self.configuration, self, resources)?;
 		
 		
 		

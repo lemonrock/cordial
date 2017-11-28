@@ -3,7 +3,7 @@
 
 
 #[derive(Debug)]
-pub struct ImageMarkdownPluginData<'a>
+pub(crate) struct ImageMarkdownPluginData<'a>
 {
 	markdownPluginData: &'a MarkdownPluginData<'a>,
 	imageResource: Ref<'a, Resource>,

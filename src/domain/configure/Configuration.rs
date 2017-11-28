@@ -72,6 +72,18 @@ impl Configuration
 	}
 	
 	#[inline(always)]
+	pub(crate) fn facebookOpenGraphLocaleStr(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&str, CordialError>
+	{
+		self.localization.facebookOpenGraphLocaleStr(iso639Dash1Alpha2Language)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn otherLanguages(&self, excludeIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> HashMap<Iso639Dash1Alpha2Language, Language>
+	{
+		self.localization.otherLanguages(excludeIso639Dash1Alpha2Language)
+	}
+	
+	#[inline(always)]
 	pub(crate) fn fallbackIso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
 	{
 		self.localization.fallbackIso639Dash1Alpha2Language()

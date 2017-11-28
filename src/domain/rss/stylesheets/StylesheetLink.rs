@@ -6,7 +6,7 @@
 // Only seem to be used by Chrome
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct StylesheetLink
+pub(crate) struct StylesheetLink
 {
 	#[serde(default = "StylesheetLink::url_default")] url: ResourceReference,
 	#[serde(default = "StylesheetLink::media_default")] media: Option<String>,

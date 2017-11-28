@@ -60,9 +60,15 @@ impl Localization
 	}
 	
 	#[inline(always)]
-	pub(crate) fn otherLanguages(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> HashMap<Iso639Dash1Alpha2Language, Language>
+	pub(crate) fn facebookOpenGraphLocaleStr(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&str, CordialError>
 	{
-		self.languages.iter().filter(|&(code, _)| code != &iso639Dash1Alpha2Language).map(|(code, language)| (code.to_owned(), language.clone())).collect()
+		Ok(self.language(iso639Dash1Alpha2Language)?.facebookOpenGraphLocaleStr())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn otherLanguages(&self, excludeIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> HashMap<Iso639Dash1Alpha2Language, Language>
+	{
+		self.languages.iter().filter(|&(code, _)| code != &excludeIso639Dash1Alpha2Language).map(|(code, language)| (code.to_owned(), language.clone())).collect()
 	}
 	
 	#[inline(always)]

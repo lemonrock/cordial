@@ -25,4 +25,34 @@ impl<'a> LanguageData<'a>
 	{
 		self.language.baseUrl(self.iso639Dash1Alpha2Language, isForAmp)
 	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphVideoActorRoleTranslation<'aa: 'b, 'b>(&'aa self, role: &'b str) -> &'b str
+	{
+		self.language.facebookOpenGraphVideoActorRoleTranslation(role)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphVideoTagTranslation<'aa: 'b, 'b>(&'aa self, tag: &'b str) -> &'b str
+	{
+		self.language.facebookOpenGraphVideoTagTranslation(tag)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphArticleTagTranslation<'aa: 'b, 'b>(&'aa self, tag: &'b str) -> &'b str
+	{
+		self.language.facebookOpenGraphArticleTagTranslation(tag)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphArticleSectionTranslation<'aa: 'b, 'b>(&'aa self, section: &'b str) -> &'b str
+	{
+		self.language.facebookOpenGraphArticleSectionTranslation(section)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphBookTagTranslation<'aa: 'b, 'b>(&'aa self, tag: &'b str) -> &'b str
+	{
+		self.language.facebookOpenGraphBookTagTranslation(tag)
+	}
 }

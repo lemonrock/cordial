@@ -17,7 +17,6 @@ include!("HtmlPipeline.rs");
 include!("is_downloadable_false_default.rs");
 include!("is_versioned_true_default.rs");
 include!("max_age_in_seconds_long_default.rs");
-include!("mimeType.rs");
 include!("Pipeline.rs");
 include!("PipelineResource.rs");
 include!("RasterImagePipeline.rs");

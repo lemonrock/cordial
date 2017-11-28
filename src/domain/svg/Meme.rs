@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct Meme
+pub(crate) struct Meme
 {
 	#[serde(default = "Meme::text_width_default")] text_width: f32,
 	#[serde(default = "Meme::text_height_default")] text_height: f32,

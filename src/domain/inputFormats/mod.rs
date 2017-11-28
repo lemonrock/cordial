@@ -4,7 +4,6 @@
 
 use super::*;
 use super::markdown::MarkdownBlockPlugin;
-use super::pipelines::mimeType;
 use super::svg::Barcode;
 use super::svg::Meme;
 use super::svg::MonArtist;

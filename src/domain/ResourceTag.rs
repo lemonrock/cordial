@@ -21,6 +21,8 @@ pub(crate) enum ResourceTag
 	redirect,
 	amp,
 	amp_redirect,
+
+	audio_preview,
 }
 
 impl Default for ResourceTag

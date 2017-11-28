@@ -33,7 +33,7 @@ impl RssChannel
 		
 		let description = &detail.description;
 		const FeedlyDescriptionLength: usize = 140;
-		if description.len() > FeedlyDescriptionLength
+		if description.chars().count() > FeedlyDescriptionLength
 		{
 			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
 		}

@@ -86,7 +86,7 @@ impl Pipeline for CssPipeline
 		};
 		let body = CssInputFormat::toCss(self.input_format, inputContentFilePath, self.precision, configuration, handlebars, self.maximum_release_age_from_can_i_use_database_last_updated_in_weeks, self.minimum_usage_threshold, &self.regional_usages[..])?;
 
-		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, StatusCode::Ok, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
 	}
 }
 

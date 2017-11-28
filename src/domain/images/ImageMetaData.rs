@@ -29,6 +29,8 @@ pub(crate) struct ImageMetaData
 	#[serde(default)] pub(crate) use_cross_origin_credentials: bool,
 	#[serde(default)] pub(crate) referrer_policy: ReferrerPolicy,
 	#[serde(default)] pub(crate) long_description: Option<LongDescription>,
+	
+	#[serde(default)] pub(crate) facebook_open_graph_user_generated: bool,
 }
 
 impl Default for ImageMetaData
@@ -49,6 +51,7 @@ impl Default for ImageMetaData
 			use_cross_origin_credentials: false,
 			referrer_policy: Default::default(),
 			long_description: None,
+			facebook_open_graph_user_generated: false,
 		}
 	}
 }
@@ -77,6 +80,12 @@ impl ImageMetaData
 			},
 			Some(imageAbstract) => Ok(imageAbstract),
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn alt(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(&Rc<String>), CordialError>
+	{
+		Ok(&self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.alt)
 	}
 	
 	#[inline(always)]

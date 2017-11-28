@@ -34,6 +34,8 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] next: Option<ResourceUrl>,
 	#[serde(default)] help: Option<ResourceUrl>,
 	#[serde(default)] license: Option<ResourceUrl>,
+	#[serde(default)] open_graph: Rc<FacebookOpenGraph>,
+	#[serde(default)] twitter_card: Rc<TwitterCard>,
 }
 
 impl Default for HtmlPipeline
@@ -66,6 +68,8 @@ impl Default for HtmlPipeline
 			next: None,
 			help: None,
 			license: None,
+			open_graph: Default::default(),
+			twitter_card: Default::default(),
 		}
 	}
 }
@@ -119,7 +123,6 @@ impl Pipeline for HtmlPipeline
 		let htmlDocumentData = HtmlDocumentData
 		{
 			fallbackIso639Dash1Alpha2Language: configuration.fallbackIso639Dash1Alpha2Language(),
-			iso639Dash1Alpha2Language,
 			
 			markdownParser: MarkdownParser::defaultish(self.header_id_prefix_with_trailing_dash.as_str()),
 			markdown: inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?,
@@ -139,11 +142,7 @@ impl Pipeline for HtmlPipeline
 					Some
 					(
 						(
-							ResourceReference
-							{
-								resource: resourceUrl.clone(),
-								tag: ResourceTag::largest_image,
-							},
+							resourceUrl.clone(),
 							resourceRef.imageMetaData()?.clone(),
 						)
 					)
@@ -176,6 +175,7 @@ impl Pipeline for HtmlPipeline
 				author: self.author.clone(),
 				license: self.license.clone(),
 			},
+			facebookOpenGraph: self.open_graph.clone(),
 		};
 		
 		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;
@@ -183,12 +183,18 @@ impl Pipeline for HtmlPipeline
 		{
 			htmlDocumentData.addToSiteMaps(resources, siteMapWebPages, self.site_map_change_frequency, self.site_map_priority)?;
 		}
-		self.output_format.renderHtmlDocumentsAndRedirects(&htmlDocumentData, headerGenerator, self.max_age_in_seconds, inputContentFilePath, handlebars)
+		self.output_format.renderHtmlDocumentsAndRedirects(resources, &htmlDocumentData, headerGenerator, self.max_age_in_seconds, inputContentFilePath, handlebars)
 	}
 }
 
 impl HtmlPipeline
 {
+	#[inline(always)]
+	pub(crate) fn hasFacebookOpenGraphTypeDiscriminant(&self, facebookOpenGraphTypeDiscriminant: FacebookOpenGraphTypeDiscriminant) -> bool
+	{
+		self.open_graph.hasFacebookOpenGraphTypeDiscriminant(facebookOpenGraphTypeDiscriminant)
+	}
+	
 	#[inline(always)]
 	fn modifications(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<BTreeMap<DateTime<Utc>, Rc<String>>, CordialError>
 	{

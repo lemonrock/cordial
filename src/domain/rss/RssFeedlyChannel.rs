@@ -39,22 +39,25 @@ impl RssFeedlyChannel
 		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 
 		{
-			let url = self.png_cover_image.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			let urlData = self.png_cover_image.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			urlData.validateIsPng()?;
 			let attributes =
 			[
-				XmlAttribute::new(Name::local("image"), url.as_str()),
+				XmlAttribute::new(Name::local("image"), urlData.url_str()),
 			];
 			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
 		}
 
 		{
-			let url = self.svg_icon.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", url.as_str())?;
+			let urlData = self.svg_icon.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			urlData.validateIsSvg()?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.url_str())?;
 		}
 
 		{
-			let url = self.svg_logo.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", url.as_str())?;
+			let urlData = self.svg_logo.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			urlData.validateIsSvg()?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.url_str())?;
 		}
 
 		let accentColor = format!("{:02X}{:02X}{:02X}", self.accent_color[0], self.accent_color[1], self.accent_color[2]);

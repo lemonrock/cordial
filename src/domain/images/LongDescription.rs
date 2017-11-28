@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct LongDescription
+pub(crate) struct LongDescription
 {
 	resource: ResourceReference,
 	// Without leading '#'

@@ -36,6 +36,7 @@ extern crate libc;
 #[macro_use] extern crate quick_error;
 extern crate malloc_buf;
 #[macro_use] extern crate maplit;
+#[macro_use] extern crate matches;
 extern crate memenhancer;
 extern crate mktemp;
 extern crate mime_guess;
@@ -83,6 +84,7 @@ use self::domain::configure::*;
 use self::domain::images::*;
 use self::domain::inputFormats::*;
 use self::domain::localization::*;
+use self::html5::*;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
@@ -126,6 +128,7 @@ use ::url::Url;
 
 pub(crate) mod domain;
 pub(crate) mod hjson;
+pub(crate) mod html5;
 pub(crate) mod webserver;
 pub(crate) mod woff;
 pub(crate) mod xmlExtra;
@@ -137,7 +140,6 @@ include!("fatal.rs");
 include!("JsonValueExt.rs");
 include!("MimeExt.rs");
 include!("PathExt.rs");
-include!("UnattachedNodeHelperExt.rs");
 include!("UrlExt.rs");
 
 

@@ -83,11 +83,6 @@ It also does a lot more to create a great experience for your users:-
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 * Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
 * Not all URLs are validated for existence. This because they are external (shortcodes, pingbacks).
-
-
-## Known Bugs
-
-* Image source sets use URLs, but if the image has been specified as a data-uri, the URL will be invalid because it won't exist. Image source sets don't really make a lot of sense when using data-uris.
 		
 
 ## Licensing
@@ -97,8 +92,8 @@ The license for this project is AGPL-3.0.
 
 
 ## TODO
+
 * Redirect for primary language pages (if primary language is 'en', redirect '/en/' to '/')
-* Spellchecking using [languagetool](https://www.languagetool.org/)
 * Error Templates / Content
 	* 400 Bad Request - display a page very similar to 404 Not Found
 	* 403 Forbidden
@@ -112,75 +107,69 @@ The license for this project is AGPL-3.0.
 	* [Primitive](https://www.michaelfogleman.com/projects/primitive/) - Go binary, uses randomness so not really reproducible
 * HTML Minification
 	* Identify specific attributes that can be additionally optimised
-	* Eg global attributes where some values can be just an empty attribute
-	* Eg class and srcset, where some spacing can be eliminated
-	* Remove leading and trailing space from some attributes (eg id, href, class, src, srcset, sizes, etc)
+		* Eg global attributes where some values can be just an empty attribute
+		* Eg class and srcset, where some spacing can be eliminated
+		* Remove leading and trailing space from some attributes (eg id, href, class, src, srcset, sizes, etc)
 * Formats
 	* Markdown: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
-	* SASS: Lua plugins
-	* Handlebars: Lua Plugins
+	* SASS: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
+	* Handlebars: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
 	* URLs: Minify to relative URLs
-	* CSS: When minifying, identify class names and replace, or have a class-names replacements list black list or white list
-	* Non-HTML, language-aware resources
-		* Indicate the alternative links using `Link: <http://es.example.com/document.pdf>;
-                                                rel="alternate"; hreflang="es", 
-                                                <http://en.example.com/document.pdf>; 
-                                                rel="alternate"; hreflang="en", 
-                                                <http://de.example.com/document.pdf>; 
-                                                rel="alternate"; hreflang="de"
-` in headers.
+	* Non-HTML, language-aware resources should use link headers eg
+		* Indicate the alternative links in HTTP headers using `Link:<http://es.example.com/document.pdf>;rel="alternate";hreflang="es",<http://en.example.com/document.pdf>;rel="alternate";hreflang="en",<http://de.example.com/document.pdf>;rel="alternate";hreflang="de"` as it is likely to be more efficient.
 	* SVG
-		- adjust or set or remove width & height in document
-		- support source set generation
+		* Specify width & height when used as img src to avoid a flash of unstyled content.
+		* Do we want to support source set generation?
 	* CSS
-		* Class name replacements
-		* Embedding images into the stylesheet as data-uris
+		* Tokenize CSS class names
+			* Probably best done with a whitelist
+		* Embedding images into the stylesheet as data-uris like `cssembed` does.
 			* But nothing like cssembed for rust...
-	* SVG to PNG - for organization-logo (feedly, google) and favicon
+	* SVG to PNG 
+		* for organization-logo (feedly, google) and favicon
+		* Use rust crate `librsvg`
+	* Raster Images
+		* Generate images suitable for Google VR View
 	* Favicon
 		* Quick request library: `reqwest = "0.4"`
 		* Svg2Png, then go from there, really. Multiple outputs.
 		* Is ICO still needed in 2017?
 	* HTML
-		* 
-	// TODO: How do we minify CSS across multiple HTML pages?
-	// TODO: Take HTML and run it through languagetool
-	// TODO: Validate length of title and description, content, etc
-	// TODO: Sitemap videos?
-	// TODO: For embedded SVG, need to append / replace id, classes
-	// TODO: For embedded SVG, strip xmlns="http://www.w3.org/2000/svg" namespace
-	// TODO: data-uri embedding - worthwhile?
-	// TODO: Make URLs relative
-	// TODO: Generate images suitable for Google VR View
-	
-/*
-	There are also site-language-level link rel="" tags
-		link rel="manifest"
-		link rel="icon" (multiple possible)
-	
-	(We could do these with defaults that are overridden)
-	
-	preconnect prefetch preload prerender dns-prefetch (but not allowed in AMP)
-	
-	see https://developer.mozilla.org/en-US/docs/Web/HTML/Link_types and http://microformats.org/wiki/existing-rel-values
-*/
-	
-		* Add videos within web page to SiteMap.xml.
+		* Spellchecking using [languagetool](https://www.languagetool.org/)
+		* Make sure there is at least 300 words of content on every page.
+		* Validate title and description length
+			* Do we know what facebook prefers?
+		* Use `preconnect prefetch preload prerender dns-prefetch` link rel hints for non-AMP pages.
+		* Generate `manifest`, `amp-manifest` and `icon` link rel tags.
+		* Take HTML and run it through languagetool
+		* Validate HtmlAbstract properties
+		* Consider switching from description to title for anchor titles.
+		* Embedded SVG
+			* need to append / replace id, classes
+			* strip xmlns="http://www.w3.org/2000/svg" namespace
+		* Embedded images (data-uri)
+			* Is it worthwhile?
 * Modify zopfli crate to allow specifying options
+* Audio / Podcasts
+	* Support for opengraph
+	* Support for twitter cards
+* Videos
+	* Support a video site map
+	* Support for twitter cards
+		* Make sure: `twitter:player:stream is provided AND the twitter:player:stream:content_type is specified as “video/mp4”`.
+		* Need a placeholder image
+		* `twitter:player` specifies an IFRAME URL.
+	* Support for opengraph
 * RSS
-	* Validate that Feedly PNG and SVG images are PNG and SVG.
-	* Consider adding an `<img>` with an image source set to the HTML content, with the necessary Feedly class
-		* <https://blog.feedly.com/10-ways-to-optimize-your-feed-for-feedly/>
 	* ?Register with Feedly, InoReader, Bazqux, The Older Reader and Feedbin?
 	* Support itunes extensions for podcasts
-* SEO
 * Fonts
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* Use Fontello's curl API to support Icon font creation
 Other
-	* Check http://www.accessify.com/r/play.rust-lang.org for page load speed analysis
-	* https://www.freepik.com/
+	* Check <http://www.accessify.com/r/play.rust-lang.org> for page load speed analysis
+	* <https://www.freepik.com/>
 	* [BBC engineers on multi-lingual website design](http://responsivenews.co.uk/post/123104512468/13-tips-for-making-responsive-web-design)
 	* Make sure [PureCSS](https://purecss.io/layouts/) will work
 	* And also <https://duckduckgo.com/?q=language+menu+pure+css&t=ffab&ia=web>

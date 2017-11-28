@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum ProcessingPriority
+pub(crate) enum ProcessingPriority
 {
 	NoDependenciesEgImage,
 	DependsOnOthersEgStylesheet,

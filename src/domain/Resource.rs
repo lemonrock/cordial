@@ -48,6 +48,127 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn findUrlForFacebookOpenGraph(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceTag: &ResourceTag, facebookOpenGraphTypeDiscriminant: FacebookOpenGraphTypeDiscriminant) -> Result<&Rc<Url>, CordialError>
+	{
+		let htmlPipeline = self.htmlPipeline()?;
+		if htmlPipeline.hasFacebookOpenGraphTypeDiscriminant(facebookOpenGraphTypeDiscriminant)
+		{
+			Ok(&self.urlDataMandatory(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resourceTag)?.url)
+		}
+		else
+		{
+			Err(CordialError::Configuration(format!("{:?} does not has facebookOpenGraphTypeDiscriminant {:?}", self.name(),  facebookOpenGraphTypeDiscriminant)))
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn findUrlForTwitterCardImage(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, twitterCardImageMatch: &TwitterCardImageMatch) -> Result<&Rc<UrlData>, CordialError>
+	{
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an ideal image for Twitter Cards twitter::image for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				// Find the largest image with the correct ratio and minimum dimensions under 5 Mb
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForTwitterCardsImage()
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if urlData.size() < twitterCardImageMatch.maximumSize && idealImageWidth < width
+								{
+									let remainder = width % height;
+									let ratio = width / height;
+									if remainder == 0 && ratio == twitterCardImageMatch.ratio && width >= twitterCardImageMatch.minimumWidth && width <= twitterCardImageMatch.maximumWidth && height >= twitterCardImageMatch.minimumHeight && height <= twitterCardImageMatch.maximumHeight
+									{
+										idealImageUrlData = Some(urlData);
+									}
+								}
+							}
+							
+							_ => (),
+						}
+					}
+				}
+				
+				match idealImageUrlData
+				{
+					Some(urlData) => Ok(urlData),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for Twitter Cards twitter::image for '{:?}'", self.name()))),
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn findUrlDataForFacebookOpenGraphImage(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
+	{
+		const EightMegabytes: u64 = 8 * 1024 * 1024;
+		
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an ideal or acceptable image for Facebook OpenGraph og::image for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				// https://developers.facebook.com/docs/sharing/best-practices#images
+				
+				// Find the largest image with the correct ratio and minimum dimensions under 8 Mb
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				let mut acceptableImageWidth = 0;
+				let mut acceptableImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForFacebookOpenGraphImage()
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if urlData.size() <= EightMegabytes
+								{
+									// Facebook images should have a ratio of 1.91, but even facebook's own examples give a ratio of 1.9047619047619 for their ideal image.
+									let ratio = ((width * 100) as f64) / (height as f64);
+									if width > idealImageWidth && width >= 600 && height >= 315 && (ratio > 190.0 || ratio < 192.0)
+									{
+										idealImageUrlData = Some(urlData);
+									}
+									if width > acceptableImageWidth && width >= 200 && height >= 200 && idealImageUrlData.is_none()
+									{
+										acceptableImageUrlData = Some(urlData);
+									}
+								}
+							}
+							_ => (),
+						}
+					}
+				}
+				if let Some(idealImageUrl) = idealImageUrlData
+				{
+					Ok(idealImageUrl)
+				}
+				else if let Some(acceptableImageUrl) = acceptableImageUrlData
+				{
+					Ok(acceptableImageUrl)
+				}
+				else
+				{
+					Err(CordialError::Configuration(format!("Could not find an ideal or acceptable image for Facebook OpenGraph og::image for '{:?}'", self.name())))
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
 	fn htmlPipeline(&self) -> Result<&HtmlPipeline, CordialError>
 	{
 		match self.pipeline

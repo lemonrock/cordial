@@ -101,6 +101,7 @@ include!("HandlebarsTemplateRenderer.rs");
 include!("HandlebarsWrapper.rs");
 include!("HeaderGenerator.rs");
 include!("MimeNewType.rs");
+include!("mimeType.rs");
 include!("ProcessingPriority.rs");
 include!("Resource.rs");
 include!("ResourcePipeline.rs");

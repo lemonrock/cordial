@@ -47,4 +47,68 @@ impl UrlData
 	{
 		self.urlDataDetails.image()
 	}
+	
+	#[inline(always)]
+	pub(crate) fn size(&self) -> u64
+	{
+		self.urlDataDetails.size()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn isSuitableForFacebookOpenGraphImage(&self) -> bool
+	{
+		match self.mimeType.type_()
+		{
+			mime::IMAGE => match self.mimeType.subtype()
+			{
+				mime::GIF | mime::JPEG | mime::PNG => true,
+				_ => false,
+			}
+			_ => false,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn isSuitableForTwitterCardsImage(&self) -> bool
+	{
+		match self.mimeType.type_()
+		{
+			mime::IMAGE => match self.mimeType.subtype()
+			{
+				mime::GIF => true,
+				
+				mime::JPEG => true,
+				
+				mime::PNG => true,
+				
+				_ => self.mimeType == "image/webp".parse::<Mime>().unwrap(),
+			}
+			
+			_ => false,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateIsPng(&self) -> Result<(), CordialError>
+	{
+		match (self.mimeType.type_(), self.mimeType.subtype())
+		{
+			(mime::IMAGE, mime::PNG) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Resource should be a PNG".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateIsSvg(&self) -> Result<(), CordialError>
+	{
+		if self.mimeType == mimeType("image/svg+xml")
+		{
+			Ok(())
+		}
+		else
+		{
+			Err(CordialError::Configuration("Resource should be a SVG".to_owned()))
+		}
+	}
 }

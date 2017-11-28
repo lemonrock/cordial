@@ -6,12 +6,11 @@
 pub(crate) struct HtmlDocumentData<'a>
 {
 	pub(crate) fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
-	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 	pub(crate) markdownParser: MarkdownParser,
 	pub(crate) markdown: String,
 	pub(crate) markdownPluginData: MarkdownPluginData<'a>,
 	pub(crate) htmlAbstract: Rc<HtmlAbstract>,
-	pub(crate) articleImage: Option<(ResourceReference, Rc<ImageMetaData>)>,
+	pub(crate) articleImage: Option<(ResourceUrl, Rc<ImageMetaData>)>,
 	pub(crate) siteMapImages: &'a [ResourceUrl],
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
 	pub(crate) lastModificationDateOrPublicationDate: Option<DateTime<Utc>>,
@@ -19,13 +18,79 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) expirationDate: Option<DateTime<Utc>>,
 	pub(crate) configuration: &'a Configuration,
 	pub(crate) htmlUrls: HtmlUrls<'a>,
+	pub(crate) facebookOpenGraph: Rc<FacebookOpenGraph>,
 }
 
 impl<'a> HtmlDocumentData<'a>
 {
 	#[inline(always)]
+	pub(crate) fn addFacebookOpenGraphHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	{
+		self.facebookOpenGraph.facebookOpenGraph(endHeadNodes, self.title(), self.description(), &self.htmlUrls.linkHeaderCanonicalUrl()?, self.publicationDate, self.lastModificationDateOrPublicationDate, self.expirationDate, self.configuration, resources, &self.articleImage, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlTitle(&self) -> &str
+	{
+		&self.htmlAbstract.htmlTitle
+	}
+	
+	#[inline(always)]
+	pub(crate) fn htmlDescription(&self) -> &str
+	{
+		self.description()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn title(&self) -> &str
+	{
+		&self.htmlAbstract.title
+	}
+	
+	#[inline(always)]
+	pub(crate) fn description(&self) -> &str
+	{
+		&self.htmlAbstract.description
+	}
+	
+	#[inline(always)]
+	pub(crate) fn keywordsConcatenatedForBaidu(&self) -> Option<String>
+	{
+		let keywordsForBaidu = &self.htmlAbstract.keywords_for_baidu;
+		if keywordsForBaidu.is_empty()
+		{
+			return None;
+		}
+		
+		let mut concatenatedKeywords = String::new();
+		let mut isAfterFirst = false;
+		for keyword in keywordsForBaidu.iter()
+		{
+			if isAfterFirst
+			{
+				concatenatedKeywords.push(',');
+			}
+			else
+			{
+				isAfterFirst = true;
+			}
+			concatenatedKeywords.push_str(keyword);
+		}
+		
+		Some(concatenatedKeywords)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn iso639Dash1Alpha2Language(&self) -> Iso639Dash1Alpha2Language
+	{
+		self.htmlUrls.languageData.iso639Dash1Alpha2Language
+	}
+	
+	#[inline(always)]
 	pub(crate) fn addToRssChannels(&self, resources: &Resources, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, author: &Rc<EMailAddress>, rssChannelsToCategories: &OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<(), CordialError>
 	{
+		const RssImageResourceTag: ResourceTag = ResourceTag::largest_image;
+		
 		for (rssChannelName, categories) in rssChannelsToCategories.iter()
 		{
 			match rssChannelsToRssItems.get_mut(rssChannelName)
@@ -34,7 +99,7 @@ impl<'a> HtmlDocumentData<'a>
 				Some(mut rssItems) =>
 				{
 					const IsNotForAmp: bool = false;
-					let (_document, rssHtml) = self.renderHtmlDocument(inputContentFilePath, IsNotForAmp, handlebars, rssChannelName)?;
+					let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, handlebars, rssChannelName)?;
 					rssItems.push
 					(
 						RssItem
@@ -47,7 +112,15 @@ impl<'a> HtmlDocumentData<'a>
 								primaryImage: match self.articleImage
 								{
 									None => None,
-									Some((ref imageResourceUrl, ref articleImage)) => Some(articleImage.rssImage(imageResourceUrl, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language, resources)?)
+									Some((ref articleImageResourceUrl, ref articleImageMetaData)) =>
+									{
+										let rssImage = ResourceReference
+										{
+											resource: articleImageResourceUrl.clone(),
+											tag: RssImageResourceTag,
+										};
+										Some(articleImageMetaData.rssImage(&rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?)
+									}
 								},
 							},
 							lastModificationDate: self.lastModificationDateOrPublicationDate,
@@ -65,10 +138,17 @@ impl<'a> HtmlDocumentData<'a>
 	#[inline(always)]
 	pub(crate) fn addToSiteMaps(&self, resources: &Resources, siteMapWebPages: &mut Vec<SiteMapWebPage>, changeFrequency: SiteMapChangeFrequency, priority: SiteMapPriority) -> Result<(), CordialError>
 	{
+		const SiteMapImageTag: ResourceTag = ResourceTag::largest_image;
+		
 		let mut images = vec![];
-		if let Some((ref imageResourceUrl, ref articleImage)) = self.articleImage
+		if let Some((ref articleImageResourceUrl, ref articleImageMetaData)) = self.articleImage
 		{
-			images.push(articleImage.siteMapWebPageImage(imageResourceUrl, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language, resources)?);
+			let siteMapImage = ResourceReference
+			{
+				resource: articleImageResourceUrl.clone(),
+				tag: SiteMapImageTag,
+			};
+			images.push(articleImageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?);
 		};
 		
 		for siteMapImageResourceUrl in self.siteMapImages.iter()
@@ -76,12 +156,12 @@ impl<'a> HtmlDocumentData<'a>
 			let resourceRef = siteMapImageResourceUrl.resourceMandatory(resources)?;
 			let imageMetaData = resourceRef.imageMetaData()?;
 			
-			let internalImage = ResourceReference
+			let siteMapImage = ResourceReference
 			{
 				resource: siteMapImageResourceUrl.clone(),
-				tag: ResourceTag::largest_image,
+				tag: SiteMapImageTag,
 			};
-			images.push(imageMetaData.siteMapWebPageImage(&internalImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language, resources)?)
+			images.push(imageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?)
 		}
 		
 		siteMapWebPages.push
@@ -99,30 +179,72 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn renderHtmlDocument(&self, inputContentFilePath: &Path, isForAmp: bool, handlebars: &HandlebarsWrapper, handlebarsTemplate: &str) -> Result<(RcDom, Vec<u8>), CordialError>
+	pub(crate) fn renderHtmlDocument(&self, resources: &Resources, pjaxIsSupported: bool, inputContentFilePath: &Path, isForAmp: bool, handlebars: &HandlebarsWrapper, handlebarsTemplate: &str) -> Result<(RcDom, Vec<u8>), CordialError>
 	{
 		/*
 			nodesForHtmlHead is where we can push in a lot of extra stuff
-				- title
-				- description
-				- link ref=""
-				- meta charset for amp (see https://www.ampproject.org/docs/reference/spec)
-				- AMP boilerplate
-				- stylesheet links or embedded CSS
-				- Open Graph
-				- Twitter Cards
+	
+				- link ref="" for manifest, icon, theme-color, amp-manifest
+				- AMP boilerplate for embedded stylesheet css / stylesheet links
 				- schema.org
-				- etc
 		*/
 		
-		let mut nodesForHtmlHead = NodesForOtherPlacesInHtml::new();
+		
+		/*
+{{ define "SchemaOrgStructuredDataExtension" -}}
+{
+	"@type": "BlogPosting",
+	"mainEntityOfPage": {{- .Permalink -}}",
+	"headline": "{{- .Title -}}",
+	"image":
+	{
+		"@type": "ImageObject",
+		"url": "{{- .Params.image.src | absURL -}}",
+		{{- with (imageConfig (replace (.Params.image.src | absURL) $.Site.BaseURL "static/")) -}}
+			"height": {{ .Height }},
+			"width": {{ .Width }}
+		{{- end -}}
+	},
+	"publisher":
+	{
+		"name": "{{- $.Site.Data.Organization.name -}}",
+		"logo":
+		{
+			"@type": "ImageObject"
+			"url: "{{- $.Site.Data.Organization.logo -}}",
+			{{- with (imageConfig (replace $.Site.Data.Organization.logo $.Site.BaseURL "static/")) -}}
+				"height": {{ .Height }},
+				"width": {{ .Width }}
+			{{- end -}}
+		}
+	}
+	,"datePublished: "{{- .PublishDate.Format "2006-01-02T15:04:05" -}}""
+	{{- if not .Lastmod.IsZero -}}, "dateModified: "{{- .Lastmod.Format "2006-01-02T15:04:05" -}}"{{- else if not .PublishDate.IsZero -}}, "dateModified: "{{- .PublishDate.Format "2006-01-02T15:04:05" -}}{{- end -}}
+	,"author":
+	{
+		"@type": "Person",
+		"name": "{{- $.Param "author.display_name" -}}"
+	},
+	"description": "{{- $.Param "description" -}}"
+}
+{{- end -}}
+		
+		
+		*/
+		
+		let mut nodesForHtmlHead = NodesForOtherPlacesInHtml::new(isForAmp, pjaxIsSupported, self.configuration, self, resources)?;
+		
+		
+		
+		
+		
 		let htmlFromMarkdown = self.markdownParser.parse(&self.markdown, &mut nodesForHtmlHead, &self.markdownPluginData, isForAmp)?;
 		
 		let (headHtml, hiddenBodyHtml) = nodesForHtmlHead.headAndHiddenBodyHtml();
 		
 		let html =
 		{
-			let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language;
+			let iso639Dash1Alpha2Language = self.iso639Dash1Alpha2Language();
 			
 			// TODO: Needs tidy-up into a form that is JSON / handlebars friendly
 			
@@ -145,9 +267,9 @@ impl<'a> HtmlDocumentData<'a>
 				"image_article": match self.articleImage
 				{
 					None => None,
-					Some((ref imageResourceReference, ref imageMetaData)) =>
+					Some((ref imageResourceUrl, ref imageMetaData)) =>
 					{
-						Some((imageResourceReference, imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?))
+						Some((imageResourceUrl, imageMetaData.imageAbstract(iso639Dash1Alpha2Language)?))
 					},
 				},
 				"site_map_images": self.siteMapImages,

@@ -2,6 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+
 pub(crate) trait UnattachedNodeHelperExt
 {
 	#[inline(always)]
@@ -52,13 +53,40 @@ pub(crate) trait UnattachedNodeHelperExt
 	fn with_id_attribute(&self, id: &str) -> UnattachedNode;
 	
 	#[inline(always)]
+	fn with_charset_attribute(&self, charset: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_name_attribute(&self, charset: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_property_attribute(&self, charset: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_http_equiv_attribute(&self, charset: &str) -> UnattachedNode;
+	
+	#[inline(always)]
 	fn with_empty_attribute(&self, name: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_async_attribute(&self) -> UnattachedNode
+	{
+		self.with_empty_attribute("async")
+	}
+	
+	#[inline(always)]
+	fn with_amp_boilerplate_attribute(&self) -> UnattachedNode
+	{
+		self.with_empty_attribute("amp-boilerplate")
+	}
 	
 	#[inline(always)]
 	fn with_attributes(&self, attributes: Vec<Attribute>) -> UnattachedNode;
 	
 	#[inline(always)]
 	fn with_child_element(&self, child: UnattachedNode) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_child_text<S: Into<String>>(&self, text: S) -> UnattachedNode;
 	
 	#[inline(always)]
 	fn with_class<S: Deref<Target=str>>(&self, class: S) -> UnattachedNode;
@@ -106,6 +134,30 @@ impl UnattachedNodeHelperExt for str
 	}
 	
 	#[inline(always)]
+	fn with_charset_attribute(&self, charset: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["charset".str_attribute(charset)])
+	}
+	
+	#[inline(always)]
+	fn with_name_attribute(&self, name: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["name".str_attribute(name)])
+	}
+	
+	#[inline(always)]
+	fn with_property_attribute(&self, name: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["property".str_attribute(name)])
+	}
+	
+	#[inline(always)]
+	fn with_http_equiv_attribute(&self, name: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["http-equiv".str_attribute(name)])
+	}
+	
+	#[inline(always)]
 	fn with_empty_attribute(&self, name: &str) -> UnattachedNode
 	{
 		self.local_name().with_attributes(vec![name.empty_attribute()])
@@ -122,6 +174,13 @@ impl UnattachedNodeHelperExt for str
 	{
 		let localName = self.local_name();
 		UnattachedNode::from(localName).with_child_element(child)
+	}
+	
+	#[inline(always)]
+	fn with_child_text<S: Into<String>>(&self, text: S) -> UnattachedNode
+	{
+		let localName = self.local_name();
+		UnattachedNode::from(localName).with_child_text(text)
 	}
 	
 	#[inline(always)]
@@ -146,7 +205,7 @@ impl UnattachedNodeHelperExt for str
 	fn amp_script(&self, url: &str) -> UnattachedNode
 	{
 		"script"
-			.with_empty_attribute("async")
+			.with_async_attribute()
 			.with_attribute("custom-element".str_attribute(self))
 			.with_attribute("src".str_attribute(url))
 	}

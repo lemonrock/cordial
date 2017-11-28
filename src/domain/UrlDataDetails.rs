@@ -3,9 +3,12 @@
 
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum UrlDataDetails
+pub(crate) enum UrlDataDetails
 {
-	Empty,
+	Generic
+	{
+		size: u64,
+	},
 	
 	Image
 	{
@@ -15,17 +18,17 @@ pub enum UrlDataDetails
 	}
 }
 
-impl Default for UrlDataDetails
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		UrlDataDetails::Empty
-	}
-}
-
 impl UrlDataDetails
 {
+	#[inline(always)]
+	pub(crate) fn generic(body: &[u8]) -> Self
+	{
+		UrlDataDetails::Generic
+		{
+			size: body.len() as u64,
+		}
+	}
+	
 	#[inline(always)]
 	fn dimensions(&self) -> Result<(u32, u32), CordialError>
 	{
@@ -45,6 +48,18 @@ impl UrlDataDetails
 			UrlDataDetails::Image { width, height, size } => Ok((width, height, size)),
 			
 			_ => Err(CordialError::Configuration("Not an image".to_owned()))
+		}
+	}
+	
+	#[inline(always)]
+	fn size(&self) -> u64
+	{
+		use self::UrlDataDetails::*;
+		
+		match *self
+		{
+			Generic { size } => size,
+			Image { size, .. } => size,
 		}
 	}
 }

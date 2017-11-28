@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub struct QrCodeData
+pub(crate) struct QrCodeData
 {
 	#[serde(deserialize_with = "QrCodeData::data_deserialize")] data: Vec<u8>,
 	#[serde(default)] version: QrVersion,

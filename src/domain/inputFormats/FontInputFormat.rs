@@ -88,7 +88,7 @@ impl FontInputFormat
 			let woffHeaders = headerGenerator.generateHeadersForAsset(CanNotBeCompressed, maximumAgeInSeconds, isDownloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
 			let NoPjax = None;
-			urls.push((woffUrl, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, NoPjax, CanNotBeCompressed));
+			urls.push((woffUrl, Self::defaultHashMap(&woffBody), StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, NoPjax, CanNotBeCompressed));
 		}
 		
 		// woff2
@@ -107,7 +107,7 @@ impl FontInputFormat
 				Ok(body) => body,
 			};
 			let NoPjax = None;
-			urls.push((woff2Url, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, NoPjax, CanNotBeCompressed));
+			urls.push((woff2Url, Self::defaultHashMap(&woff2Body), StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, NoPjax, CanNotBeCompressed));
 		}
 		
 		if includeTrueTypeFont
@@ -115,15 +115,15 @@ impl FontInputFormat
 			let ttfUrl = resourceUrl.url(languageData)?;
 			let ttfHeaders =  headerGenerator.generateHeadersForAsset(CanBeCompressed, maximumAgeInSeconds, isDownloadable, &ttfUrl)?;
 			let NoPjax = None;
-			urls.push((ttfUrl, Self::defaultHashMap(), StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, NoPjax, CanBeCompressed));
+			urls.push((ttfUrl, Self::defaultHashMap(&ttfBytes), StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, NoPjax, CanBeCompressed));
 		}
 		
 		Ok(urls)
 	}
 	
 	#[inline(always)]
-	fn defaultHashMap() -> HashMap<ResourceTag, Rc<UrlDataDetails>>
+	fn defaultHashMap(body: &[u8]) -> HashMap<ResourceTag, Rc<UrlDataDetails>>
 	{
-		hashmap! { ResourceTag::default => Rc::new(UrlDataDetails::Empty) }
+		hashmap! { ResourceTag::default => Rc::new(UrlDataDetails::generic(body)) }
 	}
 }

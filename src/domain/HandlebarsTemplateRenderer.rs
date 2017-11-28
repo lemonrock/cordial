@@ -2,7 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub struct HandlebarsTemplateRenderer<'b>(&'b mut Handlebars);
+pub(crate) struct HandlebarsTemplateRenderer<'b>(&'b mut Handlebars);
 
 impl<'b> HandlebarsTemplateRenderer<'b>
 {

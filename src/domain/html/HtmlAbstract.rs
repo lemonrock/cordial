@@ -3,11 +3,13 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub(crate) struct HtmlAbstract
 {
-	pub(crate) title: Rc<String>,
-	pub(crate) description: Rc<String>,
+	pub(crate) htmlTitle: Rc<String>, // html head title; used by Google, Baidu (35 simplified chinese characters or 70 romanized)
+	pub(crate) title: Rc<String>, // Open graph, twitter card title (70 chars)
+	pub(crate) description: Rc<String>, // html meta description (Baidu: 78 chars simplified chinese or 156 romanized), open graph description, RSS description (Feedly: maximum 140 chars), anchor title, twitter card description (maximum 200 chars)
+	pub(crate) keywords_for_baidu: HashSet<String>, // https://searchengineland.com/the-b2b-marketers-guide-to-baidu-seo-180658 ; 3 - 5 keywords recommended
 	#[serde(default)] pub(crate) shortlink: Option<Rc<UrlSerde>>,
 	#[serde(default)] pub(crate) pingback: Option<Rc<UrlSerde>>,
 }

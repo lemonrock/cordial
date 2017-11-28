@@ -86,7 +86,7 @@ impl Pipeline for RawPipeline
 
 		let headers = headerGenerator.generateHeadersForAsset(canBeCompressed, self.max_age_in_seconds, self.is_downloadable, &inputCanonicalUrl)?;
 		let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::Empty) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
+		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
 	}
 }
 

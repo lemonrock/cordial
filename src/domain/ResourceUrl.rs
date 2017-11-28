@@ -89,6 +89,15 @@ impl ResourceUrl
 	}
 	
 	#[inline(always)]
+	pub(crate) fn findUrlForFacebookOpenGraph<'resources>(&self, resources: &'resources Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, facebookOpenGraphTypeDiscriminant: FacebookOpenGraphTypeDiscriminant) -> Result<Rc<Url>, CordialError>
+	{
+		const FacebookUrlTag: ResourceTag = ResourceTag::default;
+		
+		let resource = self.resourceMandatory(resources)?;
+		resource.findUrlForFacebookOpenGraph(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language), &FacebookUrlTag, facebookOpenGraphTypeDiscriminant).map(|url| url.clone())
+	}
+	
+	#[inline(always)]
 	pub(crate) fn string<S: Into<String>>(value: S) -> Self
 	{
 		ResourceUrl(Rc::new(value.into()))

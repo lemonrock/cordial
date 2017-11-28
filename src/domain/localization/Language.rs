@@ -7,12 +7,18 @@
 pub(crate) struct Language
 {
 	iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode,
+	pub(crate) facebook_open_graph_locale: FacebookOpenGraphLocale,
 	language_tool_long_code: String,
 	#[serde(default = "Language::host_default")] pub(crate) host: String,
 	#[serde(default)] relative_root_url: RelativeRootUrl,
 	#[serde(default)] pub(crate) assume_right_to_left_script: bool,
 	native_name: String, // Native name for language, with correct Unicode accents, etc. See https://dribbble.com/shots/1202316-Language-menus-with-flags for an example of common Language descriptions
 	required_translations: HashMap<RequiredTranslation, Rc<String>>,
+	facebook_open_graph_video_actor_role_translations: HashMap<String, String>,
+	facebook_open_graph_video_tag_translations: HashMap<String, String>,
+	facebook_open_graph_article_tag_translations: HashMap<String, String>,
+	facebook_open_graph_article_section_translations: HashMap<String, String>,
+	facebook_open_graph_book_tag_translations: HashMap<String, String>,
 }
 
 impl Default for Language
@@ -24,7 +30,8 @@ impl Default for Language
 		
 		Self
 		{
-			iso_3166_1_alpha_2_country_code: Iso3166Dash1Alpha2CountryCode::US,
+			iso_3166_1_alpha_2_country_code: Default::default(),
+			facebook_open_graph_locale: Default::default(),
 			language_tool_long_code: "en-US".to_owned(),
 			host: Self::host_default(),
 			relative_root_url: RelativeRootUrl::default(),
@@ -34,12 +41,23 @@ impl Default for Language
 			{
 				missing_image_fallback => Rc::new("Unfortunately, this content is unavailable at this time.".to_owned()),
 			},
+			facebook_open_graph_video_actor_role_translations: Default::default(),
+			facebook_open_graph_video_tag_translations: Default::default(),
+			facebook_open_graph_article_tag_translations: Default::default(),
+			facebook_open_graph_article_section_translations: Default::default(),
+			facebook_open_graph_book_tag_translations: Default::default(),
 		}
 	}
 }
 
 impl Language
 {
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphLocaleStr(&self) -> &str
+	{
+		self.facebook_open_graph_locale.to_str()
+	}
+	
 	#[inline(always)]
 	pub(crate) fn iso3166Dash1Alpha2CountryCode(&self) -> Iso3166Dash1Alpha2CountryCode
 	{
@@ -60,6 +78,42 @@ impl Language
 			None => Err(CordialError::Configuration(format!("Missing translation for '{:?}'", requiredTranslation))),
 			Some(translation) => Ok(translation)
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn translation<'a: 'b, 'b>(translations: &'a HashMap<String, String>, key: &'b str) -> &'b str
+	{
+		translations.get(key).map(|translation| translation.as_str()).unwrap_or(key)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphVideoActorRoleTranslation<'a: 'b, 'b>(&'a self, role: &'b str) -> &'b str
+	{
+		Self::translation(&self.facebook_open_graph_video_actor_role_translations, role)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphVideoTagTranslation<'a: 'b, 'b>(&'a self, tag: &'b str) -> &'b str
+	{
+		Self::translation(&self.facebook_open_graph_video_tag_translations, tag)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphArticleTagTranslation<'a: 'b, 'b>(&'a self, tag: &'b str) -> &'b str
+	{
+		Self::translation(&self.facebook_open_graph_article_tag_translations, tag)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphArticleSectionTranslation<'a: 'b, 'b>(&'a self, section: &'b str) -> &'b str
+	{
+		Self::translation(&self.facebook_open_graph_article_section_translations, section)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn facebookOpenGraphBookTagTranslation<'a: 'b, 'b>(&'a self, tag: &'b str) -> &'b str
+	{
+		Self::translation(&self.facebook_open_graph_book_tag_translations, tag)
 	}
 	
 	#[inline(always)]

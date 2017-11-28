@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum RequiredTranslation
+pub(crate) enum RequiredTranslation
 {
 	missing_image_fallback,
 }

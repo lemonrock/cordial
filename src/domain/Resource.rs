@@ -14,6 +14,7 @@ pub(crate) struct Resource
 	#[serde(default)] raster_image: RasterImagePipeline,
 	#[serde(default)] raw: RawPipeline,
 	#[serde(default)] svg: SvgPipeline,
+	#[serde(default)] web_app_manifest: WebAppManifestPipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
@@ -419,6 +420,7 @@ impl Resource
 			raster_image => self.raster_image.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			raw => self.raw.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			svg => self.svg.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			web_app_manifest => self.web_app_manifest.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 		}
 	}
 	
@@ -435,6 +437,7 @@ impl Resource
 			raster_image => self.raster_image.addToImgAttributes(attributes),
 			raw => self.raw.addToImgAttributes(attributes),
 			svg => self.svg.addToImgAttributes(attributes),
+			web_app_manifest => self.web_app_manifest.addToImgAttributes(attributes),
 		}
 	}
 	
@@ -451,6 +454,7 @@ impl Resource
 			raster_image => self.raster_image.imageMetaData(),
 			raw => self.raw.imageMetaData(),
 			svg => self.svg.imageMetaData(),
+			web_app_manifest => self.web_app_manifest.imageMetaData(),
 		}
 	}
 	
@@ -467,6 +471,7 @@ impl Resource
 			raster_image => self.raster_image.processingPriority(),
 			raw => self.raw.processingPriority(),
 			svg => self.svg.processingPriority(),
+			web_app_manifest => self.web_app_manifest.processingPriority(),
 		}
 	}
 	
@@ -483,6 +488,7 @@ impl Resource
 			raster_image => self.raster_image.resourceInputContentFileNamesWithExtension(resourceInputName),
 			raw => self.raw.resourceInputContentFileNamesWithExtension(resourceInputName),
 			svg => self.svg.resourceInputContentFileNamesWithExtension(resourceInputName),
+			web_app_manifest => self.web_app_manifest.resourceInputContentFileNamesWithExtension(resourceInputName),
 		}
 	}
 	
@@ -499,6 +505,7 @@ impl Resource
 			raster_image => self.raster_image.is(),
 			raw => self.raw.is(),
 			svg => self.svg.is(),
+			web_app_manifest => self.web_app_manifest.is(),
 		}
 	}
 	
@@ -515,6 +522,7 @@ impl Resource
 			raster_image => self.raster_image.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			raw => self.raw.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			svg => self.svg.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			web_app_manifest => self.web_app_manifest.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 		}
 	}
 }

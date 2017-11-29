@@ -3,23 +3,17 @@
 
 
 use super::*;
-use super::svg::*;
-use self::ProcessingPriority::*;
-use self::ResourceTag::*;
-use ::ordermap::OrderMap;
-use ::serde::de;
+use ::serde::ser::Error as SerializeError;
+use ::serde::ser::SerializeStruct;
+use ::std::convert::AsRef;
+use ::std::convert::Into;
+use ::std::cmp::*;
+use ::std::hash::*;
 
 
-include!("CssPipeline.rs");
-include!("GifAnimationPipeline.rs");
-include!("FontPipeline.rs");
-include!("HtmlPipeline.rs");
-include!("is_downloadable_false_default.rs");
-include!("is_versioned_true_default.rs");
-include!("max_age_in_seconds_long_default.rs");
-include!("Pipeline.rs");
-include!("PipelineResource.rs");
-include!("RasterImagePipeline.rs");
-include!("RawPipeline.rs");
-include!("SvgPipeline.rs");
-include!("WebAppManifestPipeline.rs");
+include!("WebAddManifestJsonRoot.rs");
+include!("WebAddManifestSerializationState.rs");
+include!("WebAppManifestAbstract.rs");
+include!("WebAppManifestIcon.rs");
+include!("WebAppManifestIconPixelDensity.rs");
+include!("WebAppManifestOrientation.rs");

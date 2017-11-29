@@ -86,6 +86,13 @@ quick_error!
 			description(cause.description())
 			display("JSON (configuration) couldn't be deserialized because: {}", cause)
 		}
+
+		CouldNotSerializeJson(cause: ::serde_json::error::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("JSON couldn't be serialized because: {}", cause)
+		}
 		
 		CouldNotStartDaemon(cause: ::daemonize::DaemonizeError)
 		{

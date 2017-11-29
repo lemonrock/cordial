@@ -3,24 +3,39 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) enum ResourcePipeline
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum WebAppManifestInputFormat
 {
-	css,
-	font,
-	gif_animation,
-	html,
-	raster_image,
-	raw,
-	svg,
-	web_app_manifest,
+	json,
 }
 
-impl Default for ResourcePipeline
+impl Default for WebAppManifestInputFormat
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ResourcePipeline::raw
+		WebAppManifestInputFormat::json
+	}
+}
+
+impl InputFormat for WebAppManifestInputFormat
+{
+	#[inline(always)]
+	fn fileExtensions(&self) -> &'static [&'static str]
+	{
+		use self::WebAppManifestInputFormat::*;
+		
+		match *self
+		{
+			json => &[".json"],
+		}
+	}
+	
+	#[inline(always)]
+	fn allFileExtensions() -> &'static [&'static str]
+	{
+		&[
+			".json",
+		]
 	}
 }

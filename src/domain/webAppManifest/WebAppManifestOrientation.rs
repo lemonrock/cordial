@@ -2,20 +2,25 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use super::markdown::MarkdownBlockPlugin;
-use super::svg::Barcode;
-use super::svg::Meme;
-use super::svg::MonArtist;
-use super::svg::PlotSettings;
-use super::svg::QrCodeData;
-use ::woff2_sys::convertTtfToWoff2;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub(crate) enum WebAppManifestOrientation
+{
+	any,
+	natural,
+	landscape,
+	#[serde(rename = "landscape-primary")] landscape_primary,
+	#[serde(rename = "landscape-secondary")] landscape_secondary,
+	portrait,
+	#[serde(rename = "portrait-primary")] portrait_primary,
+	#[serde(rename = "portrait-secondary")] portrait_secondary,
+}
 
-
-include!("CssInputFormat.rs");
-include!("FontInputFormat.rs");
-include!("HtmlInputFormat.rs");
-include!("ImageInputFormat.rs");
-include!("InputFormat.rs");
-include!("SvgInputFormat.rs");
-include!("WebAppManifestInputFormat.rs");
+impl Default for WebAppManifestOrientation
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		WebAppManifestOrientation::any
+	}
+}

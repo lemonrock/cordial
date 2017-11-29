@@ -21,6 +21,7 @@ use self::pipelines::*;
 use self::robots::*;
 use self::rss::*;
 use self::siteMap::*;
+use self::webAppManifest::*;
 use ::base64::encode_config as base64Encode;
 use ::base64::URL_SAFE_NO_PAD;
 use ::css_autoprefix::autoprefix_stylesheet;
@@ -95,6 +96,7 @@ pub(crate) mod robots;
 pub(crate) mod rss;
 pub(crate) mod siteMap;
 pub(crate) mod svg;
+pub(crate) mod webAppManifest;
 
 
 include!("HandlebarsTemplateRenderer.rs");

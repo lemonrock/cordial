@@ -21,6 +21,8 @@ include!("WebAppManifestJsonRoot.rs");
 include!("WebAppManifestOrientation.rs");
 include!("WebAppManifestPlatform.rs");
 include!("WebAppManifestRelatedApplication.rs");
+include!("WebAppManifestRelatedApplicationFingerprint.rs");
 include!("WebAppManifestScreenshot.rs");
 include!("WebAppManifestSerializationState.rs");
 include!("WebAppManifestServiceWorker.rs");
+include!("WebAppManifestServiceWorkerType.rs");

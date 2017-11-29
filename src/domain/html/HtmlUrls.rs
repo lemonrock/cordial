@@ -20,6 +20,7 @@ pub(crate) struct HtmlUrls<'a>
 	pub(crate) author: Option<ResourceUrl>,
 	pub(crate) help: Option<ResourceUrl>,
 	pub(crate) license: Option<ResourceUrl>,
+	pub(crate) manifest: Option<ResourceUrl>,
 }
 
 impl<'a> HtmlUrls<'a>
@@ -88,6 +89,11 @@ impl<'a> HtmlUrls<'a>
 			endHeadNodes.push("link".with_rel_attribute("license").with_href_attribute(license.as_ref()));
 		}
 		
+		if let Some(ref manifest) = self.linkHeaderManifestUrl()?
+		{
+			endHeadNodes.push("link".with_rel_attribute("manifest").with_href_attribute(manifest.as_ref()));
+		}
+		
 		Ok(())
 	}
 	
@@ -132,46 +138,53 @@ impl<'a> HtmlUrls<'a>
 	#[inline(always)]
 	fn linkHeaderPreviousUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.previous)
+		self.optionalUrl(&self.previous, &mime::TEXT_HTML_UTF_8)
 	}
 	
 	// link rel="next"
 	#[inline(always)]
 	fn linkHeaderNextUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.next)
+		self.optionalUrl(&self.next, &mime::TEXT_HTML_UTF_8)
 	}
 	
 	// link rel="help"
 	#[inline(always)]
 	fn linkHeaderHelpUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.help)
+		self.optionalUrl(&self.help, &mime::TEXT_HTML_UTF_8)
 	}
 	
 	// link rel="author"
 	#[inline(always)]
 	fn linkHeaderAuthorUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.author)
+		self.optionalUrl(&self.author, &mime::TEXT_HTML_UTF_8)
 	}
 	
 	// link rel="license"
 	#[inline(always)]
 	fn linkHeaderLicenseUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.license)
+		self.optionalUrl(&self.license, &mime::TEXT_HTML_UTF_8)
+	}
+	
+	// link rel="manifest"
+	#[inline(always)]
+	fn linkHeaderManifestUrl(&self) -> Result<Option<Url>, CordialError>
+	{
+		self.optionalUrl(&self.manifest, &mimeType("application/manifest+json"))
 	}
 	
 	#[inline(always)]
-	fn optionalUrl(&self, optionalUrl: &Option<ResourceUrl>) -> Result<Option<Url>, CordialError>
+	fn optionalUrl(&self, optionalUrl: &Option<ResourceUrl>, hasMimeType: &Mime) -> Result<Option<Url>, CordialError>
 	{
 		match optionalUrl
 		{
 			&None => Ok(None),
 			&Some(ref resourceUrl) =>
 			{
-				resourceUrl.validateResourceExists(self.resources)?;
+				resourceUrl.validateResourceExists(self.resources, hasMimeType, self.localization.fallbackIso639Dash1Alpha2Language(), Some(self.languageData.iso639Dash1Alpha2Language))?;
 				Ok(Some(resourceUrl.url(self.languageData)?))
 			}
 		}

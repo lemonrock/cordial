@@ -4,10 +4,8 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct WebAppManifestServiceWorker
+pub(crate) struct WebAppManifestRelatedApplicationFingerprint
 {
-	#[serde(default)] src: ResourceUrl,
-	#[serde(default)] scope: ResourceUrl,
-	#[serde(default, rename = "type")] type_: WebAppManifestServiceWorkerType,
-	#[serde(default)] use_cache: bool,
+	#[serde(rename = "type")] type_: String,
+	value: String,
 }

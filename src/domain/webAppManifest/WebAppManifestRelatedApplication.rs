@@ -7,15 +7,29 @@
 pub(crate) struct WebAppManifestRelatedApplication
 {
 	#[serde(default)] platform: WebAppManifestPlatform,
-	#[serde(with = "url_serde")] url: Url,
+	#[serde(default, skip_serializing_if = "WebAppManifestRelatedApplication::url_skip_serializing_if")] url: Option<UrlSerde>,
 	#[serde(default, skip_serializing_if = "WebAppManifestRelatedApplication::id_skip_serializing_if")] id: Option<String>,
+	#[serde(default, skip_serializing_if = "WebAppManifestRelatedApplication::min_version_skip_serializing_if")] min_version: Option<String>,
+	#[serde(default)] fingerprints: Vec<WebAppManifestRelatedApplicationFingerprint>,
 }
 
 impl WebAppManifestRelatedApplication
 {
 	#[inline(always)]
+	fn url_skip_serializing_if(url: &Option<UrlSerde>) -> bool
+	{
+		url.is_none()
+	}
+	
+	#[inline(always)]
 	fn id_skip_serializing_if(id: &Option<String>) -> bool
 	{
 		id.is_none()
+	}
+	
+	#[inline(always)]
+	fn min_version_skip_serializing_if(min_version: &Option<String>) -> bool
+	{
+		min_version.is_none()
 	}
 }

@@ -138,4 +138,17 @@ impl UrlData
 			_ => Err(CordialError::Configuration("Resource should be HTML".to_owned())),
 		}
 	}
+	
+	#[inline(always)]
+	pub(crate) fn validateHasMimeType(&self, hasMimeType: &Mime) -> Result<(), CordialError>
+	{
+		if &self.mimeType == hasMimeType
+		{
+			Ok(())
+		}
+		else
+		{
+			Err(CordialError::Configuration(format!("Resource should have mime type '{:?}'", hasMimeType)))
+		}
+	}
 }

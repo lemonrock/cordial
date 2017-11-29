@@ -3,11 +3,18 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct WebAppManifestServiceWorker
+#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum WebAppManifestServiceWorkerType
 {
-	#[serde(default)] src: ResourceUrl,
-	#[serde(default)] scope: ResourceUrl,
-	#[serde(default, rename = "type")] type_: WebAppManifestServiceWorkerType,
-	#[serde(default)] use_cache: bool,
+	classic,
+	module,
+}
+
+impl Default for WebAppManifestServiceWorkerType
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		WebAppManifestServiceWorkerType::classic
+	}
 }

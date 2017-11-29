@@ -6,9 +6,10 @@
 #[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct WebAppManifestIcon
 {
-	icon_url: ResourceUrl,
-	size: u32,
+	icon: ResourceReference,
 	#[serde(default)] density: WebAppManifestIconPixelDensity,
+	purposes: BTreeSet<WebAppManifestIconPurpose>,
+	platform: Option<WebAppManifestPlatform>,
 }
 
 impl Serialize for WebAppManifestIcon
@@ -16,34 +17,71 @@ impl Serialize for WebAppManifestIcon
 	#[inline(always)]
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	{
-		let (serializeDensity, fieldCount) = if self.density.isDefault()
+		let mut fieldCount = 3;
+		
+		let serializeDensity = if self.density.isDefault()
 		{
-			(false, 3)
+			fieldCount += 1;
+			false
 		}
 		else
 		{
-			(true, 4)
+			true
 		};
+		
+		if !self.purposes.is_empty()
+		{
+			fieldCount += 1;
+		}
+		
+		if self.platform.is_some()
+		{
+			fieldCount += 1;
+		}
 		
 		let mut state = serializer.serialize_struct("WebAppManifestIcon", fieldCount)?;
 		{
-			let iconUrlData = WebAddManifestSerializationState::urlData::<S>(&self.icon_url, ResourceTag::default)?;
-			iconUrlData.validateIsPng().map_err(|cordialError| S::Error::custom(cordialError))?;
+			let iconUrlData = WebAppManifestSerializationState::urlData::<S>(&self.icon)?;
+			iconUrlData.validateIsSuitableForWebAppManifestIcon().map_err(|cordialError| S::Error::custom(cordialError))?;
 			
 			state.serialize_field("src", iconUrlData.url().as_str())?;
 			
 			state.serialize_field("type", iconUrlData.mimeType().as_ref())?;
 			
 			let (width, height) = iconUrlData.dimensions().map_err(|cordialError| S::Error::custom(cordialError))?;
+			if width != height
+			{
+				return Err(S::Error::custom("width and height must be square for a web app manifest icon"));
+			}
 			state.serialize_field("sizes", &format!("{}x{}", width, height))?;
 			
 			if serializeDensity
 			{
 				state.serialize_field("density", &self.density)?;
 			}
-			else
+			
+			if !self.purposes.is_empty()
 			{
-				state.skip_field("density")?;
+				let mut concatenated = String::new();
+				let mut afterFirst = false;
+				for purpose in self.purposes.iter()
+				{
+					if afterFirst
+					{
+						concatenated.push(' ');
+					}
+					else
+					{
+						afterFirst = true;
+					}
+					concatenated.push_str(purpose.to_str())
+				}
+				state.serialize_field("purpose", &concatenated)?;
+			}
+			
+			if let Some(ref platform) = self.platform
+			{
+				state.serialize_field("platform", platform)?;
 			}
 		}
 		state.end()

@@ -2,6 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+// See https://www.w3.org/TR/appmanifest/#webappmanifest-dictionary
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct WebAppManifestPipeline
@@ -13,10 +14,19 @@ pub(crate) struct WebAppManifestPipeline
 	#[serde(default)] input_format: Option<WebAppManifestInputFormat>,
 	
 	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, WebAppManifestAbstract>,
-	#[serde(default)] pub(crate) icons: HashSet<WebAppManifestIcon>,
-	#[serde(default)] pub(crate) orientation: WebAppManifestOrientation,
-	#[serde(default)] pub(crate) prefer_related_applications: bool,
+	#[serde(default)] pub(crate) icons: BTreeSet<WebAppManifestIcon>,
+	#[serde(default)] pub(crate) screenshots: BTreeSet<WebAppManifestScreenshot>,
+	#[serde(default)] pub(crate) categories: BTreeSet<WebAppManifestCategory>,
+	#[serde(default)] pub(crate) iarc_rating_id: Option<String>,
 	#[serde(default)] pub(crate) start_url: ResourceUrl,
+	#[serde(default)] pub(crate) display: WebAppManifestDisplay,
+	#[serde(default)] pub(crate) orientation: WebAppManifestOrientation,
+	#[serde(default)] pub(crate) theme_css_color: Option<Rc<String>>,
+	#[serde(default)] pub(crate) background_css_color: Option<Rc<String>>,
+	#[serde(default)] pub(crate) scope: ResourceUrl,
+	#[serde(default)] pub(crate) service_worker: Option<WebAppManifestServiceWorker>,
+	#[serde(default)] pub(crate) related_applications: HashSet<WebAppManifestRelatedApplication>,
+	#[serde(default)] pub(crate) prefer_related_applications: bool,
 }
 
 impl Default for WebAppManifestPipeline
@@ -34,9 +44,18 @@ impl Default for WebAppManifestPipeline
 		
 			abstracts: Default::default(),
 			icons: Default::default(),
-			orientation: Default::default(),
-			prefer_related_applications: false,
+			screenshots: Default::default(),
+			categories: Default::default(),
+			iarc_rating_id: None,
 			start_url: Default::default(),
+			display: Default::default(),
+			orientation: Default::default(),
+			theme_css_color: None,
+			background_css_color: None,
+			scope: Default::default(),
+			service_worker: None,
+			related_applications: Default::default(),
+			prefer_related_applications: false,
 		}
 	}
 }
@@ -69,12 +88,27 @@ impl Pipeline for WebAppManifestPipeline
 		const CanBeCompressed: bool = true;
 		let headers = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
 		
-		let body = WebAddManifestJsonRoot
+		let body = WebAppManifestJsonRoot
 		{
 			ourUrlToMinifyAgainst: &url,
-			lang: languageData.iso639Dash1Alpha2Language,
+			languageData,
 			webAppManifestPipeline: self,
 		}.to_json_bytes(resources, configuration.fallbackIso639Dash1Alpha2Language())?;
+	
+		// "theme_color": "aliceblue" - we should use the theme color of the scope HTML page
+		
+		/*
+		"related_applications": [
+  {
+    "platform": "play",
+    "url": "https://play.google.com/store/apps/details?id=com.example.app1",
+    "id": "com.example.app1"
+  }, {
+    "platform": "itunes",
+    "url": "https://itunes.apple.com/app/example-app1/id123456789"
+  }]
+		*/
+		
 		
 		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(mimeType("application/manifest+json")), headers, body, None, CanBeCompressed)])
 	}

@@ -71,6 +71,19 @@ impl Language
 	}
 	
 	#[inline(always)]
+	pub(crate) fn dir(&self) -> Dir
+	{
+		if self.assume_right_to_left_script
+		{
+			Dir::RightToLeft
+		}
+		else
+		{
+			Dir::LeftToRight
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn requiredTranslation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
 	{
 		match self.required_translations.get(&requiredTranslation)

@@ -2,16 +2,16 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-thread_local!(static WebAddManifestSerializationStateThreadLocal: RefCell<Option<WebAddManifestSerializationState>> = RefCell::new(None));
+thread_local!(static WebAppManifestSerializationStateThreadLocal: RefCell<Option<WebAppManifestSerializationState>> = RefCell::new(None));
 
-pub(crate) struct WebAddManifestSerializationState
+pub(crate) struct WebAppManifestSerializationState
 {
 	resources: *const Resources,
 	fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 	iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>,
 }
 
-impl WebAddManifestSerializationState
+impl WebAppManifestSerializationState
 {
 	// Never inlined, so can not transform function and remove hackToKeepReferenceToResourcesAlive
 	#[inline(never)]
@@ -32,13 +32,13 @@ impl WebAddManifestSerializationState
 	#[inline(always)]
 	fn before(resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language)
 	{
-		WebAddManifestSerializationStateThreadLocal.with(|state|
+		WebAppManifestSerializationStateThreadLocal.with(|state|
 		{
 			assert!(state.borrow().is_none());
 			
 			*state.borrow_mut() = Some
 			(
-				WebAddManifestSerializationState
+				WebAppManifestSerializationState
 				{
 					resources: resources as *const _,
 					fallbackIso639Dash1Alpha2Language,
@@ -49,18 +49,24 @@ impl WebAddManifestSerializationState
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlData<S: Serializer>(resourceUrl: &ResourceUrl, resourceTag: ResourceTag) -> Result<Rc<UrlData>, S::Error>
+	pub(crate) fn urlDataFrom<S: Serializer>(resourceUrl: &ResourceUrl, resourceTag: ResourceTag) -> Result<Rc<UrlData>, S::Error>
 	{
-		WebAddManifestSerializationStateThreadLocal.with(|refCell|
+		let resourceReference = ResourceReference
+		{
+			resource: resourceUrl.clone(),
+			tag: resourceTag
+		};
+		Self::urlData::<S>(&resourceReference)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn urlData<S: Serializer>(resourceReference: &ResourceReference) -> Result<Rc<UrlData>, S::Error>
+	{
+		WebAppManifestSerializationStateThreadLocal.with(|refCell|
 		{
 			let borrowed = refCell.borrow();
 			let this = borrowed.as_ref().unwrap();
 			
-			let resourceReference = ResourceReference
-			{
-				resource: resourceUrl.clone(),
-				tag: resourceTag,
-			};
 			resourceReference.urlDataMandatory(unsafe { &*this.resources }, this.fallbackIso639Dash1Alpha2Language, this.iso639Dash1Alpha2Language).map_err(|cordialError| S::Error::custom(cordialError))
 		})
 	}
@@ -68,6 +74,6 @@ impl WebAddManifestSerializationState
 	#[inline(always)]
 	fn after()
 	{
-		WebAddManifestSerializationStateThreadLocal.with(|state| *state.borrow_mut() = None);
+		WebAppManifestSerializationStateThreadLocal.with(|state| *state.borrow_mut() = None);
 	}
 }

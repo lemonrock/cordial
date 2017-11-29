@@ -2,25 +2,21 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+// Source: https://github.com/w3c/manifest/wiki/Platforms
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+pub(crate) enum WebAppManifestPlatform
 {
-	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
+	play,
+	itunes,
+	windows,
 }
 
-impl Default for WebAppManifestOrientation
+impl Default for WebAppManifestPlatform
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		WebAppManifestOrientation::any
+		WebAppManifestPlatform::play
 	}
 }

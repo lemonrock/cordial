@@ -100,6 +100,22 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn validateIsSuitableForWebAppManifestIcon(&self) -> Result<(), CordialError>
+	{
+		match self.mimeType.as_ref()
+		{
+			"image/png" | "image/webp" | "image/svg+xml" => Ok(()),
+			_ => Err(CordialError::Configuration("Resource should be a PNG, WebP or SVG".to_owned()))
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateIsSuitableForWebAppManifestScreenshot(&self) -> Result<(), CordialError>
+	{
+		self.validateIsSuitableForWebAppManifestIcon()
+	}
+	
+	#[inline(always)]
 	pub(crate) fn validateIsSvg(&self) -> Result<(), CordialError>
 	{
 		if self.mimeType == mimeType("image/svg+xml")
@@ -109,6 +125,17 @@ impl UrlData
 		else
 		{
 			Err(CordialError::Configuration("Resource should be a SVG".to_owned()))
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateIsHtml(&self) -> Result<(), CordialError>
+	{
+		match (self.mimeType.type_(), self.mimeType.subtype())
+		{
+			(mime::TEXT, mime::HTML) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Resource should be HTML".to_owned())),
 		}
 	}
 }

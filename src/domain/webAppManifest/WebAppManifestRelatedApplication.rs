@@ -3,24 +3,19 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) struct WebAppManifestRelatedApplication
 {
-	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
+	#[serde(default)] platform: WebAppManifestPlatform,
+	#[serde(with = "url_serde")] url: Url,
+	#[serde(default, skip_serializing_if = "WebAppManifestRelatedApplication::id_skip_serializing_if")] id: Option<String>,
 }
 
-impl Default for WebAppManifestOrientation
+impl WebAppManifestRelatedApplication
 {
 	#[inline(always)]
-	fn default() -> Self
+	fn id_skip_serializing_if(id: &Option<String>) -> bool
 	{
-		WebAppManifestOrientation::any
+		id.is_none()
 	}
 }

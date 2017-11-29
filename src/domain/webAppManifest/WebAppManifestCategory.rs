@@ -2,25 +2,46 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+// Sourced from https://github.com/w3c/manifest/wiki/Categories
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+pub(crate) enum WebAppManifestCategory
 {
-	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
+	books,
+	business,
+	education,
+	entertainment,
+	finance,
+	fitness,
+	food,
+	games,
+	government,
+	health,
+	kids,
+	lifestyle,
+	magazines,
+	medical,
+	music,
+	navigation,
+	news,
+	personalization,
+	photo,
+	politics,
+	productivity,
+	security,
+	shopping,
+	social,
+	sports,
+	travel,
+	utilities,
+	weather,
 }
 
-impl Default for WebAppManifestOrientation
+impl Default for WebAppManifestCategory
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		WebAppManifestOrientation::any
+		WebAppManifestCategory::news
 	}
 }

@@ -8,4 +8,5 @@ pub struct WebAppManifestAbstract
 {
 	#[serde(default)] short_name: String,
 	#[serde(default)] name: String,
+	#[serde(default)] description: String,
 }

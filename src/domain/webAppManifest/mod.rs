@@ -11,9 +11,16 @@ use ::std::cmp::*;
 use ::std::hash::*;
 
 
-include!("WebAddManifestJsonRoot.rs");
-include!("WebAddManifestSerializationState.rs");
 include!("WebAppManifestAbstract.rs");
+include!("WebAppManifestCategory.rs");
+include!("WebAppManifestDisplay.rs");
 include!("WebAppManifestIcon.rs");
 include!("WebAppManifestIconPixelDensity.rs");
+include!("WebAppManifestIconPurpose.rs");
+include!("WebAppManifestJsonRoot.rs");
 include!("WebAppManifestOrientation.rs");
+include!("WebAppManifestPlatform.rs");
+include!("WebAppManifestRelatedApplication.rs");
+include!("WebAppManifestScreenshot.rs");
+include!("WebAppManifestSerializationState.rs");
+include!("WebAppManifestServiceWorker.rs");

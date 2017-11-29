@@ -3,24 +3,33 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum WebAppManifestIconPurpose
 {
+	badge,
 	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
 }
 
-impl Default for WebAppManifestOrientation
+impl Default for WebAppManifestIconPurpose
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		WebAppManifestOrientation::any
+		WebAppManifestIconPurpose::any
+	}
+}
+
+impl WebAppManifestIconPurpose
+{
+	#[inline(always)]
+	pub(crate) fn to_str(&self) -> &'static str
+	{
+		use self::WebAppManifestIconPurpose::*;
+		
+		match *self
+		{
+			badge => "badge",
+			any => "any",
+		}
 	}
 }

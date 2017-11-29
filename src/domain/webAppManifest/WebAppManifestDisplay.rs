@@ -4,23 +4,19 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+pub(crate) enum WebAppManifestDisplay
 {
-	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
+	fullscreen,
+	standalone,
+	#[serde(rename = "minimal-ui")] minimal_ui,
+	browser,
 }
 
-impl Default for WebAppManifestOrientation
+impl Default for WebAppManifestDisplay
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		WebAppManifestOrientation::any
+		WebAppManifestDisplay::browser
 	}
 }

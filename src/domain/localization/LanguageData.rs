@@ -11,6 +11,7 @@ pub(crate) struct LanguageData<'a>
 
 impl<'a> LanguageData<'a>
 {
+	#[inline(always)]
 	pub(crate) fn new(iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, language: &'a Language) -> Self
 	{
 		Self
@@ -18,6 +19,12 @@ impl<'a> LanguageData<'a>
 			iso639Dash1Alpha2Language,
 			language,
 		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn dir(&self) -> Dir
+	{
+		self.language.dir()
 	}
 
 	#[inline(always)]

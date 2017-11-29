@@ -3,24 +3,10 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestOrientation
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) struct WebAppManifestServiceWorker
 {
-	any,
-	natural,
-	landscape,
-	#[serde(rename = "landscape-primary")] landscape_primary,
-	#[serde(rename = "landscape-secondary")] landscape_secondary,
-	portrait,
-	#[serde(rename = "portrait-primary")] portrait_primary,
-	#[serde(rename = "portrait-secondary")] portrait_secondary,
-}
-
-impl Default for WebAppManifestOrientation
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		WebAppManifestOrientation::any
-	}
+	#[serde(default)] src: ResourceUrl,
+	#[serde(default)] scope: ResourceUrl,
+	#[serde(default)] use_cache: bool,
 }

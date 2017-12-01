@@ -30,6 +30,7 @@ include!("HtmlAbstract.rs");
 include!("HtmlDocumentData.rs");
 include!("HtmlOutputFormat.rs");
 include!("HtmlUrls.rs");
+include!("SafariStatusBarAppearance.rs");
 include!("TwitterAtHandle.rs");
 include!("TwitterCard.rs");
 include!("TwitterCardImageMatch.rs");

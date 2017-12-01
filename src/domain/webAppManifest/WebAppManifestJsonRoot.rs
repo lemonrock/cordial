@@ -22,14 +22,19 @@ impl<'a> Serialize for WebAppManifestJsonRoot<'a>
 			Some(webAppManifestAbstract) => webAppManifestAbstract,
 		};
 		
-		let mut fieldCount = 14;
+		let mut fieldCount = 13;
 		
 		if self.webAppManifestPipeline.iarc_rating_id.is_some()
 		{
 			fieldCount += 1;
 		}
 		
-		if self.webAppManifestPipeline.theme_css_color.is_some()
+		if self.webAppManifestPipeline.iarc_rating_id.is_some()
+		{
+			fieldCount += 1;
+		}
+		
+		if self.webAppManifestPipeline.orientation.is_some()
 		{
 			fieldCount += 1;
 		}
@@ -67,7 +72,10 @@ impl<'a> Serialize for WebAppManifestJsonRoot<'a>
 			startUrlData.validateIsHtml().map_err(|cordialError| S::Error::custom(cordialError))?;
 			state.serialize_field("start_url", startUrlData.url_str())?;
 			state.serialize_field("display", &self.webAppManifestPipeline.display)?; // defaults to browser
-			state.serialize_field("orientation", &self.webAppManifestPipeline.orientation)?;
+			if let Some(ref orientation) = self.webAppManifestPipeline.orientation
+			{
+				state.serialize_field("orientation", orientation)?;
+			}
 			if let Some(ref themeCssColor) = self.webAppManifestPipeline.theme_css_color
 			{
 				state.serialize_field("theme_color", themeCssColor.as_str())?;

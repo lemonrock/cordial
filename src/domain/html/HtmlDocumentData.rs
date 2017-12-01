@@ -21,28 +21,20 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) facebookOpenGraph: Rc<FacebookOpenGraph>,
 	pub(crate) twitterCard: Rc<TwitterCard>,
 	pub(crate) themeCssColor: Option<Rc<String>>,
+	pub(crate) favicon: Option<ResourceUrl>,
+	pub(crate) faviconSizes: &'a BTreeSet<u32>,
+	pub(crate) safariFullscreen: bool,
+	pub(crate) safariStatusBarAppearance: SafariStatusBarAppearance,
+	pub(crate) automaticTelephoneNumberDetection: bool,
+	pub(crate) appleTouchIcon: Option<ResourceUrl>,
+	pub(crate) appleTouchIconSizes: &'a BTreeSet<u32>,
+	pub(crate) safariMaskIconSvg: Option<ResourceUrl>,
+	pub(crate) safariMaskIconSvgCssColor: Option<Rc<String>>,
+	pub(crate) windowsTilesBrowserConfig: Option<ResourceUrl>,
 }
 
 impl<'a> HtmlDocumentData<'a>
 {
-	#[inline(always)]
-	pub(crate) fn addFacebookOpenGraphHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
-	{
-		self.facebookOpenGraph.facebookOpenGraph(endHeadNodes, self.title(), self.description(), &self.htmlUrls.linkHeaderCanonicalUrl()?, self.publicationDate, self.lastModificationDateOrPublicationDate, self.expirationDate, self.configuration, resources, &self.articleImage, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn addTwitterCardHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
-	{
-		self.twitterCard.addTo(endHeadNodes, &self.articleImage, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn addLinkNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
-	{
-		self.htmlUrls.addLinkNodes(endHeadNodes, addAmpLink, ampLinkIsCanonical)
-	}
-	
 	#[inline(always)]
 	pub(crate) fn htmlTitle(&self) -> &str
 	{
@@ -50,25 +42,143 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn htmlDescription(&self) -> &str
+	fn urlDataMandatory(&self, resources: &Resources, resourceUrl: &ResourceUrl, resourceTag: ResourceTag) -> Result<Rc<UrlData>, CordialError>
+	{
+		ResourceReference
+		{
+			resource: resourceUrl.clone(),
+			tag: resourceTag,
+		}.urlDataMandatory(resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.htmlUrls.languageData.iso639Dash1Alpha2Language))
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn addStartHeadNodes(&self, startHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	{
+		if let Some(ref themeCssColor) = self.themeCssColor
+		{
+			startHeadNodes.push(meta_with_name_and_content("theme-color", themeCssColor.as_str()));
+		}
+		
+		if let Some(ref favicon) = self.favicon
+		{
+			for iconSize in self.faviconSizes.iter()
+			{
+				let width = *iconSize;
+				let height = width;
+				let urlData = self.urlDataMandatory(resources, favicon, ResourceTag::width_height_image(width, height))?;
+				urlData.validateIsPng()?;
+				startHeadNodes.push("link".with_rel_attribute("icon").with_attribute("type".str_attribute(urlData.mimeType().as_ref())).with_href_attribute(urlData.url_str()).with_attribute("sizes".string_attribute(format!("{}x{}", width, height))));
+			}
+		}
+		
+		if self.safariFullscreen
+		{
+			startHeadNodes.push(meta_with_name_and_content("apple-mobile-web-app-capable", "yes"));
+		}
+		
+		if let Some(ref safariHtmlTitle) = self.htmlAbstract.safariHtmlTitle
+		{
+			startHeadNodes.push(meta_with_name_and_content("apple-mobile-web-app-title", safariHtmlTitle.as_str()));
+		}
+		
+		self.safariStatusBarAppearance.addTo(startHeadNodes);
+		
+		if !self.automaticTelephoneNumberDetection
+		{
+			startHeadNodes.push(meta_with_name_and_content("format-detection", "telephone=no"));
+		}
+		
+		if let Some(ref resourceUrl) = self.appleTouchIcon
+		{
+			for iconSize in self.appleTouchIconSizes.iter()
+			{
+				let width = *iconSize;
+				let height = width;
+				let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::width_height_image(width, height))?;
+				urlData.validateIsPng()?;
+				startHeadNodes.push("link".with_rel_attribute("apple-touch-icon").with_href_attribute(urlData.url_str()).with_attribute("sizes".string_attribute(format!("{}x{}", width, height))));
+			}
+		}
+		
+		if let Some(ref resourceUrl) = self.safariMaskIconSvg
+		{
+			let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::default)?;
+			urlData.validateIsSvg()?;
+			let mut node = "link".with_rel_attribute("mask-icon").with_href_attribute(urlData.url_str());
+			if let Some(ref safariMaskIconSvgCssColor) = self.safariMaskIconSvgCssColor
+			{
+				node = node.with_attribute("color".str_attribute(safariMaskIconSvgCssColor.as_str()));
+			}
+			startHeadNodes.push(node);
+		}
+		
+		if let Some(ref windowsTilesTitle) = self.htmlAbstract.windowsTilesTitle
+		{
+			startHeadNodes.push(meta_with_name_and_content("application-name", windowsTilesTitle.as_str()));
+		}
+		
+		if let Some(ref resourceUrl) = self.windowsTilesBrowserConfig
+		{
+			let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::default)?;
+			urlData.validateIsXml()?;
+			// TODO: Stronger validation
+			startHeadNodes.push(meta_with_name_and_content("msapplication-config", urlData.url_str()));
+		}
+		else
+		{
+			startHeadNodes.push(meta_with_name_and_content("msapplication-config", "none"));
+		}
+		
+		Ok(())
+		
+		
+		/*
+			TODO: amp-manifest
+				<link rel="amp-manifest" href="{{- $.Site.Params.ampManifest -}}">
+			TODO: style amp-custom
+				<style amp-custom>{{- partialCached "style.css" . -}}</style>
+		*/
+		/*
+			Complex rules for Apple products: https://gist.github.com/tfausak/2222823
+			Need multiple ones of these with media queries:-
+				<link rel="apple-touch-startup-image" href="icon.png">
+
+			Is this still needed in 2017?
+				<link rel="shortcut icon" href="/favicon.ico?v=GvkkE2q9Wv">
+		*/
+	}
+	
+	#[inline(always)]
+	pub(crate) fn endHeadNodes(&self, addAmpLink: bool, ampLinkIsCanonical: bool, resources: &Resources) -> Result<Vec<UnattachedNode>, CordialError>
+	{
+		let mut endHeadNodes = vec!
+		[
+			meta_with_name_and_content("description", self.htmlDescription()),
+		];
+		
+		if let Some(keywordsConcatenatedForBaidu) = self.keywordsConcatenatedForBaidu()
+		{
+			endHeadNodes.push(meta_with_name_and_content("keywords", keywordsConcatenatedForBaidu.as_str()))
+		}
+		
+		self.addLinkNodes(&mut endHeadNodes, addAmpLink, ampLinkIsCanonical)?;
+		
+		self.addFacebookOpenGraphHtmlNodes(&mut endHeadNodes, resources)?;
+		
+		self.addTwitterCardHtmlNodes(&mut endHeadNodes, resources);
+		
+		Ok(endHeadNodes)
+	}
+	
+	#[inline(always)]
+	fn htmlDescription(&self) -> &str
 	{
 		self.description()
 	}
 	
 	#[inline(always)]
-	pub(crate) fn title(&self) -> &str
-	{
-		&self.htmlAbstract.title
-	}
-	
-	#[inline(always)]
-	pub(crate) fn description(&self) -> &str
-	{
-		&self.htmlAbstract.description
-	}
-	
-	#[inline(always)]
-	pub(crate) fn keywordsConcatenatedForBaidu(&self) -> Option<String>
+	fn keywordsConcatenatedForBaidu(&self) -> Option<String>
 	{
 		let keywordsForBaidu = &self.htmlAbstract.keywords_for_baidu;
 		if keywordsForBaidu.is_empty()
@@ -95,9 +205,33 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn themeCssColor(&self) -> Option<&Rc<String>>
+	fn addLinkNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
 	{
-		self.themeCssColor.as_ref()
+		self.htmlUrls.addLinkNodes(endHeadNodes, addAmpLink, ampLinkIsCanonical)
+	}
+	
+	#[inline(always)]
+	fn addFacebookOpenGraphHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	{
+		self.facebookOpenGraph.facebookOpenGraph(endHeadNodes, self.title(), self.description(), &self.htmlUrls.linkHeaderCanonicalUrl()?, self.publicationDate, self.lastModificationDateOrPublicationDate, self.expirationDate, self.configuration, resources, &self.articleImage, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+	}
+	
+	#[inline(always)]
+	fn addTwitterCardHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	{
+		self.twitterCard.addTo(endHeadNodes, &self.articleImage, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn title(&self) -> &str
+	{
+		&self.htmlAbstract.title
+	}
+	
+	#[inline(always)]
+	pub(crate) fn description(&self) -> &str
+	{
+		&self.htmlAbstract.description
 	}
 	
 	#[inline(always)]

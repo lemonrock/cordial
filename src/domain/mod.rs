@@ -81,6 +81,7 @@ use ::url::percent_encoding::USERINFO_ENCODE_SET;
 use ::url::percent_encoding::utf8_percent_encode;
 
 
+pub(crate) mod browserConfig;
 pub(crate) mod compression;
 pub(crate) mod configure;
 pub(crate) mod daemon;

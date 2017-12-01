@@ -12,12 +12,6 @@ pub(crate) struct NodesForOtherPlacesInHtml
 
 impl NodesForOtherPlacesInHtml
 {
-	/*
-		TODO: amp-manifest
-			<link rel="amp-manifest" href="{{- $.Site.Params.ampManifest -}}">
-		TODO: style amp-custom
-			<style amp-custom>{{- partialCached "style.css" . -}}</style>
-	*/
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn new
@@ -31,38 +25,25 @@ impl NodesForOtherPlacesInHtml
 		resources: &Resources,
 	) -> Result<Self, CordialError>
 	{
-		let viewport = if isForAmp
-		{
-			"width=device-width,minimum-scale=1,initial-scale=1"
-		}
-		else
-		{
-			"width=device-width,minimum-scale=1,initial-scale=1,shrink-to-fit=no"
-		};
-		
-		/*
-		
-		Description of content (maximum 200 characters) twitter
-		Title of content (max 70 characters) twitter
-
-		*/
-		
 		let mut startHeadNodes = vec!
 		[
 			"meta".with_charset_attribute("utf-8"),
-			meta_with_name_and_content("viewport", viewport),
 			"title".with_child_text(htmlDocumentData.htmlTitle()),
-			meta_with_name_and_content("description", htmlDocumentData.htmlDescription()),
+			meta_with_name_and_content("viewport", if isForAmp
+			{
+				"width=device-width,minimum-scale=1,initial-scale=1"
+			}
+			else
+			{
+				"width=device-width,minimum-scale=1,initial-scale=1,shrink-to-fit=no"
+			}),
 		];
 		
-		if let Some(keywordsConcatenatedForBaidu) = htmlDocumentData.keywordsConcatenatedForBaidu()
-		{
-			startHeadNodes.push(meta_with_name_and_content("keywords", keywordsConcatenatedForBaidu.as_str()))
-		}
+		htmlDocumentData.addStartHeadNodes(&mut startHeadNodes, resources);
 		
-		if let Some(themeCssColor) = htmlDocumentData.themeCssColor()
+		if !isForAmp && pjaxIsSupported
 		{
-			startHeadNodes.push(meta_with_name_and_content("theme-color", themeCssColor.as_str()))
+			startHeadNodes.push(meta_with_http_equiv_and_content("X-PJAX-Version", &configuration.deploymentVersion));
 		}
 		
 		if isForAmp
@@ -97,14 +78,7 @@ impl NodesForOtherPlacesInHtml
 			);
 		}
 		
-		let mut endHeadNodes = vec![];
-		if !isForAmp && pjaxIsSupported
-		{
-			endHeadNodes.push(meta_with_http_equiv_and_content("X-PJAX-Version", &configuration.deploymentVersion));
-		}
-		htmlDocumentData.addLinkNodes(&mut endHeadNodes, addAmpLink, ampLinkIsCanonical)?;
-		htmlDocumentData.addFacebookOpenGraphHtmlNodes(&mut endHeadNodes, resources)?;
-		htmlDocumentData.addTwitterCardHtmlNodes(&mut endHeadNodes, resources)?;
+		let endHeadNodes = htmlDocumentData.endHeadNodes(addAmpLink, ampLinkIsCanonical, resources)?;
 		
 		Ok
 		(

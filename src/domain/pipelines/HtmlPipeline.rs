@@ -38,6 +38,16 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] open_graph: Rc<FacebookOpenGraph>,
 	#[serde(default)] twitter_card: Rc<TwitterCard>,
 	#[serde(default)] theme_css_color: Option<Rc<String>>,
+	#[serde(default)] safari_fullscreen: bool,
+	#[serde(default)] safari_status_bar_appearance: SafariStatusBarAppearance,
+	#[serde(default)] automatic_telephone_number_detection: bool,
+	#[serde(default)] favicon: Option<ResourceUrl>,
+	#[serde(default)] favicon_sizes: BTreeSet<u32>,
+	#[serde(default)] apple_touch_icon: Option<ResourceUrl>,
+	#[serde(default)] apple_touch_icon_sizes: BTreeSet<u32>,
+	#[serde(default)] safari_mask_icon_svg: Option<ResourceUrl>,
+	#[serde(default)] safari_mask_icon_svg_css_color: Option<Rc<String>>,
+	#[serde(default)] windows_tiles_browser_config: Option<ResourceUrl>,
 }
 
 impl Default for HtmlPipeline
@@ -74,6 +84,16 @@ impl Default for HtmlPipeline
 			open_graph: Default::default(),
 			twitter_card: Default::default(),
 			theme_css_color: None,
+			safari_fullscreen: false,
+			safari_status_bar_appearance: Default::default(),
+			automatic_telephone_number_detection: false,
+			favicon: None,
+			favicon_sizes: Default::default(),
+			apple_touch_icon: None,
+			apple_touch_icon_sizes: Default::default(),
+			safari_mask_icon_svg: None,
+			safari_mask_icon_svg_css_color: None,
+			windows_tiles_browser_config: None,
 		}
 	}
 }
@@ -183,6 +203,16 @@ impl Pipeline for HtmlPipeline
 			facebookOpenGraph: self.open_graph.clone(),
 			twitterCard: self.twitter_card.clone(),
 			themeCssColor: self.theme_css_color.clone(),
+			safariFullscreen: self.safari_fullscreen,
+			safariStatusBarAppearance: self.safari_status_bar_appearance,
+			automaticTelephoneNumberDetection: self.automatic_telephone_number_detection,
+			favicon: self.favicon.clone(),
+			faviconSizes: &self.favicon_sizes,
+			appleTouchIcon: self.apple_touch_icon.clone(),
+			appleTouchIconSizes: &self.apple_touch_icon_sizes,
+			safariMaskIconSvg: self.safari_mask_icon_svg.clone(),
+			safariMaskIconSvgCssColor: self.safari_mask_icon_svg_css_color.clone(),
+			windowsTilesBrowserConfig: self.windows_tiles_browser_config.clone(),
 		};
 		
 		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;

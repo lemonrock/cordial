@@ -83,7 +83,29 @@ It also does a lot more to create a great experience for your users:-
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 * Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
 * Not all URLs are validated for existence. This because they are external (shortcodes, pingbacks).
-		
+
+
+## Notes on (fav) icons
+
+* Android Chrome Web App Manifest icons:-
+	* Should be for sizes 36x36, 48x48, 72x72, 96x96, 144x144, 192x192, 256x256, 384x384 and 512x512.
+	* Should be PNG.
+* MS Tile icons:-
+	* Should be for sizes 70x70, 150x150, 310x310 and 310x150 (used by browserconfig.xml).
+	* Should also be 144x144 for IE 10.
+	* Should be PNG.
+* Apple Safari icons, both precomposed and regular:-
+	* Should be for sizes 57x57, 60x60, 72x72, 76x76, 114x114, 120x120, 144x144, 152x152 and 180x180.
+	* Should be PNG.
+	* Should have a default icon which is 180x180, ie largest.
+	* There should also be a SVG mask for pinned tabs.
+* Apple Touch icons:-
+	* Should be for sizes 120x120, 180x180, 152x152 and 167x167.
+	* Should be PNG.
+* If favicon PNGs are supplied, then:-
+	* Should be in sizes 16x16, 32x32, 192x192 and 194x194.
+* If legacy ICOs are supplied, then:-
+	* Should be one file containing 16x16, 32x32 and 48x48.
 
 ## Licensing
 
@@ -99,6 +121,7 @@ The license for this project is AGPL-3.0.
 	* 403 Forbidden
 	* 404 Not Found
 * Web server
+	* Support start URLs in Web App Manifests that are visited with query strings such as `?utm_source=homescreen`
 	* Create output and cache folders so that they are readable/writable by webserver user after dropping permissions
 	* Generate access logs
 * Additional SVG plugins

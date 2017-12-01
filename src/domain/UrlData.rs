@@ -140,6 +140,17 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn validateIsXml(&self) -> Result<(), CordialError>
+	{
+		match (self.mimeType.type_(), self.mimeType.subtype())
+		{
+			(mime::TEXT, mime::XML) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Resource should be XML".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn validateHasMimeType(&self, hasMimeType: &Mime) -> Result<(), CordialError>
 	{
 		if &self.mimeType == hasMimeType

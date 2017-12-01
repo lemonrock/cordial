@@ -20,7 +20,7 @@ pub(crate) struct WebAppManifestPipeline
 	#[serde(default)] pub(crate) iarc_rating_id: Option<String>,
 	#[serde(default)] pub(crate) start_url: ResourceUrl,
 	#[serde(default)] pub(crate) display: WebAppManifestDisplay,
-	#[serde(default)] pub(crate) orientation: WebAppManifestOrientation,
+	#[serde(default)] pub(crate) orientation: Option<WebAppManifestOrientation>,
 	#[serde(default)] pub(crate) theme_css_color: Option<Rc<String>>,
 	#[serde(default)] pub(crate) background_css_color: Option<Rc<String>>,
 	#[serde(default)] pub(crate) scope: ResourceUrl,

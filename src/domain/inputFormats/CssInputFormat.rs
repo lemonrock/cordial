@@ -49,7 +49,7 @@ impl InputFormat for CssInputFormat
 impl CssInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, handlebars: Option<(&HandlebarsWrapper, Option<&LanguageData>, bool)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, templateData: Option<(&HandlebarsWrapper, &JsonMap<String, JsonValue>, &LanguageData)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
 	{
 		let format = match option
 		{
@@ -68,40 +68,32 @@ impl CssInputFormat
 			}
 		};
 		let raw = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		let input = Self::preProcessWithHandlebars(raw, configuration, handlebars)?;
+		let input = Self::preProcessWithHandlebars(raw, configuration, templateData)?;
 		let cssString = format.processCss(inputContentFilePath, precision, configuration, input)?;
 		Self::validateCssAndAutoprefix(inputContentFilePath, &cssString, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, regional_usages)
 	}
 	
 	#[inline(always)]
-	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, handlebars: Option<(&HandlebarsWrapper, Option<&LanguageData>, bool)>) -> Result<String, CordialError>
+	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, templateData: Option<(&HandlebarsWrapper, &JsonMap<String, JsonValue>, &LanguageData)>) -> Result<String, CordialError>
 	{
-		if let Some((handlebars, languageData, canBeCompressed)) = handlebars
+		if let Some((handlebars, templateParameters, languageData)) = templateData
 		{
 			let localization = &configuration.localization;
 			let deploymentVersion = &configuration.deploymentVersion;
 			
-			let (ourLanguage, otherLanguages) = match languageData
-			{
-				None => (None, None),
-				Some(&LanguageData { iso639Dash1Alpha2Language, language }) =>
-				{
-					let mut ourLanguage = HashMap::with_capacity(2);
-					ourLanguage.insert("iso639Dash1Alpha2Language", iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
-					ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso3166Dash1Alpha2CountryCode().to_iso_3166_1_alpha_2_language_code());
-					(Some(ourLanguage), Some(localization.otherLanguages(iso639Dash1Alpha2Language)))
-				}
-			};
+			let mut ourLanguage = HashMap::with_capacity(2);
+			ourLanguage.insert("iso639Dash1Alpha2Language", languageData.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
+			ourLanguage.insert("iso_3166_1_alpha_2_country_code", languageData.language.iso3166Dash1Alpha2CountryCode().to_iso_3166_1_alpha_2_language_code());
 			
 			let json = &json!
 			({
 				"environment": &configuration.environment,
 				"our_language": ourLanguage,
 				"localization": localization,
-				"other_languages": otherLanguages,
-				"can_be_compressed": canBeCompressed,
+				"can_be_compressed": true,
 				"deployment_date": configuration.deploymentDate,
 				"deployment_version": deploymentVersion,
+				"template_parameters": templateParameters,
 			});
 			
 			handlebars.renderWithEscapeFunction(::handlebars::no_escape, |templateRenderer| templateRenderer.template_render(&raw, json))

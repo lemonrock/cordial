@@ -8,6 +8,7 @@ use self::ProcessingPriority::*;
 use self::ResourceTag::*;
 use ::ordermap::OrderMap;
 use ::serde::de;
+use ::serde_json::Map as JsonMap;
 
 
 include!("BrowserConfigPipeline.rs");

@@ -21,16 +21,11 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) facebookOpenGraph: Rc<FacebookOpenGraph>,
 	pub(crate) twitterCard: Rc<TwitterCard>,
 	pub(crate) themeCssColor: Option<Rc<String>>,
-	pub(crate) favicon: Option<ResourceUrl>,
-	pub(crate) faviconSizes: &'a BTreeSet<u32>,
-	pub(crate) safariFullscreen: bool,
-	pub(crate) safariStatusBarAppearance: SafariStatusBarAppearance,
 	pub(crate) automaticTelephoneNumberDetection: bool,
-	pub(crate) appleTouchIcon: Option<ResourceUrl>,
-	pub(crate) appleTouchIconSizes: &'a BTreeSet<u32>,
-	pub(crate) safariMaskIconSvg: Option<ResourceUrl>,
-	pub(crate) safariMaskIconSvgCssColor: Option<Rc<String>>,
-	pub(crate) windowsTilesBrowserConfig: Option<ResourceUrl>,
+	pub(crate) favIcon: Option<&'a FavIcon>,
+	pub(crate) svgFavIcon: Option<&'a ResourceUrl>,
+	pub(crate) safariStyling: Option<&'a SafariStyling>,
+	pub(crate) windowsTilesBrowserConfig: Option<&'a ResourceUrl>,
 }
 
 impl<'a> HtmlDocumentData<'a>
@@ -38,7 +33,7 @@ impl<'a> HtmlDocumentData<'a>
 	#[inline(always)]
 	pub(crate) fn htmlTitle(&self) -> &str
 	{
-		&self.htmlAbstract.htmlTitle
+		&self.htmlAbstract.title_html
 	}
 	
 	#[inline(always)]
@@ -48,86 +43,25 @@ impl<'a> HtmlDocumentData<'a>
 		{
 			resource: resourceUrl.clone(),
 			tag: resourceTag,
-		}.urlDataMandatory(resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.htmlUrls.languageData.iso639Dash1Alpha2Language))
+		}.urlDataMandatory(resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()))
 	}
 	
-	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addStartHeadNodes(&self, startHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
+	pub(crate) fn addStartHeadNodes(&self, startHeadNodes: &mut Vec<UnattachedNode>, _resources: &Resources) -> Result<(), CordialError>
 	{
 		if let Some(ref themeCssColor) = self.themeCssColor
 		{
 			startHeadNodes.push(meta_with_name_and_content("theme-color", themeCssColor.as_str()));
 		}
 		
-		if let Some(ref favicon) = self.favicon
-		{
-			for iconSize in self.faviconSizes.iter()
-			{
-				let width = *iconSize;
-				let height = width;
-				let urlData = self.urlDataMandatory(resources, favicon, ResourceTag::width_height_image(width, height))?;
-				urlData.validateIsPng()?;
-				startHeadNodes.push("link".with_rel_attribute("icon").with_attribute("type".str_attribute(urlData.mimeType().as_ref())).with_href_attribute(urlData.url_str()).with_attribute("sizes".string_attribute(format!("{}x{}", width, height))));
-			}
-		}
-		
-		if self.safariFullscreen
-		{
-			startHeadNodes.push(meta_with_name_and_content("apple-mobile-web-app-capable", "yes"));
-		}
-		
-		if let Some(ref safariHtmlTitle) = self.htmlAbstract.safariHtmlTitle
-		{
-			startHeadNodes.push(meta_with_name_and_content("apple-mobile-web-app-title", safariHtmlTitle.as_str()));
-		}
-		
-		self.safariStatusBarAppearance.addTo(startHeadNodes);
-		
 		if !self.automaticTelephoneNumberDetection
 		{
 			startHeadNodes.push(meta_with_name_and_content("format-detection", "telephone=no"));
 		}
 		
-		if let Some(ref resourceUrl) = self.appleTouchIcon
+		if let Some(safariStyling) = self.safariStyling
 		{
-			for iconSize in self.appleTouchIconSizes.iter()
-			{
-				let width = *iconSize;
-				let height = width;
-				let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::width_height_image(width, height))?;
-				urlData.validateIsPng()?;
-				startHeadNodes.push("link".with_rel_attribute("apple-touch-icon").with_href_attribute(urlData.url_str()).with_attribute("sizes".string_attribute(format!("{}x{}", width, height))));
-			}
-		}
-		
-		if let Some(ref resourceUrl) = self.safariMaskIconSvg
-		{
-			let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::default)?;
-			urlData.validateIsSvg()?;
-			let mut node = "link".with_rel_attribute("mask-icon").with_href_attribute(urlData.url_str());
-			if let Some(ref safariMaskIconSvgCssColor) = self.safariMaskIconSvgCssColor
-			{
-				node = node.with_attribute("color".str_attribute(safariMaskIconSvgCssColor.as_str()));
-			}
-			startHeadNodes.push(node);
-		}
-		
-		if let Some(ref windowsTilesTitle) = self.htmlAbstract.windowsTilesTitle
-		{
-			startHeadNodes.push(meta_with_name_and_content("application-name", windowsTilesTitle.as_str()));
-		}
-		
-		if let Some(ref resourceUrl) = self.windowsTilesBrowserConfig
-		{
-			let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::default)?;
-			urlData.validateIsXml()?;
-			// TODO: Stronger validation
-			startHeadNodes.push(meta_with_name_and_content("msapplication-config", urlData.url_str()));
-		}
-		else
-		{
-			startHeadNodes.push(meta_with_name_and_content("msapplication-config", "none"));
+			safariStyling.addToStartHeadNodes(startHeadNodes, &self.htmlAbstract);
 		}
 		
 		Ok(())
@@ -143,12 +77,10 @@ impl<'a> HtmlDocumentData<'a>
 			Complex rules for Apple products: https://gist.github.com/tfausak/2222823
 			Need multiple ones of these with media queries:-
 				<link rel="apple-touch-startup-image" href="icon.png">
-
-			Is this still needed in 2017?
-				<link rel="shortcut icon" href="/favicon.ico?v=GvkkE2q9Wv">
 		*/
 	}
 	
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn endHeadNodes(&self, addAmpLink: bool, ampLinkIsCanonical: bool, resources: &Resources) -> Result<Vec<UnattachedNode>, CordialError>
 	{
@@ -164,9 +96,43 @@ impl<'a> HtmlDocumentData<'a>
 		
 		self.addLinkNodes(&mut endHeadNodes, addAmpLink, ampLinkIsCanonical)?;
 		
-		self.addFacebookOpenGraphHtmlNodes(&mut endHeadNodes, resources)?;
+		if let Some(favIcon) = self.favIcon
+		{
+			favIcon.addLinkNodes(&mut endHeadNodes, "icon", resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()))?;
+		}
 		
-		self.addTwitterCardHtmlNodes(&mut endHeadNodes, resources);
+		if let Some(svgFavIcon) = self.svgFavIcon
+		{
+			let urlData= self.urlDataMandatory(resources, svgFavIcon, ResourceTag::default)?;
+			urlData.validateIsSvg()?;
+			
+			endHeadNodes.push("link".with_rel_attribute("icon").with_attribute("type".str_attribute(urlData.mimeType().as_ref())).with_href_attribute(urlData.url_str()))
+		}
+		
+		if let Some(safariStyling) = self.safariStyling
+		{
+			safariStyling.addToEndHeadNodes(&mut endHeadNodes, resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()))?;
+		}
+		
+		if let Some(ref windowsTilesTitle) = self.htmlAbstract.windows_tiles_title
+		{
+			endHeadNodes.push(meta_with_name_and_content("application-name", windowsTilesTitle.as_str()));
+		}
+		
+		if let Some(ref resourceUrl) = self.windowsTilesBrowserConfig
+		{
+			let urlData = self.urlDataMandatory(resources, resourceUrl, ResourceTag::default)?;
+			urlData.validateIsXml()?;
+			endHeadNodes.push(meta_with_name_and_content("msapplication-config", urlData.url_str()));
+		}
+		else
+		{
+			endHeadNodes.push(meta_with_name_and_content("msapplication-config", "none"));
+		}
+		
+		self.addFacebookOpenGraphHtmlNodes(&mut endHeadNodes,  resources)?;
+		
+		self.addTwitterCardHtmlNodes(&mut endHeadNodes, resources)?;
 		
 		Ok(endHeadNodes)
 	}

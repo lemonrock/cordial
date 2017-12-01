@@ -6,16 +6,12 @@ use super::*;
 use ::serde::ser::Error as SerializeError;
 use ::serde::ser::SerializeStruct;
 use ::std::convert::AsRef;
-use ::std::convert::Into;
-use ::std::cmp::*;
-use ::std::hash::*;
 
 
 include!("WebAppManifestAbstract.rs");
 include!("WebAppManifestCategory.rs");
 include!("WebAppManifestDisplay.rs");
 include!("WebAppManifestIcon.rs");
-include!("WebAppManifestIconPixelDensity.rs");
 include!("WebAppManifestIconPurpose.rs");
 include!("WebAppManifestJsonRoot.rs");
 include!("WebAppManifestOrientation.rs");

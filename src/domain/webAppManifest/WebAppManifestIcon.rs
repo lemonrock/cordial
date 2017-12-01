@@ -7,7 +7,6 @@
 pub(crate) struct WebAppManifestIcon
 {
 	icon: ResourceReference,
-	#[serde(default)] density: WebAppManifestIconPixelDensity,
 	purposes: BTreeSet<WebAppManifestIconPurpose>,
 	platform: Option<WebAppManifestPlatform>,
 }
@@ -18,16 +17,6 @@ impl Serialize for WebAppManifestIcon
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	{
 		let mut fieldCount = 3;
-		
-		let serializeDensity = if self.density.isDefault()
-		{
-			fieldCount += 1;
-			false
-		}
-		else
-		{
-			true
-		};
 		
 		if !self.purposes.is_empty()
 		{
@@ -54,11 +43,6 @@ impl Serialize for WebAppManifestIcon
 				return Err(S::Error::custom("width and height must be square for a web app manifest icon"));
 			}
 			state.serialize_field("sizes", &format!("{}x{}", width, height))?;
-			
-			if serializeDensity
-			{
-				state.serialize_field("density", &self.density)?;
-			}
 			
 			if !self.purposes.is_empty()
 			{

@@ -39,7 +39,7 @@ impl NodesForOtherPlacesInHtml
 			}),
 		];
 		
-		htmlDocumentData.addStartHeadNodes(&mut startHeadNodes, resources);
+		htmlDocumentData.addStartHeadNodes(&mut startHeadNodes, resources)?;
 		
 		if !isForAmp && pjaxIsSupported
 		{

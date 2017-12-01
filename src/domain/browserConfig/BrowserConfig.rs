@@ -41,10 +41,11 @@ impl BrowserConfig
 			{
 				eventWriter.writeWithinElement(Name::local("tile"), &namespace, &emptyAttributes, |mut eventWriter|
 				{
-					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 70, 70)?;
-					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 150, 150)?;
-					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 310, 150)?;
-					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 310, 310)?;
+					// TODO: Almost. In fact Microsoft recommends to use larger pictures. This is to present high resolution pictures to the user even when the desktop is scaled up. Therefore the recommended sizes are 128x128, 270x270, 558x558 and 558x270.
+					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 70, 70, 128, 128)?;
+					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 150, 150, 270, 270)?;
+					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 310, 150, 558, 270)?;
+					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 310, 310, 558, 558)?;
 					self.writeTileColorElement(&mut eventWriter, &namespace)
 				})?;
 				
@@ -139,7 +140,7 @@ impl BrowserConfig
 	}
 	
 	#[inline(always)]
-	fn writeTileIconElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, width: u32, height: u32) -> Result<(), CordialError>
+	fn writeTileIconElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, width: u32, height: u32, iconWidth: u32, iconHeight: u32) -> Result<(), CordialError>
 	{
 		let elementName = if width == height
 		{
@@ -150,7 +151,7 @@ impl BrowserConfig
 			format!("wide{}x{}logo", width, height)
 		};
 		
-		let urlData = Self::pngUrlData(&self.tile_url, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, width, height)?;
+		let urlData = Self::pngUrlData(&self.tile_url, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, iconWidth, iconHeight)?;
 		
 		Self::writeEmptyElementWithSrcAttribute(eventWriter, namespace, &elementName, urlData)
 	}

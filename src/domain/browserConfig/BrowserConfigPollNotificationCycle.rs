@@ -28,7 +28,7 @@ impl Default for BrowserConfigPollNotificationCycle
 impl BrowserConfigPollNotificationCycle
 {
 	#[inline(always)]
-	fn to_str(&self) -> &'static str
+	pub(crate) fn to_str(&self) -> &'static str
 	{
 		use self::BrowserConfigPollNotificationCycle::*;
 		

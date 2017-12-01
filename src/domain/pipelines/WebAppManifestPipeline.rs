@@ -94,21 +94,6 @@ impl Pipeline for WebAppManifestPipeline
 			languageData,
 			webAppManifestPipeline: self,
 		}.to_json_bytes(resources, configuration.fallbackIso639Dash1Alpha2Language())?;
-	
-		// "theme_color": "aliceblue" - we should use the theme color of the scope HTML page
-		
-		/*
-		"related_applications": [
-  {
-    "platform": "play",
-    "url": "https://play.google.com/store/apps/details?id=com.example.app1",
-    "id": "com.example.app1"
-  }, {
-    "platform": "itunes",
-    "url": "https://itunes.apple.com/app/example-app1/id123456789"
-  }]
-		*/
-		
 		
 		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(mimeType("application/manifest+json")), headers, body, None, CanBeCompressed)])
 	}

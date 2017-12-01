@@ -2,14 +2,6 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::xml::attribute::Attribute as XmlAttribute;
-use ::xml::name::Name;
-use ::xml::namespace::Namespace;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::EventWriter;
 
-
-include!("BrowserConfig.rs");
 include!("BrowserConfigPollFrequencyInMinutes.rs");
 include!("BrowserConfigPollNotificationCycle.rs");

@@ -4,38 +4,38 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum BrowserConfigPollFrequencyInMinutes
+pub(crate) enum BrowserConfigInputFormat
 {
-	#[serde(rename = "30")] _30,
-	#[serde(rename = "60")] _60,
-	#[serde(rename = "360")] _360,
-	#[serde(rename = "720")] _720,
-	#[serde(rename = "1440")] _1440,
+	xml,
 }
 
-impl Default for BrowserConfigPollFrequencyInMinutes
+impl Default for BrowserConfigInputFormat
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		BrowserConfigPollFrequencyInMinutes::_30
+		BrowserConfigInputFormat::xml
 	}
 }
 
-impl BrowserConfigPollFrequencyInMinutes
+impl InputFormat for BrowserConfigInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn to_str(&self) -> &'static str
+	fn fileExtensions(&self) -> &'static [&'static str]
 	{
-		use self::BrowserConfigPollFrequencyInMinutes::*;
+		use self::BrowserConfigInputFormat::*;
 		
 		match *self
 		{
-			_30 => "30",
-			_60 => "60",
-			_360 => "360",
-			_720 => "720",
-			_1440 => "1440",
+			xml => &[".xml"],
 		}
+	}
+	
+	#[inline(always)]
+	fn allFileExtensions() -> &'static [&'static str]
+	{
+		&[
+			".xml",
+		]
 	}
 }

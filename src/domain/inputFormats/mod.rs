@@ -12,6 +12,7 @@ use super::svg::QrCodeData;
 use ::woff2_sys::convertTtfToWoff2;
 
 
+include!("BrowserConfigInputFormat.rs");
 include!("CssInputFormat.rs");
 include!("FontInputFormat.rs");
 include!("HtmlInputFormat.rs");

@@ -7,6 +7,7 @@
 pub(crate) struct Resource
 {
 	#[serde(default)] pipeline: ResourcePipeline,
+	#[serde(default)] browser_config: BrowserConfigPipeline,
 	#[serde(default)] css: CssPipeline,
 	#[serde(default)] font: FontPipeline,
 	#[serde(default)] gif_animation: GifAnimationPipeline,
@@ -413,6 +414,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			css => self.css.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			font => self.font.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			gif_animation => self.gif_animation.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
@@ -430,6 +432,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.addToImgAttributes(attributes),
 			css => self.css.addToImgAttributes(attributes),
 			font => self.font.addToImgAttributes(attributes),
 			gif_animation => self.gif_animation.addToImgAttributes(attributes),
@@ -447,6 +450,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.imageMetaData(),
 			css => self.css.imageMetaData(),
 			font => self.font.imageMetaData(),
 			gif_animation => self.gif_animation.imageMetaData(),
@@ -464,6 +468,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.processingPriority(),
 			css => self.css.processingPriority(),
 			font => self.font.processingPriority(),
 			gif_animation => self.gif_animation.processingPriority(),
@@ -481,6 +486,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.resourceInputContentFileNamesWithExtension(resourceInputName),
 			css => self.css.resourceInputContentFileNamesWithExtension(resourceInputName),
 			font => self.font.resourceInputContentFileNamesWithExtension(resourceInputName),
 			gif_animation => self.gif_animation.resourceInputContentFileNamesWithExtension(resourceInputName),
@@ -498,6 +504,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.is(),
 			css => self.css.is(),
 			font => self.font.is(),
 			gif_animation => self.gif_animation.is(),
@@ -515,6 +522,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			browser_config => self.browser_config.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			css => self.css.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			font => self.font.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			gif_animation => self.gif_animation.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),

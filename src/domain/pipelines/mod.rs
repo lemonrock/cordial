@@ -10,6 +10,7 @@ use ::ordermap::OrderMap;
 use ::serde::de;
 
 
+include!("BrowserConfigPipeline.rs");
 include!("CssPipeline.rs");
 include!("GifAnimationPipeline.rs");
 include!("FontPipeline.rs");

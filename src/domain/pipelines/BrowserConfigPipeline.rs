@@ -2,11 +2,17 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-// See https://msdn.microsoft.com/library/dn320426(v=vs.85).aspx
+// See https://www.w3.org/TR/appmanifest/#webappmanifest-dictionary
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct BrowserConfig
+pub(crate) struct BrowserConfigPipeline
 {
+	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
+	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
+	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
+	#[serde(default = "WebAppManifestPipeline::language_aware_default")] language_aware: bool,
+	#[serde(default)] input_format: Option<BrowserConfigInputFormat>,
+	
 	#[serde(default)] pub(crate) tile_url: ResourceUrl,
 	#[serde(default)] pub(crate) tile_color: [u8; 3],
 	#[serde(default)] pub(crate) badge_url: Option<ResourceUrl>,
@@ -16,11 +22,69 @@ pub(crate) struct BrowserConfig
 	#[serde(default)] pub(crate) notification_poll_cycle: BrowserConfigPollNotificationCycle,
 }
 
-impl BrowserConfig
+impl Default for BrowserConfigPipeline
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		Self
+		{
+			max_age_in_seconds: max_age_in_seconds_long_default(),
+			is_downloadable: is_downloadable_false_default(),
+			is_versioned: Self::language_aware_default(),
+			language_aware: false,
+			input_format: None,
+			
+			tile_url: Default::default(),
+			tile_color: [0; 3],
+			badge_url: None,
+			badge_poll_frequency: BrowserConfigPollFrequencyInMinutes::default(),
+			notification_urls: [None, None, None, None, None],
+			notification_poll_frequency: BrowserConfigPollFrequencyInMinutes::default(),
+			notification_poll_cycle: BrowserConfigPollNotificationCycle::default(),
+		}
+	}
+}
+
+impl Pipeline for BrowserConfigPipeline
+{
+	#[inline(always)]
+	fn processingPriority(&self) -> ProcessingPriority
+	{
+		DependsOnOthersEgStylesheet
+	}
+	
+	#[inline(always)]
+	fn resourceInputContentFileNamesWithExtension(&self, resourceInputName: &str) -> Vec<String>
+	{
+		self.input_format.resourceInputContentFileNamesWithExtension(resourceInputName)
+	}
+	
+	#[inline(always)]
+	fn is<'a>(&self) -> (bool, bool)
+	{
+		(self.is_versioned, self.language_aware)
+	}
+	
+	#[inline(always)]
+	fn execute(&self, resources: &Resources, _inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	{
+		let url = resourceUrl.replaceFileNameExtension(".xml").url(languageData)?;
+		
+		const CanBeCompressed: bool = true;
+		let headers = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
+		
+		let body = self.body(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(languageData.iso639Dash1Alpha2Language))?;
+		
+		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(mime::TEXT_XML), headers, body, None, CanBeCompressed)])
+	}
+}
+
+impl BrowserConfigPipeline
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn to_xml(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Vec<u8>, CordialError>
+	fn body(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<Vec<u8>, CordialError>
 	{
 		let emptyAttributes = [];
 		
@@ -134,12 +198,6 @@ impl BrowserConfig
 	}
 	
 	#[inline(always)]
-	fn writeFrequencyElement(eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, frequency: BrowserConfigPollFrequencyInMinutes) -> Result<(), CordialError>
-	{
-		eventWriter.writeTextElement(&namespace, &[], Name::local("frequency"), frequency.to_str())
-	}
-	
-	#[inline(always)]
 	fn writeTileIconElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, width: u32, height: u32, iconWidth: u32, iconHeight: u32) -> Result<(), CordialError>
 	{
 		let elementName = if width == height
@@ -160,6 +218,12 @@ impl BrowserConfig
 	fn writeTileColorElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace) -> Result<(), CordialError>
 	{
 		eventWriter.writeTextElement(&namespace, &[], Name::local("TileColor"), &format!("#{:02X}{:02X}{:02X}", self.tile_color[0], self.tile_color[1], self.tile_color[2]))
+	}
+	
+	#[inline(always)]
+	fn writeFrequencyElement(eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, frequency: BrowserConfigPollFrequencyInMinutes) -> Result<(), CordialError>
+	{
+		eventWriter.writeTextElement(&namespace, &[], Name::local("frequency"), frequency.to_str())
 	}
 	
 	#[inline(always)]
@@ -218,5 +282,11 @@ impl BrowserConfig
 			autopad_comments: false,
 		};
 		configuration.create_writer(Vec::with_capacity(4096))
+	}
+	
+	#[inline(always)]
+	fn language_aware_default() -> bool
+	{
+		true
 	}
 }

@@ -157,6 +157,51 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn findUrlDataForTwitterCardPlayerPlaceHolderImage(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
+	{
+		const FiveMegabytesExclusive: u64 = 5 * 1024 * 1024;
+		const MinimumPixelsInclusive: u64 = 68_800;
+		
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an ideal image for Twitter Cards player twitter::image for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				// Find the largest image with the correct ratio and minimum dimensions under 5 Mb and more than 68,600 pixels.
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForTwitterCardsImage()
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if urlData.size() < FiveMegabytesExclusive && idealImageWidth < width && (width as u64 * height as u64) >= MinimumPixelsInclusive
+								{
+									idealImageWidth = width;
+									idealImageUrlData = Some(urlData);
+								}
+							}
+							
+							_ => (),
+						}
+					}
+				}
+				
+				match idealImageUrlData
+				{
+					Some(urlData) => Ok(urlData),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for Twitter Cards player twitter::image for '{:?}'", self.name()))),
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn findUrlDataForFacebookOpenGraphImage(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
 	{
 		const EightMegabytes: u64 = 8 * 1024 * 1024;

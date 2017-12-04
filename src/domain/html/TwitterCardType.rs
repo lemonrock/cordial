@@ -8,11 +8,13 @@
 pub(crate) enum TwitterCardType
 {
 	summary,
+	
 	summary_large_image
 	{
 		// AKA author
 		#[serde(default)] creator: Option<TwitterAtHandle>,
 	},
+	
 	app
 	{
 		#[serde(default)] iphone: Option<TwitterCardAppReference>,
@@ -20,25 +22,9 @@ pub(crate) enum TwitterCardType
 		#[serde(default)] googleplay: Option<TwitterCardAppReference>,
 	},
 	
-	// iframe rules:-
-	// HTML page must be responsive, filling the height and width of display area
-	// Default to ‘sound off’ for videos that automatically play content
-	// Content greater than 10 seconds in length must not automatically play
-	// Include stop, pause and play controls
-//	player
-//	{
-//		iframe: ResourceUrl, // twitter:player
-//		iframe_width: u32, // twitter:player:width
-//		iframe_height: u32, // twitter:player:height
-//		placeholder: ResourceUrl, // twitter:image, twitter:image:alt  placeholder image for video or animation. Images with fewer than 68,600 pixels (a 262x262 square image, or a 350x196 16:9 image) will cause the player card not to render. Images must be less than 5MB in size. JPG, PNG, WEBP and GIF formats are supported.
-//		mp4_stream: ResourceUrl, // twitter:player:stream  Codecs supported:  Video: H.264, Baseline Profile (BP), Level 3.0, up to 640 x 480 at 30 fps.  Audio: AAC, Low Complexity Profile (LC)
-//		mp4_stream_content_type: String, // twitter:player:stream:content_type  One of application/mp4 video/mp4 audio/mp4 BUT with additional codec information: https://tools.ietf.org/html/rfc6381#section-3.6
-//
-//		/*
-//
-//		Example of codecs:
-//			<meta name="twitter:player:stream:content_type" content="video/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;" />
-//			<meta name="twitter:player:stream:content_type" content="video/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;">
+	video_player,
+	
+	//audio_player,
 }
 
 impl Default for TwitterCardType
@@ -54,7 +40,7 @@ impl TwitterCardType
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
+	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, configuration: &Configuration) -> Result<(), CordialError>
 	{
 		fn validateTwitterAtHandle<'a>(twitterAtHandle: &'a String, name: &str) -> Result<&'a str, CordialError>
 		{
@@ -88,7 +74,6 @@ impl TwitterCardType
 				endHeadNodes.push(meta_with_property_and_content("twitter:image", urlData.url_str()));
 				
 				let altText = articleImageMetaData.alt(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-				// twitter is not clear by 'characters' whether they mean bytes or unicode code points or graphemes; we use the lowest possible value.
 				if altText.chars().count() > 420
 				{
 					return Err(CordialError::Configuration("Twitter restricts image alt text to 420 characters".to_owned()));
@@ -146,9 +131,40 @@ impl TwitterCardType
 				TwitterCardAppReference::addToIf(googleplay, "googleplay", endHeadNodes);
 			}
 			
-//			player { }
-//			{
-//			}
+			video_player => match articleVideo
+			{
+				None => return Err(CordialError::Configuration("Twitter player cards require at least one associated video".to_owned())),
+				Some(articleVideo) =>
+				{
+					let articleVideoResource = articleVideo.resourceMandatory(resources)?;
+					let videoPipeline = articleVideoResource.videoPipeline()?;
+					
+					addType(endHeadNodes, "player");
+					
+					addTwitterHandle(endHeadNodes, site, "site")?;
+					
+					endHeadNodes.push(meta_with_name_and_content("twitter:player", videoPipeline.iFramePlayerUrl(articleVideo, languageData)?.as_str()));
+					
+					let (width, height) = videoPipeline.dimensions();
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:width", &format!("{}", width)));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:height", &format!("{}", height)));
+					
+					let placeHolderResource = videoPipeline.placeholder.resourceMandatory(resources)?;
+					let placeHolderUrlData = placeHolderResource.findUrlDataForTwitterCardPlayerPlaceHolderImage(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					
+					endHeadNodes.push(meta_with_property_and_content("twitter:image", placeHolderUrlData.url_str()));
+					let placeHolderImageMetaData = placeHolderResource.imageMetaData()?;
+					let altText = placeHolderImageMetaData.alt(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+					if altText.chars().count() > 420
+					{
+						return Err(CordialError::Configuration("Twitter restricts image alt text to 420 characters".to_owned()));
+					}
+					endHeadNodes.push(meta_with_property_and_content("twitter:image:alt", altText));
+					
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", videoPipeline.mp4Url(articleVideo, configuration)?.as_str())));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.mp4ContentType()));
+				}
+			}
 		}
 		
 		Ok(())

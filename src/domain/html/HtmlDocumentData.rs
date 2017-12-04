@@ -187,7 +187,9 @@ impl<'a> HtmlDocumentData<'a>
 	#[inline(always)]
 	fn addTwitterCardHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
 	{
-		self.twitterCard.addTo(endHeadNodes, &self.articleImage, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+		let articleVideo = self.siteMapVideos.get(0);
+		
+		self.twitterCard.addTo(endHeadNodes, &self.articleImage, articleVideo, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData, self.configuration)
 	}
 	
 	#[inline(always)]
@@ -291,7 +293,7 @@ impl<'a> HtmlDocumentData<'a>
 		{
 			let resourceRef = siteMapVideoResourceUrl.resourceMandatory(resources)?;
 			let videoPipeline = resourceRef.videoPipeline()?;
-			videos.push(videoPipeline.siteMapWebPageVideo(siteMapVideoResourceUrl, self.htmlUrls.languageData)?);
+			videos.push(videoPipeline.siteMapWebPageVideo(siteMapVideoResourceUrl, self.htmlUrls.languageData, self.configuration)?);
 		}
 		
 		siteMapWebPages.push

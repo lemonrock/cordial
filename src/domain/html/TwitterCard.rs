@@ -27,9 +27,9 @@ impl Default for TwitterCard
 impl TwitterCard
 {
 	#[inline(always)]
-	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
+	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, configuration: &Configuration) -> Result<(), CordialError>
 	{
-		self.card.addTo(endHeadNodes, &self.site, articleImage, resources, fallbackIso639Dash1Alpha2Language, languageData)?;
+		self.card.addTo(endHeadNodes, &self.site, articleImage, articleVideo, resources, fallbackIso639Dash1Alpha2Language, languageData, configuration)?;
 		
 		Ok(())
 	}

@@ -41,6 +41,9 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) gallery: Option<ResourceUrl>,
 	#[serde(default)] pub(crate) requires_subscription: bool,
 	#[serde(default)] pub(crate) uploader: Option<Rc<Person>>,
+
+	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u32, u32)>,
+	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u32>,
 }
 
 impl Default for VideoPipeline
@@ -80,6 +83,9 @@ impl Default for VideoPipeline
 			gallery: None,
 			requires_subscription: false,
 			uploader: None,
+			
+			dimensions: Default::default(),
+			durationInSeconds: Default::default(),
 		}
 	}
 }
@@ -107,22 +113,33 @@ impl Pipeline for VideoPipeline
 	#[inline(always)]
 	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
 	{
-		let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
+		let isPrimaryLanguage = configuration.fallbackIso639Dash1Alpha2Language() == languageData.iso639Dash1Alpha2Language;
 		
-		let (width, height, optionalMp4VideoCodecString, optionalMp4AudioCodecString) = Self::mp4Metadata(&mp4Body, inputContentFilePath)?;
-		let mp4Url = self.mp4Url(resourceUrl, languageData)?;
-		let webmUrl = self.webmUrl(resourceUrl, languageData)?;
+		let mp4Url = self.mp4Url(resourceUrl, configuration)?;
+		let webmUrl = self.webmUrl(resourceUrl, configuration)?;
 		
 		let mut result = Vec::new();
 		
-		let videoNode = self.createVideoNode(resourceUrl, resources, configuration, languageData, inputContentFilePath, width, height, &mp4Url, &webmUrl)?;
+		let (mp4Body, width, height) = if isPrimaryLanguage
+		{
+			let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
+			let (width, height, _optionalMp4VideoCodecString, _optionalMp4AudioCodecString, durationInSeconds) = Self::mp4Metadata(&mp4Body, inputContentFilePath)?;
+			self.dimensions.set((width, height));
+			self.durationInSeconds.set(durationInSeconds);
+			(Some(mp4Body), width, height)
+		}
+		else
+		{
+			let (width, height) = self.dimensions.get();
+			(None, width, height)
+		};
 		
-		let isPrimaryLanguage = configuration.fallbackIso639Dash1Alpha2Language() == languageData.iso639Dash1Alpha2Language;
+		let videoNode = self.createVideoNode(resourceUrl, resources, configuration, languageData, inputContentFilePath, width, height, &mp4Url, &webmUrl, self.durationInSeconds.get())?;
 		
 		if isPrimaryLanguage
 		{
 			self.createWebVttTracks(inputContentFilePath, resourceUrl, configuration, headerGenerator, &mut result)?;
-			self.createMp4(width, height, mp4Url, headerGenerator, mp4Body, &mut result)?;
+			self.createMp4(width, height, mp4Url, headerGenerator, mp4Body.unwrap(), &mut result)?;
 			self.createWebm(width, height, webmUrl, headerGenerator, inputContentFilePath, &mut result)?;
 		}
 		
@@ -134,7 +151,7 @@ impl Pipeline for VideoPipeline
 
 impl VideoPipeline
 {
-	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<SiteMapWebPageVideo, CordialError>
+	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData, configuration: &Configuration) -> Result<SiteMapWebPageVideo, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -145,9 +162,9 @@ impl VideoPipeline
 				placeHolderUrl: self.placeholder.clone(),
 				
 				videoAbstract: self.videoAbstract(iso639Dash1Alpha2Language)?.clone(),
-				mp4Url: self.mp4Url(resourceUrl, languageData)?,
-				iFrameUrl: self.iFramePlayerResourceUrl(resourceUrl, languageData)?,
-				durationInSeconds: Some(0),
+				mp4Url: self.mp4Url(resourceUrl, configuration)?,
+				iFrameUrl: self.iFramePlayerUrl(resourceUrl, languageData)?,
+				durationInSeconds: Some(self.durationInSeconds.get()),
 				
 				expirationDate: self.expiration_date,
 				videoStarRating: self.rating,
@@ -164,25 +181,35 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn mp4Url(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	pub(crate) fn dimensions(&self) -> (u32, u32)
 	{
-		resourceUrl.replaceFileNameExtension(".mp4").url(languageData)
+		self.dimensions.get()
 	}
 	
 	#[inline(always)]
-	fn webmUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	pub(crate) fn mp4ContentType(&self) -> &str
 	{
-		resourceUrl.replaceFileNameExtension(".webm").url(languageData)
+		Self::Mp4TwitterMimeType
+	}
+	
+	#[inline(always)]
+	pub(crate) fn mp4Url(&self, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".mp4").url(&configuration.primaryLanguageData()?)
+	}
+	
+	#[inline(always)]
+	fn webmUrl(&self, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".webm").url(&configuration.primaryLanguageData()?)
 	}
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn iFramePlayerResourceUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	pub(crate) fn iFramePlayerUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
 	{
 		resourceUrl.replaceFileNameExtension(".iframe-player.html").url(languageData)
 	}
-	
-	// See http://geekthis.net/post/c-get-mp4-duration/
 	
 	// See http://www.leanbackplayer.com/test/h5mt.html for most variants
 	
@@ -204,7 +231,7 @@ impl VideoPipeline
 				if let Some((webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
 				{
 					let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
-					result.push((webVttUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
+					result.push((webVttUrl, hashmap! { video_track(track.kind, languageData.iso639Dash1Alpha2Language) => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
 				}
 				
 				Ok(())
@@ -219,12 +246,12 @@ impl VideoPipeline
 	{
 		const Compressible: bool = true;
 		
-		let iFramePlayerUrl = self.iFramePlayerResourceUrl(resourceUrl, languageData)?;
+		let iFramePlayerUrl = self.iFramePlayerUrl(resourceUrl, languageData)?;
 		let iFramePlayerBody = Self::iFramePlayerHtmlBody(videoNode, width);
 		let iFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, self.max_age_in_seconds, false, &iFramePlayerUrl)?;
 		let iFramePlayerTags = hashmap!
 		{
-			default => Rc::new(UrlDataDetails::generic(&iFramePlayerBody))
+			video_iframe => Rc::new(UrlDataDetails::generic(&iFramePlayerBody))
 		};
 		result.push((iFramePlayerUrl, iFramePlayerTags, StatusCode::Ok, ContentType::html(), iFramePlayerHeaders, iFramePlayerBody, None, Compressible));
 		Ok(())
@@ -238,7 +265,7 @@ impl VideoPipeline
 		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, self.max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
 		let mp4Tags = hashmap!
 		{
-			default => Rc::new(UrlDataDetails::video(&mp4Body, width, height))
+			video_mp4 => Rc::new(UrlDataDetails::video(&mp4Body, width, height))
 		};
 		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::Mp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
 		Ok(())
@@ -254,15 +281,18 @@ impl VideoPipeline
 		let webmHeaders = headerGenerator.generateHeadersForAsset(Incompressible, self.max_age_in_seconds, self.isDownloadable(), &webmUrl)?;
 		let webmTags = hashmap!
 		{
-			default => Rc::new(UrlDataDetails::video(&webmBody, width, height))
+			video_webm => Rc::new(UrlDataDetails::video(&webmBody, width, height))
 		};
 		result.push((webmUrl, webmTags, StatusCode::Ok, ContentType(mimeType(Self::WebMVp8MimeType)), webmHeaders, webmBody, None, Incompressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn mp4Metadata(mp4Body: &[u8], mp4FilePath: &Path) -> Result<(u32, u32, Option<String>, Option<String>), CordialError>
+	fn mp4Metadata(mp4Body: &[u8], mp4FilePath: &Path) -> Result<(u32, u32, Option<String>, Option<String>, u32), CordialError>
 	{
+		// TODO: durationInSeconds
+		// See http://geekthis.net/post/c-get-mp4-duration/
+		
 		use self::AudioVideoMetadata::*;
 		use self::audio_video_metadata::enums::VideoType::*;
 		use self::audio_video_metadata::enums::AudioType::*;
@@ -289,7 +319,7 @@ impl VideoPipeline
 				}
 				
 				
-				(videoMetadata.dimensions.width, videoMetadata.dimensions.height, videoMetadata.video, audioMetadata.audio)
+				(videoMetadata.dimensions.width, videoMetadata.dimensions.height, videoMetadata.video, audioMetadata.audio, 0)
 			},
 		};
 		Ok(attributes)
@@ -334,7 +364,7 @@ impl VideoPipeline
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u32, height: u32, mp4Url: &Url, webmUrl: &Url) -> Result<UnattachedNode, CordialError>
+	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u32, height: u32, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u32) -> Result<UnattachedNode, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -353,9 +383,10 @@ impl VideoPipeline
 			)
 		;
 		
-		videoNode = self.load.addToVideoNode(videoNode);
+		videoNode = self.load.addToVideoNode(videoNode, durationInSeconds);
 		
-		if self.initially_muted
+		// Twitter Player Card Rules: Default to ‘sound off’ for videos that automatically play content
+		if self.initially_muted || self.load == AudioVideoLoad::auto_play
 		{
 			videoNode = videoNode.with_empty_attribute("muted");
 		}

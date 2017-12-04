@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct AudioVideoTrack
 {
-	kind: AudioVideoTrackKind,
+	pub(crate) kind: AudioVideoTrackKind,
 	labels: HashMap<Iso639Dash1Alpha2Language, String>,
 }
 

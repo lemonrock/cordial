@@ -432,6 +432,12 @@ impl Configuration
 	}
 	
 	#[inline(always)]
+	pub(crate) fn primaryLanguageData<'a>(&'a self) -> Result<LanguageData<'a>, CordialError>
+	{
+		self.localization.languageData(self.localization.fallbackIso639Dash1Alpha2Language())
+	}
+	
+	#[inline(always)]
 	fn primaryLanguageHost(&self) -> Result<&str, CordialError>
 	{
 		Ok(&self.primaryLanguage()?.host)

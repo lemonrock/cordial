@@ -23,6 +23,11 @@ pub(crate) enum ResourceTag
 	amp_redirect,
 
 	audio_preview,
+
+	video_mp4,
+	video_webm,
+	video_iframe,
+	video_track(AudioVideoTrackKind, Iso639Dash1Alpha2Language),
 }
 
 impl Default for ResourceTag

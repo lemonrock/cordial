@@ -16,6 +16,7 @@ pub(crate) struct Resource
 	#[serde(default)] raw: RawPipeline,
 	#[serde(default)] svg: SvgPipeline,
 	#[serde(default)] web_app_manifest: WebAppManifestPipeline,
+	#[serde(default)] video: VideoPipeline,
 	#[serde(default)] headers: HashMap<String, String>,
 	#[serde(default)] compression: Compression,
 	#[serde(default, skip_deserializing)] canonicalParentFolderPath: PathBuf,
@@ -46,6 +47,51 @@ impl Resource
 		{
 			None => None,
 			Some(resourceTagToUrlDataMap) => resourceTagToUrlDataMap.get(resourceTag)
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn findGoogleVideoSiteMapImageThumbnail(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
+	{
+		// Find the largest image that is acceptable
+		// Images must be at least 160x90 pixels and at most 1920x1080 pixels
+		// Ideally, they are a ratio of 16:9, but we do not optimize for this; we optimize for width
+		
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an image for Google Video Sitemap image for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForTwitterCardsImage()
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if width > idealImageWidth && width >= 160 && width <= 1920 && height >= 90 && height <= 1080
+								{
+									idealImageWidth = width;
+									idealImageUrlData = Some(urlData);
+								}
+							}
+							
+							_ => (),
+						}
+					}
+				}
+				
+				match idealImageUrlData
+				{
+					Some(urlData) => Ok(urlData),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for Google Video Sitemap image for '{:?}'", self.name()))),
+				}
+			}
 		}
 	}
 	
@@ -90,6 +136,7 @@ impl Resource
 									let ratio = width / height;
 									if remainder == 0 && ratio == twitterCardImageMatch.ratio && width >= twitterCardImageMatch.minimumWidth && width <= twitterCardImageMatch.maximumWidth && height >= twitterCardImageMatch.minimumHeight && height <= twitterCardImageMatch.maximumHeight
 									{
+										idealImageWidth = width;
 										idealImageUrlData = Some(urlData);
 									}
 								}
@@ -142,10 +189,12 @@ impl Resource
 									let ratio = ((width * 100) as f64) / (height as f64);
 									if width > idealImageWidth && width >= 600 && height >= 315 && (ratio > 190.0 || ratio < 192.0)
 									{
+										idealImageWidth = width;
 										idealImageUrlData = Some(urlData);
 									}
 									if width > acceptableImageWidth && width >= 200 && height >= 200 && idealImageUrlData.is_none()
 									{
+										acceptableImageWidth = width;
 										acceptableImageUrlData = Some(urlData);
 									}
 								}
@@ -167,6 +216,16 @@ impl Resource
 					Err(CordialError::Configuration(format!("Could not find an ideal or acceptable image for Facebook OpenGraph og::image for '{:?}'", self.name())))
 				}
 			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn videoPipeline(&self) -> Result<&VideoPipeline, CordialError>
+	{
+		match self.pipeline
+		{
+			ResourcePipeline::video => Ok(&self.video),
+			_ => Err(CordialError::Configuration("Not a video resource".to_owned())),
 		}
 	}
 	
@@ -423,6 +482,7 @@ impl Resource
 			raw => self.raw.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			svg => self.svg.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			web_app_manifest => self.web_app_manifest.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			video => self.video.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 		}
 	}
 	
@@ -441,6 +501,7 @@ impl Resource
 			raw => self.raw.addToImgAttributes(attributes),
 			svg => self.svg.addToImgAttributes(attributes),
 			web_app_manifest => self.web_app_manifest.addToImgAttributes(attributes),
+			video => self.video.addToImgAttributes(attributes),
 		}
 	}
 	
@@ -459,6 +520,7 @@ impl Resource
 			raw => self.raw.imageMetaData(),
 			svg => self.svg.imageMetaData(),
 			web_app_manifest => self.web_app_manifest.imageMetaData(),
+			video => self.video.imageMetaData(),
 		}
 	}
 	
@@ -477,6 +539,7 @@ impl Resource
 			raw => self.raw.processingPriority(),
 			svg => self.svg.processingPriority(),
 			web_app_manifest => self.web_app_manifest.processingPriority(),
+			video => self.video.processingPriority(),
 		}
 	}
 	
@@ -495,6 +558,7 @@ impl Resource
 			raw => self.raw.resourceInputContentFileNamesWithExtension(resourceInputName),
 			svg => self.svg.resourceInputContentFileNamesWithExtension(resourceInputName),
 			web_app_manifest => self.web_app_manifest.resourceInputContentFileNamesWithExtension(resourceInputName),
+			video => self.video.resourceInputContentFileNamesWithExtension(resourceInputName),
 		}
 	}
 	
@@ -513,6 +577,7 @@ impl Resource
 			raw => self.raw.is(),
 			svg => self.svg.is(),
 			web_app_manifest => self.web_app_manifest.is(),
+			video => self.video.is(),
 		}
 	}
 	
@@ -531,6 +596,7 @@ impl Resource
 			raw => self.raw.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			svg => self.svg.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			web_app_manifest => self.web_app_manifest.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
+			video => self.video.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 		}
 	}
 }

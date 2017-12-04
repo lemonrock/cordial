@@ -15,7 +15,7 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) initially_muted: bool,
 	#[serde(default)] pub(crate) loops: bool,
 	#[serde(default)] pub(crate) plays_inline: bool,
-	#[serde(default)] pub(crate) placeholder: Option<ResourceUrl>,
+	#[serde(default)] pub(crate) placeholder: ResourceUrl,
 	#[serde(default)] pub(crate) starts_at_seconds_inclusive: u32,
 	#[serde(default)] pub(crate) ends_at_seconds_exclusive: Option<u32>,
 	#[serde(default)] pub(crate) tracks: Vec<AudioVideoTrack>,
@@ -25,9 +25,22 @@ pub(crate) struct VideoPipeline
 	// Used by amp-video, Google Video Site Map, ?twitter player card? (if we decide to)
 	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<VideoAbstract>>,
 	
+	// Used by amp-video
 	#[serde(default)] pub(crate) artist: Option<String>,
 	#[serde(default)] pub(crate) album: Option<String>,
 	#[serde(default)] pub(crate) artwork: Option<ResourceUrl>,
+	
+	// Used by site map
+	#[serde(default)] pub(crate) expiration_date: Option<DateTime<Utc>>,
+	#[serde(default)] pub(crate) publication_date: Option<DateTime<Utc>>,
+	#[serde(default)] pub(crate) rating: Option<VideoStarRating>,
+	#[serde(default)] pub(crate) views: Option<u64>,
+	#[serde(default)] pub(crate) can_appear_in_safe_search: bool,
+	#[serde(default)] pub(crate) country_restrictions: Rc<VideoCountryRestriction>,
+	#[serde(default)] pub(crate) platform_restrictions: Rc<VideoPlatformRestriction>,
+	#[serde(default)] pub(crate) gallery: Option<ResourceUrl>,
+	#[serde(default)] pub(crate) requires_subscription: bool,
+	#[serde(default)] pub(crate) uploader: Option<Rc<Person>>,
 }
 
 impl Default for VideoPipeline
@@ -45,7 +58,7 @@ impl Default for VideoPipeline
 			initially_muted: false,
 			loops: false,
 			plays_inline: false,
-			placeholder: None,
+			placeholder: Default::default(),
 			starts_at_seconds_inclusive: 0,
 			ends_at_seconds_exclusive: None,
 			tracks: Default::default(),
@@ -56,6 +69,17 @@ impl Default for VideoPipeline
 			artist: None,
 			album: None,
 			artwork: None,
+			
+			expiration_date: None,
+			publication_date: None,
+			rating: None,
+			views: None,
+			can_appear_in_safe_search: false,
+			country_restrictions: Default::default(),
+			platform_restrictions: Default::default(),
+			gallery: None,
+			requires_subscription: false,
+			uploader: None,
 		}
 	}
 }
@@ -86,8 +110,8 @@ impl Pipeline for VideoPipeline
 		let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
 		
 		let (width, height, optionalMp4VideoCodecString, optionalMp4AudioCodecString) = Self::mp4Metadata(&mp4Body, inputContentFilePath)?;
-		let mp4Url = resourceUrl.replaceFileNameExtension(".mp4").url(languageData)?;
-		let webmUrl = resourceUrl.replaceFileNameExtension(".webm").url(languageData)?;
+		let mp4Url = self.mp4Url(resourceUrl, languageData)?;
+		let webmUrl = self.webmUrl(resourceUrl, languageData)?;
 		
 		let mut result = Vec::new();
 		
@@ -105,48 +129,59 @@ impl Pipeline for VideoPipeline
 		self.createIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
 		
 		Ok(result)
-		
-		/*
-			TODO: Schema.org for videos
-				https://developers.google.com/webmasters/videosearch/schema
-				- uses the embedded syntax, includes width & height
-				- is this appropriate?
-				- we can supply both a contentUrl and an embedUrl (the Twitter iframe)
-				
-				- need image ratios, ie 1x1, 4x3, 16x9
-				
-		
-			TODO: Google Video sitemaps: https://developers.google.com/webmasters/videosearch/sitemaps
-				- video 'thumbnails' (placeholders for us) must be 160x90 pixels and at most 1920x1080 pixels (1:1.77)
-				- thumbnails are mandatory
-			<video:video>
-				<video:thumbnail_loc>https://url/image.png</>
-				<video:title></>
-				<video:content_loc>https://url/to/raw/mp4
-				<video:duration>Duration_in_Seconds
-				<video:expiration_date>
-				<video:rating>
-				<video:view_count>
-				<video:publication_date>
-				<video:family_friendly>
-				<video:tag> 0 - 32 (incl); we should have translations; should match Facebook OpenGraph
-				<video:category> Similar to article Section. Maximum 256 characters.
-				<video:restriction> - blacklist or whitelist using ISO 3166 country codes; uses relationship attribute
-				<video:gallery_loc>  - URL of a gallery page, with a title attribute
-				HashSet of <video:price> (currency, type, resolution attributes)
-				<video:requires_subscription>no</>
-				<video:uploader info="https://url/of/uploader">Jo Bloggs</>
-				<video:platform> with relationship attribute - specifies whitelist / blacklist for playing locations
-					eg <video:platform relationship="allow">WEB TV</video:restriction>
-					
-				<video:live> - is this a live stream
-			</video:video>
-		*/
 	}
 }
 
 impl VideoPipeline
 {
+	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<SiteMapWebPageVideo, CordialError>
+	{
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		Ok
+		(
+			SiteMapWebPageVideo
+			{
+				placeHolderUrl: self.placeholder.clone(),
+				
+				videoAbstract: self.videoAbstract(iso639Dash1Alpha2Language)?.clone(),
+				mp4Url: self.mp4Url(resourceUrl, languageData)?,
+				iFrameUrl: self.iFramePlayerResourceUrl(resourceUrl, languageData)?,
+				durationInSeconds: Some(0),
+				
+				expirationDate: self.expiration_date,
+				videoStarRating: self.rating,
+				viewCount: self.views,
+				publicationDate: self.publication_date,
+				canAppearInSafeSearch: self.can_appear_in_safe_search,
+				countryRestrictions: self.country_restrictions.clone(),
+				gallery: self.gallery.clone(),
+				requiresSubscription: self.requires_subscription,
+				uploader: self.uploader.clone(),
+				platformRestrictions: self.platform_restrictions.clone(),
+			}
+		)
+	}
+	
+	#[inline(always)]
+	fn mp4Url(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".mp4").url(languageData)
+	}
+	
+	#[inline(always)]
+	fn webmUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".webm").url(languageData)
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	fn iFramePlayerResourceUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".iframe-player.html").url(languageData)
+	}
+	
 	// See http://geekthis.net/post/c-get-mp4-duration/
 	
 	// See http://www.leanbackplayer.com/test/h5mt.html for most variants
@@ -178,13 +213,14 @@ impl VideoPipeline
 		Ok(())
 	}
 	
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	fn createIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u32, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Compressible: bool = true;
 		
-		let iFramePlayerUrl = resourceUrl.replaceFileNameExtension(".twitter-iframe-player.html").url(languageData)?;
-		let iFramePlayerBody = Self::twitterIFramePlayerHtmlBody(videoNode, width);
+		let iFramePlayerUrl = self.iFramePlayerResourceUrl(resourceUrl, languageData)?;
+		let iFramePlayerBody = Self::iFramePlayerHtmlBody(videoNode, width);
 		let iFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, self.max_age_in_seconds, false, &iFramePlayerUrl)?;
 		let iFramePlayerTags = hashmap!
 		{
@@ -260,7 +296,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn twitterIFramePlayerHtmlBody(videoNode: UnattachedNode, width: u32) -> Vec<u8>
+	fn iFramePlayerHtmlBody(videoNode: UnattachedNode, width: u32) -> Vec<u8>
 	{
 		let htmlNode = "html"
 		.with_child_element
@@ -285,6 +321,16 @@ impl VideoPipeline
 		
 		htmlNode.to_html5_document(true).into_bytes()
 	}
+
+	#[inline(always)]
+	fn videoAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<VideoAbstract>, CordialError>
+	{
+		match self.abstracts.get(&iso639Dash1Alpha2Language)
+		{
+			None => return Err(CordialError::Configuration(format!("There is no abstract in {:?} for this video", iso639Dash1Alpha2Language))),
+			Some(videoAbstract) => Ok(videoAbstract),
+		}
+	}
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
@@ -292,11 +338,7 @@ impl VideoPipeline
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
-		let title = match self.abstracts.get(&iso639Dash1Alpha2Language)
-		{
-			None => return Err(CordialError::Configuration(format!("There is no abstract in {:?} for this video", iso639Dash1Alpha2Language))),
-			Some(videoAbstract) => &videoAbstract.title,
-		};
+		let title = &self.videoAbstract(iso639Dash1Alpha2Language)?.title;
 		
 		let mut videoNode =
 			"video"
@@ -328,17 +370,13 @@ impl VideoPipeline
 			videoNode = videoNode.with_empty_attribute("playsinline");
 		}
 		
-		if let Some(ref placeHolderUrl) = self.placeholder
+		let placeHolderUrlData = ResourceReference
 		{
-			let placeHolderUrlData = ResourceReference
-			{
-				resource: placeHolderUrl.clone(),
-				tag: ResourceTag::width_height_image(width, height)
-			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
-			placeHolderUrlData.validateIsPng()?;
-			
-			videoNode = videoNode.with_attribute("poster".str_attribute(placeHolderUrlData.url_str()))
-		}
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width, height)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		videoNode = videoNode.with_attribute("poster".str_attribute(placeHolderUrlData.url_str()));
 		
 		if self.show_controls
 		{

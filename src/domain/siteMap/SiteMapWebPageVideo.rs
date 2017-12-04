@@ -5,22 +5,20 @@
 #[derive(Debug, Clone)]
 pub(crate) struct SiteMapWebPageVideo
 {
-	// TODO: Images must be at least 160x90 pixels and at most 1920x1080 pixels
-	// TODO: Check twitter player card rules, too
-	pub(crate) placeHolderUrl: Url,
-	pub(crate) videoAbstract: Rc<VideoAbstract>, // title + description
+	pub(crate) placeHolderUrl: ResourceUrl,
+	pub(crate) videoAbstract: Rc<VideoAbstract>,
 
-	pub(crate) mp4StreamUrl: Url,
+	pub(crate) mp4Url: Url,
 	pub(crate) iFrameUrl: Url,
-	pub(crate) durationInSeconds: Option<u32>, // omit this for a live stream
+	pub(crate) durationInSeconds: Option<u32>,
 	pub(crate) expirationDate: Option<DateTime<Utc>>,
-	pub(crate) videoStarRating: VideoStarRating,
+	pub(crate) videoStarRating: Option<VideoStarRating>,
 	pub(crate) viewCount: Option<u64>,
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
 	pub(crate) canAppearInSafeSearch: bool,
 	pub(crate) countryRestrictions: Rc<VideoCountryRestriction>,
 	pub(crate) gallery: Option<ResourceUrl>,
-	pub(crate) requires_subscription: bool,
+	pub(crate) requiresSubscription: bool,
 	pub(crate) uploader: Option<Rc<Person>>,
 	pub(crate) platformRestrictions: Rc<VideoPlatformRestriction>,
 }
@@ -32,15 +30,18 @@ impl SiteMapWebPageVideo
 	{
 		const GoogleMaximumDurationOfEightHoursInSeconds: u32 = 28_800;
 		
+		let resource = self.placeHolderUrl.resourceMandatory(resources)?;
+		let thumbnailUrlData = resource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		
 		eventWriter.writeWithinElement(Name::prefixed("video", "video"), namespace, emptyAttributes, |eventWriter|
 		{
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "thumbnail_loc", self.placeHolderUrl.as_str())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "thumbnail_loc", thumbnailUrlData.url_str())?;
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "title", &self.videoAbstract.title)?;
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "description", &self.videoAbstract.site_map_description)?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "content_loc", self.mp4StreamUrl.as_ref())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "content_loc", self.mp4Url.as_ref())?;
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "player_loc", self.iFrameUrl.as_ref())?;
 			
@@ -63,7 +64,10 @@ impl SiteMapWebPageVideo
 				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "expiration_date", &expirationDate.to_rfc3339())?;
 			}
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "rating", &self.videoStarRating.toGoogleSiteMapString())?;
+			if let Some(videoStarRating) = self.videoStarRating
+			{
+				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "rating", &videoStarRating.toGoogleSiteMapString())?;
+			}
 			
 			if let Some(viewCount) = self.viewCount
 			{
@@ -101,7 +105,7 @@ impl SiteMapWebPageVideo
 			
 			// Unimplemented: video:price (can be supported with a BTreeSet of (currency, type, resolution) tuples
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "requires_subscription", if self.requires_subscription { "yes" } else { "no" })?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "requires_subscription", if self.requiresSubscription { "yes" } else { "no" })?;
 			
 			if let Some(ref uploader) = self.uploader
 			{

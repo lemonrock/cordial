@@ -14,6 +14,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] site_map_change_frequency: SiteMapChangeFrequency,
 	#[serde(default)] site_map_priority: SiteMapPriority,
 	#[serde(default)] site_map_images: Vec<ResourceUrl>,
+	#[serde(default)] site_map_videos: Vec<ResourceUrl>,
 	#[serde(default)] rss_author: Rc<EMailAddress>,
 	#[serde(default)] rss_channels_to_categories: OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>,
 	#[serde(default)] author: Option<ResourceUrl>,
@@ -60,6 +61,7 @@ impl Default for HtmlPipeline
 			site_map_change_frequency: Default::default(),
 			site_map_priority: Default::default(),
 			site_map_images: Default::default(),
+			site_map_videos: Default::default(),
 			rss_channels_to_categories: Default::default(),
 			rss_author: Default::default(),
 			author: None,
@@ -164,6 +166,7 @@ impl Pipeline for HtmlPipeline
 				}
 			},
 			siteMapImages: &self.site_map_images,
+			siteMapVideos: &self.site_map_videos,
 			publicationDate: self.publication_date,
 			lastModificationDateOrPublicationDate: match self.modifications.keys().rev().next()
 			{

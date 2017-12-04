@@ -13,6 +13,7 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) htmlAbstract: Rc<HtmlAbstract>,
 	pub(crate) articleImage: Option<(ResourceUrl, Rc<ImageMetaData>)>,
 	pub(crate) siteMapImages: &'a [ResourceUrl],
+	pub(crate) siteMapVideos: &'a [ResourceUrl],
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
 	pub(crate) lastModificationDateOrPublicationDate: Option<DateTime<Utc>>,
 	pub(crate) modifications: BTreeMap<DateTime<Utc>, Rc<String>>,
@@ -240,7 +241,7 @@ impl<'a> HtmlDocumentData<'a>
 											resource: articleImageResourceUrl.clone(),
 											tag: RssImageResourceTag,
 										};
-										Some(articleImageMetaData.rssImage(&rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
+										Some(articleImageMetaData.rssImage(rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 									}
 								},
 							},
@@ -269,7 +270,7 @@ impl<'a> HtmlDocumentData<'a>
 				resource: articleImageResourceUrl.clone(),
 				tag: SiteMapImageTag,
 			};
-			images.push(articleImageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?);
+			images.push(articleImageMetaData.siteMapWebPageImage(siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?);
 		};
 		
 		for siteMapImageResourceUrl in self.siteMapImages.iter()
@@ -282,10 +283,16 @@ impl<'a> HtmlDocumentData<'a>
 				resource: siteMapImageResourceUrl.clone(),
 				tag: SiteMapImageTag,
 			};
-			images.push(imageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
+			images.push(imageMetaData.siteMapWebPageImage(siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 		}
 		
-		let videos = vec![];
+		let mut videos = vec![];
+		for siteMapVideoResourceUrl in self.siteMapVideos.iter()
+		{
+			let resourceRef = siteMapVideoResourceUrl.resourceMandatory(resources)?;
+			let videoPipeline = resourceRef.videoPipeline()?;
+			videos.push(videoPipeline.siteMapWebPageVideo(siteMapVideoResourceUrl, self.htmlUrls.languageData)?);
+		}
 		
 		siteMapWebPages.push
 		(

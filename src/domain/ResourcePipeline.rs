@@ -15,6 +15,7 @@ pub(crate) enum ResourcePipeline
 	raw,
 	svg,
 	web_app_manifest,
+	video,
 }
 
 impl Default for ResourcePipeline

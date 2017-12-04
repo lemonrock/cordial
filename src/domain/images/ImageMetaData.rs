@@ -159,14 +159,14 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssImage(&self, url: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<RssImage, CordialError>
+	pub(crate) fn rssImage(&self, url: ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<RssImage, CordialError>
 	{
 		let imageAbstract = (*self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?).clone();
 		Ok
 		(
 			RssImage
 			{
-				url: url.clone(),
+				url,
 				imageAbstract,
 				credit: self.credit.clone(),
 				iso639Dash1Alpha2Language,
@@ -175,7 +175,7 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapWebPageImage(&self, url: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<SiteMapWebPageImage, CordialError>
+	pub(crate) fn siteMapWebPageImage(&self, url: ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<SiteMapWebPageImage, CordialError>
 	{
 		let imageAbstract = self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 		
@@ -183,7 +183,7 @@ impl ImageMetaData
 		(
 			SiteMapWebPageImage
 			{
-				url: url.clone(),
+				url,
 				licenseUrl: self.license_url.clone(),
 				imageAbstract: imageAbstract.clone(),
 			}

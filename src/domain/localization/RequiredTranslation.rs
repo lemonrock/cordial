@@ -7,6 +7,7 @@
 pub(crate) enum RequiredTranslation
 {
 	missing_image_fallback,
+	missing_video_fallback,
 	your_browser_does_not_support_video,
 }
 
@@ -24,7 +25,8 @@ impl RequiredTranslation
 		
 		hashmap!
 		{
-			missing_image_fallback => text("Unfortunately, this content is unavailable at this time."),
+			missing_image_fallback => text("Unfortunately, this image is unavailable at this time."),
+			missing_video_fallback => text("Unfortunately, this video is unavailable at this time."),
 			your_browser_does_not_support_video => text("Unfortunately, your browser does not support video in the formats we use."),
 		}
 	}

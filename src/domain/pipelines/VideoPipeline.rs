@@ -346,20 +346,120 @@ impl VideoPipeline
 	pub(crate) fn videoNode(&self, isForAmp: bool, resources: &Resources, configuration: &Configuration, languageData: &LanguageData) -> Result<UnattachedNode, CordialError>
 	{
 		let (width, height) = self.dimensions.get();
-		let durationInSeconds = self.durationInSeconds.get();
 		
 		let mp4UrlBorrow = self.mp4Url.borrow();
 		
 		let webmUrlBorrow = self.webmUrl.borrow();
 		
+		let durationInSeconds = self.durationInSeconds.get();
+		
 		if isForAmp
 		{
-			panic!();
+			self.createAmpVideoNode(resources, configuration, languageData, width, height, &mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds)
 		}
 		else
 		{
 			self.createVideoNode(resources, configuration, languageData, width, height, &mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds)
 		}
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	fn createAmpVideoNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	{
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = &self.videoAbstract(iso639Dash1Alpha2Language)?.title;
+		
+		let placeHolderUrlData = ResourceReference
+		{
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		
+		let mut ampVideoNode =
+			"amp-video"
+			.with_attributes
+			(
+				vec!
+				[
+					"width".string_attribute(format!("{}", width)),
+					"height".string_attribute(format!("{}", height)),
+					"title".str_attribute(title),
+					"poster".str_attribute(placeHolderUrlData.url_str()),
+					"layout".str_attribute("responsive"),
+				]
+			)
+		;
+		
+		ampVideoNode = self.load.addToVideoNode(ampVideoNode, durationInSeconds);
+		
+		if self.load == AudioVideoLoad::auto_play
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("autoplay");
+		}
+		
+		if self.loops
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("loop");
+		}
+		
+		if self.show_controls
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("controls");
+			
+			if !self.disabled_controls.is_empty()
+			{
+				ampVideoNode = ampVideoNode.with_attribute("controlslist".space_separated_attribute(self.disabled_controls.iter().map(|disabled_control| disabled_control.deref())));
+			}
+		}
+		
+		if self.disabled_controls.contains(&AudioVideoDisabledControl::noremoteplayback)
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("disableremoteplayback");
+		}
+		
+		if let Some(ref artist) = self.artist
+		{
+			ampVideoNode = ampVideoNode.with_attribute("artist".str_attribute(artist));
+		}
+		
+		if let Some(ref album) = self.album
+		{
+			ampVideoNode = ampVideoNode.with_attribute("album".str_attribute(album));
+		}
+		
+		if let Some(ref artwork) = self.artwork
+		{
+			// 256x256 or 512x512? Whilst artwork is an array, it's not clear if amp-video supports it.
+			const ArtworkWidth: u32 = 512;
+			const ArtworkHeight: u32 = 512;
+			
+			let artworkUrlData = ResourceReference
+			{
+				resource: artwork.clone(),
+				tag: ResourceTag::width_height_image(ArtworkWidth, ArtworkHeight)
+			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+			artworkUrlData.validateIsPng()?;
+			
+			ampVideoNode = ampVideoNode.with_attribute("artwork".str_attribute(artworkUrlData.url_str()));
+		}
+		
+		ampVideoNode = ampVideoNode
+			.with_child_element
+			(
+				"noscript"
+				.with_child_element(self.createVideoNode(resources, configuration, languageData, width, height, mp4Url, webmUrl, durationInSeconds)?)
+			)
+			.with_child_element
+			(
+				"div"
+				.with_empty_attribute("fallback")
+				.with_child_text(languageData.requiredTranslation(RequiredTranslation::missing_video_fallback)?.as_str())
+			);
+		
+		self.addSourcesAndTracks(ampVideoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -370,6 +470,13 @@ impl VideoPipeline
 		
 		let title = &self.videoAbstract(iso639Dash1Alpha2Language)?.title;
 		
+		let placeHolderUrlData = ResourceReference
+		{
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		
 		let mut videoNode =
 			"video"
 			.with_attributes
@@ -379,6 +486,7 @@ impl VideoPipeline
 					"width".string_attribute(format!("{}", width)),
 					"height".string_attribute(format!("{}", height)),
 					"title".str_attribute(title),
+					"poster".str_attribute(placeHolderUrlData.url_str()),
 				]
 			)
 		;
@@ -391,23 +499,15 @@ impl VideoPipeline
 			videoNode = videoNode.with_empty_attribute("muted");
 		}
 		
-		if self.loops
-		{
-			videoNode = videoNode.with_empty_attribute("loop");
-		}
-		
 		if self.plays_inline
 		{
 			videoNode = videoNode.with_empty_attribute("playsinline");
 		}
 		
-		let placeHolderUrlData = ResourceReference
+		if self.loops
 		{
-			resource: self.placeholder.clone(),
-			tag: ResourceTag::width_height_image(width as u32, height as u32)
-		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
-		placeHolderUrlData.validateIsPng()?;
-		videoNode = videoNode.with_attribute("poster".str_attribute(placeHolderUrlData.url_str()));
+			videoNode = videoNode.with_empty_attribute("loop");
+		}
 		
 		if self.show_controls
 		{
@@ -419,6 +519,16 @@ impl VideoPipeline
 			}
 		}
 		
+		videoNode = self.addSourcesAndTracks(videoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)?;
+		
+		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_video)?;
+		videoNode = videoNode.with_child_text(translation.deref().as_str());
+		
+		Ok(videoNode)
+	}
+	
+	fn addSourcesAndTracks(&self, mut videoNode: UnattachedNode, mp4Url: &Url, webmUrl: &Url, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
+	{
 		let mediaTimeFragment = match self.ends_at_seconds_exclusive
 		{
 			None => if self.starts_at_seconds_inclusive == 0
@@ -446,19 +556,18 @@ impl VideoPipeline
 			},
 		};
 		
-		videoNode = videoNode
-			.with_child_element
-			(
-				"source"
-				.with_type_attribute(Self::WebMVp8MimeType)
-				.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
-			)
-			.with_child_element
-			(
-				"source"
-				.with_type_attribute(Self::Mp4TwitterMimeType)
-				.with_attribute("src".string_attribute(format!("{}{}", mp4Url.as_ref(), &mediaTimeFragment)))
-			)
+		videoNode = videoNode.with_child_element
+		(
+			"source"
+			.with_type_attribute(Self::WebMVp8MimeType)
+			.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
+		)
+		.with_child_element
+		(
+			"source"
+			.with_type_attribute(Self::Mp4TwitterMimeType)
+			.with_attribute("src".string_attribute(format!("{}{}", mp4Url.as_ref(), &mediaTimeFragment)))
+		)
 		;
 		
 		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), iso639Dash1Alpha2Language)?;
@@ -466,12 +575,7 @@ impl VideoPipeline
 		{
 			isDefaultTrackAndVideoNode = self.addTracksForLanguage(isDefaultTrackAndVideoNode, *iso639Dash1Alpha2Language)?;
 		}
-		videoNode = isDefaultTrackAndVideoNode.1;
-		
-		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_video)?;
-		videoNode = videoNode.with_child_text(translation.deref().as_str());
-		
-		Ok(videoNode)
+		Ok(isDefaultTrackAndVideoNode.1)
 	}
 	
 	fn addTracksForLanguage(&self, isFirstAndVideoNode: (bool, UnattachedNode), iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(bool, UnattachedNode), CordialError>

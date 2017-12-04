@@ -44,6 +44,9 @@ pub(crate) struct VideoPipeline
 
 	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u16, u16)>,
 	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
+	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
+	#[serde(default, skip_deserializing)] pub(crate) webmUrl: RefCell<Option<Url>>,
+	#[serde(default, skip_deserializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
 }
 
 impl Default for VideoPipeline
@@ -86,6 +89,9 @@ impl Default for VideoPipeline
 			
 			dimensions: Default::default(),
 			durationInSeconds: Default::default(),
+			mp4Url: Default::default(),
+			webmUrl: Default::default(),
+			orderedMapOfWebVttUrls: Default::default(),
 		}
 	}
 }
@@ -115,17 +121,22 @@ impl Pipeline for VideoPipeline
 	{
 		let isPrimaryLanguage = configuration.fallbackIso639Dash1Alpha2Language() == languageData.iso639Dash1Alpha2Language;
 		
-		let mp4Url = self.mp4Url(resourceUrl, configuration)?;
-		let webmUrl = self.webmUrl(resourceUrl, configuration)?;
-		
 		let mut result = Vec::new();
 		
 		let (mp4Body, width, height) = if isPrimaryLanguage
 		{
+			let mp4Url = self.mp4Url(resourceUrl, configuration)?;
+			*self.mp4Url.borrow_mut() = Some(mp4Url);
+			
+			let webmUrl = self.webmUrl(resourceUrl, configuration)?;
+			*self.webmUrl.borrow_mut() = Some(webmUrl);
+			
 			let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
+			
 			let (width, height, durationInSeconds) = firstVideoTrackDurationWidthAndHeight(&mp4Body)?;
 			self.dimensions.set((width, height));
 			self.durationInSeconds.set(durationInSeconds);
+			
 			(Some(mp4Body), width, height)
 		}
 		else
@@ -134,13 +145,18 @@ impl Pipeline for VideoPipeline
 			(None, width, height)
 		};
 		
-		let videoNode = self.createVideoNode(resourceUrl, resources, configuration, languageData, inputContentFilePath, width, height, &mp4Url, &webmUrl, self.durationInSeconds.get())?;
+		let videoNode =
+		{
+			let mp4UrlBorrow = self.mp4Url.borrow();
+			let webmUrlBorrow = self.webmUrl.borrow();
+			self.createVideoNode(resources, configuration, languageData, width, height, mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), self.durationInSeconds.get())?
+		};
 		
 		if isPrimaryLanguage
 		{
 			self.createWebVttTracks(inputContentFilePath, resourceUrl, configuration, headerGenerator, &mut result)?;
-			self.createMp4(width, height, mp4Url, headerGenerator, mp4Body.unwrap(), &mut result)?;
-			self.createWebm(width, height, webmUrl, headerGenerator, inputContentFilePath, &mut result)?;
+			self.createMp4(width, height, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, mp4Body.unwrap(), &mut result)?;
+			self.createWebm(width, height, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, inputContentFilePath, &mut result)?;
 		}
 		
 		self.createIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
@@ -193,7 +209,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn mp4Url(&self, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<Url, CordialError>
+	fn mp4Url(&self, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<Url, CordialError>
 	{
 		resourceUrl.replaceFileNameExtension(".mp4").url(&configuration.primaryLanguageData()?)
 	}
@@ -230,6 +246,8 @@ impl VideoPipeline
 			{
 				if let Some((webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
 				{
+					self.orderedMapOfWebVttUrls.borrow_mut().insert((track.kind, languageData.iso639Dash1Alpha2Language), webVttUrl.clone());
+					
 					let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
 					result.push((webVttUrl, hashmap! { video_track(track.kind, languageData.iso639Dash1Alpha2Language) => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
 				}
@@ -324,9 +342,29 @@ impl VideoPipeline
 		}
 	}
 	
+	#[inline(always)]
+	pub(crate) fn videoNode(&self, isForAmp: bool, resources: &Resources, configuration: &Configuration, languageData: &LanguageData) -> Result<UnattachedNode, CordialError>
+	{
+		let (width, height) = self.dimensions.get();
+		let durationInSeconds = self.durationInSeconds.get();
+		
+		let mp4UrlBorrow = self.mp4Url.borrow();
+		
+		let webmUrlBorrow = self.webmUrl.borrow();
+		
+		if isForAmp
+		{
+			panic!();
+		}
+		else
+		{
+			self.createVideoNode(resources, configuration, languageData, width, height, &mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds)
+		}
+	}
+	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	fn createVideoNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -423,11 +461,10 @@ impl VideoPipeline
 			)
 		;
 		
-		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), languageData, inputContentFilePath, resourceUrl)?;
-		for (iso639Dash1Alpha2Language, language) in configuration.otherLanguages(iso639Dash1Alpha2Language).iter()
+		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), iso639Dash1Alpha2Language)?;
+		for (iso639Dash1Alpha2Language, _language) in configuration.otherLanguages(iso639Dash1Alpha2Language).iter()
 		{
-			let languageData = LanguageData { iso639Dash1Alpha2Language: *iso639Dash1Alpha2Language, language };
-			isDefaultTrackAndVideoNode = self.addTracksForLanguage(isDefaultTrackAndVideoNode, &languageData, inputContentFilePath, resourceUrl)?;
+			isDefaultTrackAndVideoNode = self.addTracksForLanguage(isDefaultTrackAndVideoNode, *iso639Dash1Alpha2Language)?;
 		}
 		videoNode = isDefaultTrackAndVideoNode.1;
 		
@@ -437,17 +474,17 @@ impl VideoPipeline
 		Ok(videoNode)
 	}
 	
-	fn addTracksForLanguage(&self, isFirstAndVideoNode: (bool, UnattachedNode), languageData: &LanguageData, inputContentFilePath: &Path, resourceUrl: &ResourceUrl) -> Result<(bool, UnattachedNode), CordialError>
+	fn addTracksForLanguage(&self, isFirstAndVideoNode: (bool, UnattachedNode), iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(bool, UnattachedNode), CordialError>
 	{
 		let (mut isDefaultTrack, mut videoNode) = isFirstAndVideoNode;
 		
+		let orderedMapOfWebVttUrls = self.orderedMapOfWebVttUrls.borrow();
+		
 		for track in self.tracks.iter()
 		{
-			// TODO: Performance. We load the WebVtt data multiple times.
-			// Do we have the track in this language? In theory, we could cache the webVttUrls as we process primary lang first, but it's not an obvious thing to do.
-			if let Some((_webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
+			if let Some(webVttUrl) = orderedMapOfWebVttUrls.get(&(track.kind, iso639Dash1Alpha2Language))
 			{
-				let trackNode = track.asNode(isDefaultTrack, languageData.iso639Dash1Alpha2Language, &webVttUrl)?;
+				let trackNode = track.asNode(isDefaultTrack, iso639Dash1Alpha2Language, &webVttUrl)?;
 				videoNode = videoNode.with_child_element(trackNode);
 				
 				if isDefaultTrack

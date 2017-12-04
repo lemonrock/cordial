@@ -8,6 +8,7 @@ pub(crate) enum MarkdownInlinePlugin
 {
 	//app_banner,
 	image,
+	video,
 }
 
 impl MarkdownInlinePlugin
@@ -21,6 +22,7 @@ impl MarkdownInlinePlugin
 		{
 			//b"app_banner".to_vec() => app_banner,
 			b"image".to_vec() => image,
+			b"video".to_vec() => video,
 		}
 	}
 	
@@ -35,6 +37,7 @@ impl MarkdownInlinePlugin
 		{
 			//app_banner => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 			image => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			video => Self::video(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 		}
 	}
 	
@@ -163,5 +166,35 @@ impl MarkdownInlinePlugin
 		};
 		
 		MarkdownPluginResult::ok(vec![figureNode])
+	}
+	
+	fn video(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
+	{
+		let mut videoResourceUrl = None;
+		for (name, value) in arguments
+		{
+			match name.deref()
+			{
+				"video" =>
+				{
+					videoResourceUrl = Some(ResourceUrl(Rc::new(value.to_string())))
+				}
+				
+				_ => return Err(CordialError::Configuration(format!("video inline plugin does not take the argument '{}'", name))),
+			}
+		}
+		
+		let videoNode = match videoResourceUrl
+		{
+			None => return Err(CordialError::Configuration("video inline plugin resource can not be omitted".to_owned())),
+			Some(videoResourceUrl) => markdownPluginData.videoNode(videoResourceUrl, isForAmp)?,
+		};
+		
+		if isForAmp
+		{
+			nodesForOtherPlacesInHtml.ampScript("amp-video", "https://cdn.ampproject.org/v0/amp-video-0.1.js")
+		}
+		
+		MarkdownPluginResult::ok(vec![videoNode])
 	}
 }

@@ -40,7 +40,7 @@ impl TwitterCardType
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, configuration: &Configuration) -> Result<(), CordialError>
+	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		fn validateTwitterAtHandle<'a>(twitterAtHandle: &'a String, name: &str) -> Result<&'a str, CordialError>
 		{
@@ -147,6 +147,7 @@ impl TwitterCardType
 					
 					let (width, height) = videoPipeline.dimensions();
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:width", &format!("{}", width)));
+					
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:height", &format!("{}", height)));
 					
 					let placeHolderResource = videoPipeline.placeholder.resourceMandatory(resources)?;
@@ -161,7 +162,9 @@ impl TwitterCardType
 					}
 					endHeadNodes.push(meta_with_property_and_content("twitter:image:alt", altText));
 					
-					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", videoPipeline.mp4Url(articleVideo, configuration)?.as_str())));
+					let mp4UrlBorrow = videoPipeline.mp4Url.borrow();
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", mp4UrlBorrow.as_ref().unwrap().as_str())));
+					
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.mp4ContentType()));
 				}
 			}

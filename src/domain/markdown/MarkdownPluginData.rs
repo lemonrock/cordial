@@ -41,33 +41,34 @@ impl<'a> MarkdownPluginData<'a>
 	{
 		use self::ResourceTag::*;
 		
-		match self.resources.get(&imageResourceUrl)
-		{
-			None => Err(CordialError::Configuration(format!("Could not get image for '{:?}'", imageResourceUrl))),
-			Some(resourceRefCell) =>
+		let imageResource = imageResourceUrl.resourceMandatory(self.resources)?;
+		
+		let imageMetaData = imageResource.imageMetaData()?.clone();
+		let imageAbstract = imageMetaData.imageAbstract(self.iso639Dash1Alpha2Language())?.clone();
+		
+		let primaryImageUrlData = imageResource.urlDataMandatory(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &primary_image)?.clone();
+		
+		let animationPlaceholderImageUrlData = imageResource.urlData(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &animation_placeholder(0)).cloned();
+		
+		Ok
+		(
+			ImageMarkdownPluginData
 			{
-				let imageResource = resourceRefCell.try_borrow()?;
-				
-				let imageMetaData = imageResource.imageMetaData()?.clone();
-				let imageAbstract = imageMetaData.imageAbstract(self.iso639Dash1Alpha2Language())?.clone();
-				
-				let primaryImageUrlData = imageResource.urlDataMandatory(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &primary_image)?.clone();
-				
-				let animationPlaceholderImageUrlData = imageResource.urlData(self.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), &animation_placeholder(0)).cloned();
-				
-				Ok
-				(
-					ImageMarkdownPluginData
-					{
-						markdownPluginData: self,
-						imageAbstract,
-						imageMetaData,
-						primaryImageUrlData,
-						animationPlaceholderImageUrlData,
-						imageResource,
-					}
-				)
+				markdownPluginData: self,
+				imageAbstract,
+				imageMetaData,
+				primaryImageUrlData,
+				animationPlaceholderImageUrlData,
+				imageResource,
 			}
-		}
+		)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn videoNode(&'a self, videoResourceUrl: ResourceUrl, isForAmp: bool) -> Result<UnattachedNode, CordialError>
+	{
+		let videoResource = videoResourceUrl.resourceMandatory(self.resources)?;
+		let videoPipeline = videoResource.videoPipeline()?;
+		videoPipeline.videoNode(isForAmp, self.resources, self.configuration, self.languageData)
 	}
 }

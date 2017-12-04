@@ -75,11 +75,6 @@ impl<'a> HtmlDocumentData<'a>
 			TODO: style amp-custom
 				<style amp-custom>{{- partialCached "style.css" . -}}</style>
 		*/
-		/*
-			Complex rules for Apple products: https://gist.github.com/tfausak/2222823
-			Need multiple ones of these with media queries:-
-				<link rel="apple-touch-startup-image" href="icon.png">
-		*/
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -189,7 +184,7 @@ impl<'a> HtmlDocumentData<'a>
 	{
 		let articleVideo = self.siteMapVideos.get(0);
 		
-		self.twitterCard.addTo(endHeadNodes, &self.articleImage, articleVideo, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData, self.configuration)
+		self.twitterCard.addTo(endHeadNodes, &self.articleImage, articleVideo, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
 	}
 	
 	#[inline(always)]

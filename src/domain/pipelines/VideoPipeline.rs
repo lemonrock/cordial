@@ -42,8 +42,8 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) requires_subscription: bool,
 	#[serde(default)] pub(crate) uploader: Option<Rc<Person>>,
 
-	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u32, u32)>,
-	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u32>,
+	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u16, u16)>,
+	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
 }
 
 impl Default for VideoPipeline
@@ -123,7 +123,7 @@ impl Pipeline for VideoPipeline
 		let (mp4Body, width, height) = if isPrimaryLanguage
 		{
 			let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-			let (width, height, _optionalMp4VideoCodecString, _optionalMp4AudioCodecString, durationInSeconds) = Self::mp4Metadata(&mp4Body, inputContentFilePath)?;
+			let (width, height, durationInSeconds) = firstVideoTrackDurationWidthAndHeight(&mp4Body)?;
 			self.dimensions.set((width, height));
 			self.durationInSeconds.set(durationInSeconds);
 			(Some(mp4Body), width, height)
@@ -181,7 +181,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	pub(crate) fn dimensions(&self) -> (u32, u32)
+	pub(crate) fn dimensions(&self) -> (u16, u16)
 	{
 		self.dimensions.get()
 	}
@@ -242,7 +242,7 @@ impl VideoPipeline
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn createIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u32, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u16, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Compressible: bool = true;
 		
@@ -258,7 +258,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn createMp4(&self, width: u32, height: u32, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createMp4(&self, width: u16, height: u16, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
@@ -272,7 +272,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn createWebm(&self, width: u32, height: u32, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createWebm(&self, width: u16, height: u16, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
@@ -288,45 +288,7 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn mp4Metadata(mp4Body: &[u8], mp4FilePath: &Path) -> Result<(u32, u32, Option<String>, Option<String>, u32), CordialError>
-	{
-		// TODO: durationInSeconds
-		// See http://geekthis.net/post/c-get-mp4-duration/
-		
-		use self::AudioVideoMetadata::*;
-		use self::audio_video_metadata::enums::VideoType::*;
-		use self::audio_video_metadata::enums::AudioType::*;
-		
-		let mp4Metadata = ::audio_video_metadata::get_format_from_slice(&mp4Body).context(mp4FilePath)?;
-		
-		let attributes = match mp4Metadata
-		{
-			Audio(_) => return Err(CordialError::Configuration(format!("{:?} is audio data not video data", mp4FilePath))),
-			Video(videoMetadata) =>
-			{
-				match videoMetadata.format
-				{
-					MP4 => (),
-					WebM => return Err(CordialError::Configuration(format!("{:?} is WebM; an MP4 video is needed for the primary resource", mp4FilePath))),
-					_ => return Err(CordialError::Configuration(format!("{:?} is unsuitable video data ({:?})", mp4FilePath, &videoMetadata.format))),
-				}
-				
-				let audioMetadata = videoMetadata.audio;
-				match audioMetadata.format
-				{
-					MP3 => (),
-					_ => return Err(CordialError::Configuration(format!("{:?} is unsuitable video data as it uses an unsuitable audio codec ({:?})", mp4FilePath, &videoMetadata.format))),
-				}
-				
-				
-				(videoMetadata.dimensions.width, videoMetadata.dimensions.height, videoMetadata.video, audioMetadata.audio, 0)
-			},
-		};
-		Ok(attributes)
-	}
-	
-	#[inline(always)]
-	fn iFramePlayerHtmlBody(videoNode: UnattachedNode, width: u32) -> Vec<u8>
+	fn iFramePlayerHtmlBody(videoNode: UnattachedNode, width: u16) -> Vec<u8>
 	{
 		let htmlNode = "html"
 		.with_child_element
@@ -364,7 +326,7 @@ impl VideoPipeline
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u32, height: u32, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u32) -> Result<UnattachedNode, CordialError>
+	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
@@ -404,7 +366,7 @@ impl VideoPipeline
 		let placeHolderUrlData = ResourceReference
 		{
 			resource: self.placeholder.clone(),
-			tag: ResourceTag::width_height_image(width, height)
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
 		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
 		placeHolderUrlData.validateIsPng()?;
 		videoNode = videoNode.with_attribute("poster".str_attribute(placeHolderUrlData.url_str()));

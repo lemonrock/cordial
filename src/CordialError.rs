@@ -31,13 +31,6 @@ quick_error!
 			context(path: &'a Path, cause: ::handlebars::TemplateFileError) -> (path.to_path_buf(), cause)
 		}
 		
-		CouldNotReadAudioVideoMetadata(path: PathBuf, cause: ::audio_video_metadata::types::Error)
-		{
-			description("Could not read audio-video metadata")
-			display("Could not read audio video metadata from {:?} because '{:?}'", path, cause)
-			context(path: &'a Path, cause: ::audio_video_metadata::types::Error) -> (path.to_path_buf(), cause)
-		}
-		
 		CouldNotCompressData(compressionAlgorithmName: &'static str, cause: ::std::io::Error)
 		{
 			cause(cause)
@@ -64,12 +57,22 @@ quick_error!
 		{
 			description("Could not parse SVG")
 			display("Could not parse SVG in because '{:?}'", parseError)
+			from()
+		}
+		
+		// mp4parse Error does not implement ::std::error::Error
+		CouldNotParseMp4(parseError: ::mp4parse::Error)
+		{
+			description("Could not parse MP4")
+			display("Could not parse MP4 in because '{:?}'", parseError)
+			from()
 		}
 		
 		CouldNotCleanSvg(cleanError: ::svgcleaner::Error)
 		{
 			description("Could not clean SVG")
 			display("Could not clean SVG in because '{:?}'", cleanError)
+			from()
 		}
 		
 		CouldNotParseMonArtistText(error: ::mon_artist::grid::ParseError)

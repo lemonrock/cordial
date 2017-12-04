@@ -19,8 +19,8 @@ pub(crate) enum UrlDataDetails
 
 	Video
 	{
-		width: u32,
-		height: u32,
+		width: u16,
+		height: u16,
 		size: u64,
 	}
 }
@@ -37,7 +37,7 @@ impl UrlDataDetails
 	}
 	
 	#[inline(always)]
-	pub(crate) fn video(body: &[u8], width: u32, height: u32) -> Self
+	pub(crate) fn video(body: &[u8], width: u16, height: u16) -> Self
 	{
 		UrlDataDetails::Video
 		{

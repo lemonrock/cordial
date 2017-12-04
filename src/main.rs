@@ -12,7 +12,6 @@
 
 
 extern crate arrayvec;
-extern crate audio_video_metadata;
 extern crate barcoders;
 extern crate base64;
 extern crate brotli2;
@@ -43,6 +42,7 @@ extern crate mktemp;
 extern crate mime_guess;
 extern crate mime_multipart;
 extern crate mon_artist;
+extern crate mp4parse;
 extern crate net2;
 #[cfg(unix)] extern crate nix;
 extern crate num_cpus;
@@ -86,8 +86,8 @@ use self::domain::images::*;
 use self::domain::inputFormats::*;
 use self::domain::localization::*;
 use self::html5::*;
+use self::mp4::*;
 use ::arrayvec::ArrayVec;
-use ::audio_video_metadata::enums::Metadata as AudioVideoMetadata;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;
@@ -132,6 +132,7 @@ use ::url::Url;
 pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod html5;
+pub(crate) mod mp4;
 pub(crate) mod webserver;
 pub(crate) mod woff;
 pub(crate) mod xmlExtra;

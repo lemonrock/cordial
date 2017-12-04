@@ -10,7 +10,7 @@ pub(crate) struct SiteMapWebPageVideo
 
 	pub(crate) mp4Url: Url,
 	pub(crate) iFrameUrl: Url,
-	pub(crate) durationInSeconds: Option<u32>,
+	pub(crate) durationInSeconds: Option<u64>,
 	pub(crate) expirationDate: Option<DateTime<Utc>>,
 	pub(crate) videoStarRating: Option<VideoStarRating>,
 	pub(crate) viewCount: Option<u64>,
@@ -28,7 +28,7 @@ impl SiteMapWebPageVideo
 	#[inline(always)]
 	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
-		const GoogleMaximumDurationOfEightHoursInSeconds: u32 = 28_800;
+		const GoogleMaximumDurationOfEightHoursInSeconds: u64 = 28_800;
 		
 		let resource = self.placeHolderUrl.resourceMandatory(resources)?;
 		let thumbnailUrlData = resource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;

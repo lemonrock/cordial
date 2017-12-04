@@ -26,7 +26,7 @@ impl AudioVideoLoad
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addToVideoNode(&self, videoNode: UnattachedNode, durationInSeconds: u32) -> UnattachedNode
+	pub(crate) fn addToVideoNode(&self, videoNode: UnattachedNode, durationInSeconds: u64) -> UnattachedNode
 	{
 		use self::AudioVideoLoad::*;
 		

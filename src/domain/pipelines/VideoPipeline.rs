@@ -9,7 +9,6 @@ pub(crate) struct VideoPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
-	#[serde(default)] language_aware: bool,
 	#[serde(default)] input_format: Option<VideoInputFormat>,
 	
 	#[serde(default)] pub(crate) load: AudioVideoLoad,
@@ -40,7 +39,6 @@ impl Default for VideoPipeline
 		{
 			max_age_in_seconds: max_age_in_seconds_long_default(),
 			is_versioned: Self::language_aware_default(),
-			language_aware: false,
 			input_format: None,
 			
 			load: Default::default(),
@@ -79,7 +77,7 @@ impl Pipeline for VideoPipeline
 	#[inline(always)]
 	fn is<'a>(&self) -> (bool, bool)
 	{
-		(self.is_versioned, self.language_aware)
+		(self.is_versioned, false)
 	}
 	
 	#[inline(always)]
@@ -93,11 +91,18 @@ impl Pipeline for VideoPipeline
 		
 		let mut result = Vec::new();
 		
-		let videoNode = self.createVideoHtmlNodeAndWebVttResources(resourceUrl, resources, configuration, languageData, inputContentFilePath, width, height, &mp4Url, &webmUrl, headerGenerator, &mut result)?;
+		let videoNode = self.createVideoNode(resourceUrl, resources, configuration, languageData, inputContentFilePath, width, height, &mp4Url, &webmUrl)?;
+		
+		let isPrimaryLanguage = configuration.fallbackIso639Dash1Alpha2Language() == languageData.iso639Dash1Alpha2Language;
+		
+		if isPrimaryLanguage
+		{
+			self.createWebVttTracks(inputContentFilePath, resourceUrl, configuration, headerGenerator, &mut result)?;
+			self.createMp4(width, height, mp4Url, headerGenerator, mp4Body, &mut result)?;
+			self.createWebm(width, height, webmUrl, headerGenerator, inputContentFilePath, &mut result)?;
+		}
 		
 		self.createTwitterIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
-		self.createMp4(width, height, mp4Url, headerGenerator, mp4Body, &mut result)?;
-		self.createWebm(width, height, webmUrl, headerGenerator, inputContentFilePath, &mut result)?;
 		
 		Ok(result)
 		
@@ -151,6 +156,27 @@ impl VideoPipeline
 	
 	//noinspection SpellCheckingInspection
 	const WebMVp8MimeType: &'static str = "video/webm;codecs=\"vp8,vorbis\"";
+	
+	#[inline(always)]
+	fn createWebVttTracks(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	{
+		for track in self.tracks.iter()
+		{
+			const CanBeCompressed: bool = true;
+			
+			configuration.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
+			{
+				if let Some((webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
+				{
+					let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
+					result.push((webVttUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
+				}
+				
+				Ok(())
+			})?;
+		}
+		Ok(())
+	}
 	
 	#[inline(always)]
 	fn createTwitterIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u32, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
@@ -262,11 +288,13 @@ impl VideoPipeline
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn createVideoHtmlNodeAndWebVttResources(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u32, height: u32, mp4Url: &Url, webmUrl: &Url, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<UnattachedNode, CordialError>
+	fn createVideoNode(&self, resourceUrl: &ResourceUrl, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, inputContentFilePath: &Path, width: u32, height: u32, mp4Url: &Url, webmUrl: &Url) -> Result<UnattachedNode, CordialError>
 	{
-		let title = match self.title.get(&languageData.iso639Dash1Alpha2Language)
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = match self.title.get(&iso639Dash1Alpha2Language)
 		{
-			None => return Err(CordialError::Configuration(format!("There is no title in {:?} for this video", languageData.iso639Dash1Alpha2Language))),
+			None => return Err(CordialError::Configuration(format!("There is no title in {:?} for this video", iso639Dash1Alpha2Language))),
 			Some(title) => title,
 		};
 		
@@ -306,7 +334,7 @@ impl VideoPipeline
 			{
 				resource: placeHolderUrl.clone(),
 				tag: ResourceTag::width_height_image(width, height)
-			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(languageData.iso639Dash1Alpha2Language))?;
+			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
 			placeHolderUrlData.validateIsPng()?;
 			
 			videoNode = videoNode.with_attribute("poster".str_attribute(placeHolderUrlData.url_str()))
@@ -364,28 +392,40 @@ impl VideoPipeline
 			)
 		;
 		
-		let mut isFirst = true;
-		for track in self.tracks.iter()
+		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), languageData, inputContentFilePath, resourceUrl)?;
+		for (iso639Dash1Alpha2Language, language) in configuration.otherLanguages(iso639Dash1Alpha2Language).iter()
 		{
-			let (webVttBody, webVttUrl, trackNode) = track.asNode(isFirst, languageData, inputContentFilePath, resourceUrl)?;
-			
-			const CanBeCompressed: bool = true;
-			let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
-			result.push((webVttUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
-			
-			videoNode = videoNode.with_child_element(trackNode);
-			
-			if isFirst
-			{
-				isFirst = false;
-			}
+			let languageData = LanguageData { iso639Dash1Alpha2Language: *iso639Dash1Alpha2Language, language };
+			isDefaultTrackAndVideoNode = self.addTracksForLanguage(isDefaultTrackAndVideoNode, &languageData, inputContentFilePath, resourceUrl)?;
 		}
+		videoNode = isDefaultTrackAndVideoNode.1;
 		
 		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_video)?;
-		
 		videoNode = videoNode.with_child_text(translation.deref().as_str());
 		
 		Ok(videoNode)
+	}
+	
+	fn addTracksForLanguage(&self, isFirstAndVideoNode: (bool, UnattachedNode), languageData: &LanguageData, inputContentFilePath: &Path, resourceUrl: &ResourceUrl) -> Result<(bool, UnattachedNode), CordialError>
+	{
+		let (mut isDefaultTrack, mut videoNode) = isFirstAndVideoNode;
+		
+		for track in self.tracks.iter()
+		{
+			// TODO: Performance. We load the WebVtt data multiple times.
+			// Do we have the track in this language? In theory, we could cache the webVttUrls as we process primary lang first, but it's not an obvious thing to do.
+			if let Some((_webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
+			{
+				let trackNode = track.asNode(isDefaultTrack, languageData.iso639Dash1Alpha2Language, &webVttUrl)?;
+				videoNode = videoNode.with_child_element(trackNode);
+				
+				if isDefaultTrack
+				{
+					isDefaultTrack = false;
+				}
+			}
+		}
+		Ok((isDefaultTrack, videoNode))
 	}
 	
 	#[inline(always)]

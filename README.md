@@ -80,6 +80,7 @@ It also does a lot more to create a great experience for your users:-
 
 ## Restrictions
 
+* Videos with a soundtrack in more than one language (dubbing), or locale-differing content, are not supported. However, videos can have alternative language subtitle tracks, artwork and placeholders (posters). Content restrictions are not enforced.
 * [cordial] does not support `TRACE`, but this can be easily added if desired;
 * When atomically upgrading to a new deployment, it is not possible to serve old versions if a host name has been retired or changed (this is because we will no longer have any HTTPS information)
 * URL path segments containing `/` (technically possible because of percent-encoding) are not supported; this can be supported if required but the work is substantial and there is no simple, visually meaningful way (ie look at this file; that must be this URL) to map these to file system resources

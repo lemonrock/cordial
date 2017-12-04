@@ -20,4 +20,6 @@ include!("immutableCacheDirective.rs");
 include!("Strict_Transport_Security.rs");
 include!("X_Content_Type_Options.rs");
 include!("X_Frame_Options.rs");
+include!("X_Robots_Tag.rs");
+include!("X_Robots_Tag_Data.rs");
 include!("X_XSS_Protection.rs");

@@ -2,4 +2,22 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-static_response_only_header!(Strict_Transport_Security, "Strict-Transport-Security", "max-age=63072000;includeSubDomains;preload");
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum AudioVideoTrackKind
+{
+	subtitles,
+	captions,
+	descriptions,
+	chapters,
+	metadata,
+}
+
+impl Default for AudioVideoTrackKind
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		AudioVideoTrackKind::subtitles
+	}
+}

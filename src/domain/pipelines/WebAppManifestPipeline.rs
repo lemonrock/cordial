@@ -65,7 +65,7 @@ impl Pipeline for WebAppManifestPipeline
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
-		DependsOnOthersEgStylesheet
+		DependsOnOthersEgStylesheetOrVideo
 	}
 	
 	#[inline(always)]

@@ -20,4 +20,5 @@ include!("HtmlInputFormat.rs");
 include!("ImageInputFormat.rs");
 include!("InputFormat.rs");
 include!("SvgInputFormat.rs");
+include!("VideoInputFormat.rs");
 include!("WebAppManifestInputFormat.rs");

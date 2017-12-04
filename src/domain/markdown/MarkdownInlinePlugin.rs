@@ -6,6 +6,7 @@
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum MarkdownInlinePlugin
 {
+	//app_banner,
 	image,
 }
 
@@ -18,6 +19,7 @@ impl MarkdownInlinePlugin
 		
 		hashmap!
 		{
+			//b"app_banner".to_vec() => app_banner,
 			b"image".to_vec() => image,
 		}
 	}
@@ -31,9 +33,43 @@ impl MarkdownInlinePlugin
 		
 		match *self
 		{
+			//app_banner => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 			image => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 		}
 	}
+	
+//	fn app_banner(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
+//	{
+//		if !isForAmp
+//		{
+//			MarkdownPluginResult::ok(vec![])
+//		}
+//
+//		nodesForOtherPlacesInHtml.ampScript("amp-app-banner", "https://cdn.ampproject.org/v0/amp-app-banner-0.1.js")
+//
+//		// TODO: height doesn't exceed 100px.
+//
+//		// TODO: SafariITunesApp and / or Manifest Link must be present in HTML document!
+//
+//		// TODO: Need an app name & a call to action which we turn into a translation
+//
+//		/*
+//		<amp-app-banner layout="nodisplay"
+//  id="banner">
+//  <div id="banner-logo">
+//    <amp-img src="https://cdn-images-1.medium.com/max/50/1*JLegdtjFMNgqHgnxdd04fg.png"
+//      width="50"
+//      height="43"
+//      layout="fixed"></amp-img>
+//  </div>
+//  <div id="banner-text">Learn more about AMP in the Medium App.</div>
+//  <div id="banner-action">
+//    <button class="ampstart-btn mr1 caps"
+//      open-button>View in app</button>
+//  </div>
+//</amp-app-banner>
+//		*/
+//	}
 	
 	//noinspection SpellCheckingInspection
 	fn image(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>

@@ -3,29 +3,43 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum RequiredTranslation
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum VideoInputFormat
 {
-	missing_image_fallback,
-	your_browser_does_not_support_video,
+	MP4_with_WebM,
 }
 
-impl RequiredTranslation
+impl Default for VideoInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn englishTranslations() -> HashMap<RequiredTranslation, Rc<String>>
+	fn default() -> Self
 	{
-		use self::RequiredTranslation::*;
+		VideoInputFormat::MP4_with_WebM
+	}
+}
+
+impl InputFormat for VideoInputFormat
+{
+	#[inline(always)]
+	fn fileExtensions(&self) -> &'static [&'static str]
+	{
+		use self::VideoInputFormat::*;
 		
-		fn text(text: &'static str) -> Rc<String>
+		match *self
 		{
-			Rc::new(text.to_owned())
-		}
-		
-		hashmap!
-		{
-			missing_image_fallback => text("Unfortunately, this content is unavailable at this time."),
-			your_browser_does_not_support_video => text("Unfortunately, your browser does not support video in the formats we use."),
+			MP4_with_WebM => &[".mp4"],
 		}
 	}
+	
+	#[inline(always)]
+	fn allFileExtensions() -> &'static [&'static str]
+	{
+		&[
+			".mp4",
+		]
+	}
+}
+
+impl VideoInputFormat
+{
 }

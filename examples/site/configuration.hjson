@@ -61,6 +61,8 @@
 
 	enable_hsts_preloading_for_production: false
 
+	allow_search_engine_indexing_for_production: false
+
 	resource:
 	{
 		pipeline: raw

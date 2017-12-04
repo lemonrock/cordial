@@ -51,7 +51,7 @@ impl Pipeline for BrowserConfigPipeline
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
-		DependsOnOthersEgStylesheet
+		DependsOnOthersEgStylesheetOrVideo
 	}
 	
 	#[inline(always)]

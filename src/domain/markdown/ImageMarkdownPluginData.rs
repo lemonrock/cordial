@@ -161,7 +161,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 			.with_title_attribute(licenseAnchorTitleAttribute.as_str())
 			.with_child_text(self.credit())
 			.with_attribute("target".str_attribute("_blank"))
-			.with_attribute("rel".space_separated_attribute(&["license", "noopener", "noreferrer"]));
+			.with_attribute("rel".space_separated_attribute(["license", "noopener", "noreferrer"].iter().map(|value| *value)));
 		
 		let (firstChild, secondChild) = if self.markdownPluginData.renderRightToLeft()
 		{

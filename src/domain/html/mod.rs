@@ -31,6 +31,7 @@ include!("HtmlAbstract.rs");
 include!("HtmlDocumentData.rs");
 include!("HtmlOutputFormat.rs");
 include!("HtmlUrls.rs");
+include!("SafariITunesApp.rs");
 include!("SafariPinnedTabIcon.rs");
 include!("SafariStatusBarAppearance.rs");
 include!("SafariTouchStartUpImage.rs");

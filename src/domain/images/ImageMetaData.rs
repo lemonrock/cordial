@@ -120,7 +120,7 @@ impl ImageMetaData
 		
 		if self.classes.len() > 0
 		{
-			imgAttributes.push("class".space_separated_attribute(&self.classes));
+			imgAttributes.push("class".space_separated_attribute(self.classes.iter().map(|string| string.as_ref())));
 		}
 		
 		if !isForAmp

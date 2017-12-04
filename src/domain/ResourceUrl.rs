@@ -23,6 +23,17 @@ impl Display for ResourceUrl
 	}
 }
 
+impl Deref for ResourceUrl
+{
+	type Target = str;
+	
+	#[inline(always)]
+	fn deref(&self) -> &Self::Target
+	{
+		self.0.as_str()
+	}
+}
+
 impl<'de> Deserialize<'de> for ResourceUrl
 {
 	#[inline(always)]

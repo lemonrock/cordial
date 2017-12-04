@@ -31,6 +31,13 @@ quick_error!
 			context(path: &'a Path, cause: ::handlebars::TemplateFileError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotReadAudioVideoMetadata(path: PathBuf, cause: ::audio_video_metadata::types::Error)
+		{
+			description("Could not read audio-video metadata")
+			display("Could not read audio video metadata from {:?} because '{:?}'", path, cause)
+			context(path: &'a Path, cause: ::audio_video_metadata::types::Error) -> (path.to_path_buf(), cause)
+		}
+		
 		CouldNotCompressData(compressionAlgorithmName: &'static str, cause: ::std::io::Error)
 		{
 			cause(cause)

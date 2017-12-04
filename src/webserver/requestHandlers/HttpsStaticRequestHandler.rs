@@ -8,6 +8,7 @@ pub(crate) struct HttpsStaticRequestHandler
 	responses: Arc<Responses>,
 	httpKeepAlive: bool,
 	hstsPreloadingEnabledForProduction: bool,
+	allowSearchEngineIndexingForProduction: bool,
 }
 
 impl RequestHandler for HttpsStaticRequestHandler
@@ -127,6 +128,15 @@ impl RequestHandler for HttpsStaticRequestHandler
 			response
 		};
 		
+		let response = if self.allowSearchEngineIndexingForProduction
+		{
+			response
+		}
+		else
+		{
+			response.with_header(X_Robots_Tag::Default)
+		};
+		
 		HttpService::<Self>::response(response)
 	}
 }
@@ -134,13 +144,14 @@ impl RequestHandler for HttpsStaticRequestHandler
 impl HttpsStaticRequestHandler
 {
 	#[inline(always)]
-	pub(crate) fn new(responses: Responses, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool) -> Self
+	pub(crate) fn new(responses: Responses, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool, allowSearchEngineIndexingForProduction: bool) -> Self
 	{
 		Self
 		{
 			responses: Arc::new(responses),
 			httpKeepAlive,
 			hstsPreloadingEnabledForProduction,
+			allowSearchEngineIndexingForProduction,
 		}
 	}
 	

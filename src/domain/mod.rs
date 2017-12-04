@@ -11,6 +11,7 @@ use super::webserver::UpdatableTlsServerConfigurationFactory;
 use super::webserver::Webserver;
 use super::webserver::requestHandlers::*;
 use super::webserver::requestHandlerFactories::*;
+use self::audioVideo::*;
 use self::browserConfig::*;
 use self::compression::*;
 use self::daemon::*;
@@ -87,6 +88,7 @@ use ::xml::writer::EmitterConfig;
 use ::xml::writer::EventWriter;
 
 
+pub(crate) mod audioVideo;
 pub(crate) mod browserConfig;
 pub(crate) mod compression;
 pub(crate) mod configure;

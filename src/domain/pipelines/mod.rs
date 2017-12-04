@@ -4,6 +4,7 @@
 
 use super::*;
 use super::svg::*;
+use super::super::webserver::headers::X_Robots_Tag_Data;
 use self::ProcessingPriority::*;
 use self::ResourceTag::*;
 use ::ordermap::OrderMap;
@@ -25,3 +26,4 @@ include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");
 include!("SvgPipeline.rs");
 include!("WebAppManifestPipeline.rs");
+include!("VideoPipeline.rs");

@@ -24,17 +24,17 @@ pub(crate) trait UnattachedNodeHelperExt
 	fn u32_attribute(&self, value: u32) -> Attribute;
 	
 	#[inline(always)]
-	fn space_separated_attribute<S: Deref<Target=str>>(&self, values: &[S]) -> Attribute
+	fn space_separated_attribute<'a, I: Iterator<Item=&'a str>>(&self, values: I) -> Attribute
 	{
 		self.separated_attribute(values, ' ')
 	}
 	
 	#[inline(always)]
-	fn separated_attribute<S: Deref<Target=str>>(&self, values: &[S], separator: char) -> Attribute
+	fn separated_attribute<'a, I: Iterator<Item=&'a str>>(&self, values: I, separator: char) -> Attribute
 	{
 		let mut afterFirst = false;
 		let mut attributeString = String::new();
-		for value in values.iter()
+		for value in values
 		{
 			if afterFirst
 			{
@@ -63,6 +63,12 @@ pub(crate) trait UnattachedNodeHelperExt
 	
 	#[inline(always)]
 	fn with_property_attribute(&self, charset: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_src_attribute(&self, src: &str) -> UnattachedNode;
+	
+	#[inline(always)]
+	fn with_type_attribute(&self, type_: &str) -> UnattachedNode;
 	
 	#[inline(always)]
 	fn with_http_equiv_attribute(&self, charset: &str) -> UnattachedNode;
@@ -158,6 +164,18 @@ impl UnattachedNodeHelperExt for str
 	fn with_property_attribute(&self, name: &str) -> UnattachedNode
 	{
 		self.local_name().with_attributes(vec!["property".str_attribute(name)])
+	}
+	
+	#[inline(always)]
+	fn with_src_attribute(&self, src: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["src".str_attribute(src)])
+	}
+	
+	#[inline(always)]
+	fn with_type_attribute(&self, type_: &str) -> UnattachedNode
+	{
+		self.local_name().with_attributes(vec!["type".str_attribute(type_)])
 	}
 	
 	#[inline(always)]

@@ -5,6 +5,7 @@
 #[derive(Debug, Clone)]
 pub(crate) struct HtmlDocumentData<'a>
 {
+	pub(crate) resourceUrl: &'a ResourceUrl,
 	pub(crate) fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
 	pub(crate) markdownParser: MarkdownParser,
 	pub(crate) markdown: String,
@@ -111,7 +112,7 @@ impl<'a> HtmlDocumentData<'a>
 		
 		if let Some(safariStyling) = self.safariStyling
 		{
-			safariStyling.addToEndHeadNodes(&mut endHeadNodes, resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()))?;
+			safariStyling.addToEndHeadNodes(&mut endHeadNodes, resources, self.configuration.fallbackIso639Dash1Alpha2Language(), Some(self.iso639Dash1Alpha2Language()), self.resourceUrl)?;
 		}
 		
 		if let Some(ref windowsTilesTitle) = self.htmlAbstract.windows_tiles_title

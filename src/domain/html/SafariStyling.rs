@@ -11,6 +11,8 @@ pub(crate) struct SafariStyling
 	#[serde(default)] startup_images: BTreeMap<SafariTouchStartUpImage, ResourceUrl>,
 	#[serde(default)] fullscreen: bool,
 	#[serde(default)] status_bar_appearance: SafariStatusBarAppearance,
+	#[serde(default)] itunes_app: Option<SafariITunesApp>,
+	
 }
 
 impl Default for SafariStyling
@@ -25,6 +27,7 @@ impl Default for SafariStyling
 			startup_images: Default::default(),
 			fullscreen: false,
 			status_bar_appearance: Default::default(),
+			itunes_app: None,
 		}
 	}
 }
@@ -48,7 +51,7 @@ impl SafariStyling
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addToEndHeadNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
+	pub(crate) fn addToEndHeadNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, resourceUrl: &ResourceUrl) -> Result<(), CordialError>
 	{
 		if let Some(ref touchIcon) = self.touch_icon
 		{
@@ -63,6 +66,11 @@ impl SafariStyling
 		for (startup_image, url) in self.startup_images.iter()
 		{
 			startup_image.addLinkNode(endHeadNodes, url, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		}
+		
+		if let Some(ref itunes_app) = self.itunes_app
+		{
+			itunes_app.addToEndHeadNodes(endHeadNodes, resourceUrl);
 		}
 		
 		Ok(())

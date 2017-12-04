@@ -136,6 +136,7 @@ impl Pipeline for HtmlPipeline
 		};
 		let htmlDocumentData = HtmlDocumentData
 		{
+			resourceUrl,
 			fallbackIso639Dash1Alpha2Language: configuration.fallbackIso639Dash1Alpha2Language(),
 			
 			markdownParser: MarkdownParser::defaultish(self.header_id_prefix_with_trailing_dash.as_str()),

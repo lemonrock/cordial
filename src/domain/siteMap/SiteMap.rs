@@ -31,7 +31,7 @@ impl SiteMap
 	pub(crate) fn renderSiteMap<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		
+
 		let namespace = Namespace
 		(
 			btreemap!
@@ -39,11 +39,11 @@ impl SiteMap
 				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
 			}
 		);
-		
+
 		let emptyAttributes = [];
-		
+
 		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(&iso639Dash1Alpha2Language).unwrap())?;
-		
+
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;
 		let mut index = 0;
@@ -52,12 +52,12 @@ impl SiteMap
 			const MaximumNumberOfUrlsInASiteMapIndex: usize = 50_000;
 			const MaximumSiteMapFileSizeInBytes: usize = 52_428_800;
 			const SafeMaximumSiteMapIndexFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
-			
+
 			let bytesWritten = Cell::new(0);
 			let mut eventWriter = Self::createEventWriter(&bytesWritten);
-			
+
 			eventWriter.writeBasicXmlDocumentPreamble()?;
-			
+
 			let mut count = 0;
 			eventWriter.writeWithinElement(Name::local("sitemapindex"), &namespace, &emptyAttributes, |eventWriter|
 			{
@@ -78,10 +78,10 @@ impl SiteMap
 							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move |eventWriter|
 							{
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
-								
+
 								let lastModifiedHttpDate = resources.addResponse(url, currentResponse, oldResponses.clone());
 								let lastModifiedTimeStamp: DateTime<Utc> = DateTime::from(SystemTime::from(lastModifiedHttpDate));
-								
+
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "lastmod", &lastModifiedTimeStamp.to_rfc3339())
 							})?;
 							count += 1;
@@ -90,9 +90,9 @@ impl SiteMap
 				}
 				Ok(())
 			})?;
-			
+
 			let unversionedCanonicalUrl = ResourceUrl::siteMapIndexUrl(iso639Dash1Alpha2Language, index).url(languageData)?;
-			
+
 			const CanBeCompressed: bool = true;
 			const CanBeDownloaded: bool = true;
 			let headers = HeaderGenerator
@@ -102,29 +102,29 @@ impl SiteMap
 				ifLanguageAwareLanguageData: Some(languageData),
 				configuration,
 			}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &unversionedCanonicalUrl)?;
-			
+
 			let mut siteMapIndexBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapIndexBodyUncompressed.shrink_to_fit();
 			let siteMapIndexBodyCompressed = self.compression.compress(&siteMapIndexBodyUncompressed)?;
-			
+
 			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
-			
+
 			robotsTxtConfiguration.addSiteMapIndexUrl(&unversionedCanonicalUrl);
 			newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
-			
+
 			index += 1;
 		}
-		
+
 		Ok(())
 	}
-	
+
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		
+
 		let namespace = Namespace
 		(
 			btreemap!
@@ -132,12 +132,12 @@ impl SiteMap
 				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
 				"xhtml".to_owned() => "http://www.w3.org/1999/xhtml".to_owned(),
 				"image".to_owned() => "http://www.google.com/schemas/sitemap-image/1.1".to_owned(),
-				"video".to_owned() => "http://www.google.com/schemas/sitemap-video/1.1".to_owned(),
+				"audioVideo".to_owned() => "http://www.google.com/schemas/sitemap-audioVideo/1.1".to_owned(),
 			}
 		);
-		
+
 		let emptyAttributes = [];
-		
+
 		let mut urlAndResponse = Vec::with_capacity(1);
 		let mut startingIndex = 0;
 		while startingIndex < webPages.len()
@@ -145,42 +145,42 @@ impl SiteMap
 			const MaximumNumberOfUrlsInASiteMap: usize = 50_000;
 			const MaximumSiteMapFileSizeInBytes: usize = 52_428_800;
 			const SafeMaximumSiteMapFileSizeInBytes: usize = MaximumSiteMapFileSizeInBytes - 1024;
-			
+
 			let bytesWritten = Cell::new(0);
 			let mut eventWriter = Self::createEventWriter(&bytesWritten);
-			
+
 			let webPagesForThisSiteMapFile = &webPages[startingIndex .. ];
 			let mut count = 0;
-			
+
 			eventWriter.writeBasicXmlDocumentPreamble()?;
-			
+
 			eventWriter.writeWithinElement(Name::local("urlset"), &namespace, &emptyAttributes, |eventWriter|
 			{
 				for webPage in webPagesForThisSiteMapFile.iter()
 				{
 					startingIndex += 1;
-					
+
 					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &namespace, &emptyAttributes)?
 					{
 						count += 1;
-						
+
 						if count == MaximumNumberOfUrlsInASiteMap
 						{
 							return Ok(())
 						}
-						
+
 						if bytesWritten.get() >= SafeMaximumSiteMapFileSizeInBytes
 						{
 							return Ok(())
 						}
 					}
 				}
-				
+
 				Ok(())
 			})?;
-			
+
 			let unversionedCanonicalUrl = ResourceUrl::siteMapUrl(iso639Dash1Alpha2Language, urlAndResponse.len()).url(languageData).unwrap();
-			
+
 			const CanBeCompressed: bool = true;
 			const CanBeDownloaded: bool = true;
 			let headers = HeaderGenerator
@@ -190,20 +190,20 @@ impl SiteMap
 				ifLanguageAwareLanguageData: Some(languageData),
 				configuration,
 			}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &unversionedCanonicalUrl)?;
-			
+
 			let mut siteMapBodyUncompressed = eventWriter.into_inner().bytes();
 			siteMapBodyUncompressed.shrink_to_fit();
 			let siteMapBodyCompressed = self.compression.compress(&siteMapBodyUncompressed)?;
-			
+
 			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
 			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapBodyUncompressed, Some(siteMapBodyCompressed));
-			
+
 			urlAndResponse.push((unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse)));
 		}
-		
+
 		Ok(urlAndResponse)
 	}
-	
+
 	#[inline(always)]
 	fn createEventWriter<'a>(bytesWritten: &'a Cell<usize>) -> EventWriter<LengthTrackingWriter<'a>>
 	{
@@ -221,7 +221,7 @@ impl SiteMap
 		};
 		configuration.create_writer(LengthTrackingWriter::new(bytesWritten))
 	}
-	
+
 	#[inline(always)]
 	fn max_age_in_seconds_default() -> u32
 	{

@@ -2,4 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-static_response_only_header!(Strict_Transport_Security, "Strict-Transport-Security", "max-age=63072000;includeSubDomains;preload");
+static_response_only_header!(X_Robots_Tag, "X-Robots-Tag", X_Robots_Tag_Data);

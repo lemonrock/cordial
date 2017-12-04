@@ -11,6 +11,7 @@
 #![recursion_limit="128"]
 
 
+extern crate audio_video_metadata;
 extern crate barcoders;
 extern crate base64;
 extern crate brotli2;
@@ -84,6 +85,7 @@ use self::domain::images::*;
 use self::domain::inputFormats::*;
 use self::domain::localization::*;
 use self::html5::*;
+use ::audio_video_metadata::enums::Metadata as AudioVideoMetadata;
 use ::clap::App;
 use ::clap::Arg;
 use ::clap::ArgMatches;

@@ -2,6 +2,7 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+
 pub(crate) trait PathExt
 {
 	fn fileContentsInFolder<R, F: Fn(&Path) -> Option<Result<R, CordialError>>>(&self, filter: F) -> Result<BTreeMap<PathBuf, R>, CordialError>;

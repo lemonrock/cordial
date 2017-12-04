@@ -26,8 +26,6 @@ impl Default for Language
 	#[inline(always)]
 	fn default() -> Self
 	{
-		use self::RequiredTranslation::*;
-		
 		Self
 		{
 			iso_3166_1_alpha_2_country_code: Default::default(),
@@ -37,10 +35,7 @@ impl Default for Language
 			relative_root_url: RelativeRootUrl::default(),
 			assume_right_to_left_script: false,
 			native_name: "English".to_owned(),
-			required_translations: hashmap!
-			{
-				missing_image_fallback => Rc::new("Unfortunately, this content is unavailable at this time.".to_owned()),
-			},
+			required_translations: RequiredTranslation::englishTranslations(),
 			facebook_open_graph_video_actor_role_translations: Default::default(),
 			facebook_open_graph_video_tag_translations: Default::default(),
 			facebook_open_graph_article_tag_translations: Default::default(),

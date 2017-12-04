@@ -45,7 +45,7 @@ impl Pipeline for CssPipeline
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
 	{
-		DependsOnOthersEgStylesheet
+		DependsOnOthersEgStylesheetOrVideo
 	}
 
 	#[inline(always)]

@@ -34,6 +34,12 @@ impl<'a> LanguageData<'a>
 	}
 	
 	#[inline(always)]
+	pub(crate) fn requiredTranslation(&self, requiredTranslation: RequiredTranslation) -> Result<&Rc<String>, CordialError>
+	{
+		self.language.requiredTranslation(requiredTranslation)
+	}
+	
+	#[inline(always)]
 	pub(crate) fn facebookOpenGraphVideoActorRoleTranslation<'aa: 'b, 'b>(&'aa self, role: &'b str) -> &'b str
 	{
 		self.language.facebookOpenGraphVideoActorRoleTranslation(role)

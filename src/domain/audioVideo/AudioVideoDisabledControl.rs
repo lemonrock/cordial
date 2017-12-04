@@ -2,30 +2,31 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+//noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Serialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum RequiredTranslation
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum AudioVideoDisabledControl
 {
-	missing_image_fallback,
-	your_browser_does_not_support_video,
+	nodownload,
+	nofullscreen,
+	noremoteplayback,
 }
 
-impl RequiredTranslation
+impl Deref for AudioVideoDisabledControl
 {
+	type Target = str;
+	
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn englishTranslations() -> HashMap<RequiredTranslation, Rc<String>>
+	fn deref(&self) -> &Self::Target
 	{
-		use self::RequiredTranslation::*;
+		use self::AudioVideoDisabledControl::*;
 		
-		fn text(text: &'static str) -> Rc<String>
+		match *self
 		{
-			Rc::new(text.to_owned())
-		}
-		
-		hashmap!
-		{
-			missing_image_fallback => text("Unfortunately, this content is unavailable at this time."),
-			your_browser_does_not_support_video => text("Unfortunately, your browser does not support video in the formats we use."),
+			nodownload => "nodownload",
+			nofullscreen => "nofullscreen",
+			noremoteplayback => "noremoteplayback",
 		}
 	}
 }

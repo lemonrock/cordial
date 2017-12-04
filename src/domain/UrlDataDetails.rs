@@ -15,6 +15,13 @@ pub(crate) enum UrlDataDetails
 		width: u32,
 		height: u32,
 		size: u64,
+	},
+
+	Video
+	{
+		width: u32,
+		height: u32,
+		size: u64,
 	}
 }
 
@@ -25,6 +32,17 @@ impl UrlDataDetails
 	{
 		UrlDataDetails::Generic
 		{
+			size: body.len() as u64,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn video(body: &[u8], width: u32, height: u32) -> Self
+	{
+		UrlDataDetails::Video
+		{
+			width,
+			height,
 			size: body.len() as u64,
 		}
 	}
@@ -60,6 +78,7 @@ impl UrlDataDetails
 		{
 			Generic { size } => size,
 			Image { size, .. } => size,
+			Video { size, .. } => size,
 		}
 	}
 }

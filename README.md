@@ -9,7 +9,7 @@ It also does a lot more to create a great experience for your users:-
 	* Meanwhile the old deployment is served
 	* Versioned assets for the old deployment are available even when the new deployment is switched to, in cases where clients got a web page with versioned asset references just before the point of switch-over
 * Serving web pages in more than one language is very easy
-	* Even images can be localized
+	* Even images and videos can be localized
 	* All language content is spell-checked and grammar-checked
 	* Internationally aware site maps and RSS feeds are supported, too
 	* Localization can be by relative URL or by alternative server
@@ -36,11 +36,16 @@ It also does a lot more to create a great experience for your users:-
 	* Images can vary by language
 	* Images are always converted and compressed to the best possible format using the latest optimizations (eg guetzli)
 * All assets are minified and compressed using Brotli and Zopfli;
+* Videos are assumed to be served as both MP4 and WebM, with full support for language-aware subtitles (WebVTT), video site maps and Twitter Player cards;
 * Unnecessary CSS rules are stripped, CSS is auto-prefixed and invalid CSS detected before it is served;
 * Support for SEO is trivial;
 * Text is always spell-checked and grammar-checked
 * HTTP OPTIONS support is built-in
 * If a resource is an index URL, and the user specifies a leaf, or vice versa, an automatic redirect is generated.
+* Prevents development websites leaking into production:-
+	* We disallow robot indexing using the 'X-Robots-Tag' header to prevent accidental exposure to search engines
+	* We only turn on HSTS preloading in production
+	* Additionally, all configuration is environment-aware
 
 [cordial] also makes it easy for you to manage large amounts of content:-
 
@@ -133,6 +138,37 @@ The license for this project is AGPL-3.0.
 		* Eg global attributes where some values can be just an empty attribute
 		* Eg class and srcset, where some spacing can be eliminated
 		* Remove leading and trailing space from some attributes (eg id, href, class, src, srcset, sizes, etc)
+* schema.org (using JSON+LD)
+	* breadcrumbs
+	* We need to move to 3 article images
+* Podcasts: https://developers.google.com/search/docs/data-types/podcasts
+* AMP
+	* amp-app-banner
+		* Implement a markdown plugin
+		* ? link rel="amp-manifest" ?
+	* amp-audio
+		* Implement a markdown plugin
+	* amp-video
+		* Implement a markdown plugin
+		* Make sure we use https://developers.google.com/search/docs/data-types/videos
+	* amp-analytics
+	* amp-call-tracking (needs simple JSON responses)
+		* Implement as a markdown plugin for telephone numbers
+	* amp-gist
+	* amp-user-notification / cookies
+	* amp-accordion
+	* amp-carousel
+	* amp-sidebar
+	* amp-iframe
+		* eg for Google maps, see <https://www.ampproject.org/docs/reference/components/amp-iframe>
+	* ?amp-lightbox? (not the say as amp-image-lightbox)
+	* amp-youtube, amp-vimeo, amp-playbuzz etc
+	* amp-timeago
+	* amp-viz-vega
+	* amp-social-share
+	* amp-twitter
+	* amp-gycat
+	
 * Formats
 	* Markdown: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
 	* SASS: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)

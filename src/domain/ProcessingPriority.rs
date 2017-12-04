@@ -7,12 +7,12 @@
 pub(crate) enum ProcessingPriority
 {
 	NoDependenciesEgImage,
-	DependsOnOthersEgStylesheet,
+	DependsOnOthersEgStylesheetOrVideo,
 	LinksToSubResourcesEgHtmlPage,
 	IndexesEgSiteMap,
 }
 
 impl ProcessingPriority
 {
-	pub const All: [ProcessingPriority; 4] = [ProcessingPriority::NoDependenciesEgImage, ProcessingPriority::DependsOnOthersEgStylesheet, ProcessingPriority::LinksToSubResourcesEgHtmlPage, ProcessingPriority::IndexesEgSiteMap];
+	pub const All: [ProcessingPriority; 4] = [ProcessingPriority::NoDependenciesEgImage, ProcessingPriority::DependsOnOthersEgStylesheetOrVideo, ProcessingPriority::LinksToSubResourcesEgHtmlPage, ProcessingPriority::IndexesEgSiteMap];
 }

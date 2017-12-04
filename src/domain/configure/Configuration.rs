@@ -9,6 +9,7 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::maximum_number_of_tls_sessions_default")] maximum_number_of_tls_sessions: u32,
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default)] enable_hsts_preloading_for_production: bool,
+	#[serde(default)] allow_search_engine_indexing_for_production: bool,
 	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
 	#[serde(default)] pub(crate) localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
@@ -33,6 +34,7 @@ impl Default for Configuration
 			maximum_number_of_tls_sessions: Self::maximum_number_of_tls_sessions_default(),
 			http_keep_alive: Self::http_keep_alive_default(),
 			enable_hsts_preloading_for_production: false,
+			allow_search_engine_indexing_for_production: false,
 			resource_template: None,
 			localization: Localization::default(),
 			robots: RobotsTxt::default(),
@@ -155,7 +157,7 @@ impl Configuration
 		let resources = self.discoverResources()?;
 		
 		let newResources = self.render(resources, &oldResponses, &ourHostNames, &handlebars)?;
-		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production))
+		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production, self.allow_search_engine_indexing_for_production))
 	}
 	
 	#[inline(always)]

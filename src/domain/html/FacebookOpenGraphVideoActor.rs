@@ -16,12 +16,12 @@ impl FacebookOpenGraphVideoActor
 	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		let url = self.profile.findUrlForFacebookOpenGraph(resources, fallbackIso639Dash1Alpha2Language, languageData.iso639Dash1Alpha2Language, FacebookOpenGraphTypeDiscriminant::profile)?;
-		endHeadNodes.push(meta_with_property_and_content("audioVideo:actor", url.as_str()));
+		endHeadNodes.push(meta_with_property_and_content("video:actor", url.as_str()));
 
 		for role in self.roles.iter()
 		{
 			let translatedRole = languageData.facebookOpenGraphVideoActorRoleTranslation(role);
-			endHeadNodes.push(meta_with_property_and_content("audioVideo:actor:role", translatedRole));
+			endHeadNodes.push(meta_with_property_and_content("video:actor:role", translatedRole));
 		}
 
 		Ok(())

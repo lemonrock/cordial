@@ -159,22 +159,14 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssImage(&self, internalImage: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<RssImage, CordialError>
+	pub(crate) fn rssImage(&self, url: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<RssImage, CordialError>
 	{
 		let imageAbstract = (*self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?).clone();
-		let urlData = internalImage.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
-		
-		let (width, height, fileSize) = urlData.image()?;
-		
 		Ok
 		(
 			RssImage
 			{
-				width,
-				height,
-				url: urlData.url().clone(),
-				fileSize,
-				mimeType: urlData.mimeType().clone(),
+				url: url.clone(),
 				imageAbstract,
 				credit: self.credit.clone(),
 				iso639Dash1Alpha2Language,
@@ -183,15 +175,18 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn siteMapWebPageImage(&self, internalImage: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &Resources) -> Result<SiteMapWebPageImage, CordialError>
+	pub(crate) fn siteMapWebPageImage(&self, url: &ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<SiteMapWebPageImage, CordialError>
 	{
 		let imageAbstract = self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 		
-		let url = internalImage.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
-		let licenseUrl = self.license_url.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.clone();
-		let imageAbstract = imageAbstract.clone();
-		
-		Ok(SiteMapWebPageImage { url, licenseUrl, imageAbstract })
+		Ok
+		(
+			SiteMapWebPageImage
+			{
+				url: url.clone(),
+				licenseUrl: self.license_url.clone(),
+				imageAbstract: imageAbstract.clone(),
+			}
+		)
 	}
 }

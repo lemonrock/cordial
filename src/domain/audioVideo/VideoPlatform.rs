@@ -2,7 +2,36 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum VideoPlatform
+{
+	WEB,
+	MOBILE,
+	TV,
+}
 
+impl Default for VideoPlatform
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		VideoPlatform::WEB
+	}
+}
 
-include!("StylesheetLink.rs");
+impl VideoPlatform
+{
+	#[inline(always)]
+	pub(crate) fn to_str(&self) -> &'static str
+	{
+		use self::VideoPlatform::*;
+		
+		match *self
+		{
+			WEB => "WEB",
+			MOBILE => "MOBILE",
+			TV => "TV",
+		}
+	}
+}

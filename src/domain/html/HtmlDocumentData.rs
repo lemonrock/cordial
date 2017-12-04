@@ -240,7 +240,7 @@ impl<'a> HtmlDocumentData<'a>
 											resource: articleImageResourceUrl.clone(),
 											tag: RssImageResourceTag,
 										};
-										Some(articleImageMetaData.rssImage(&rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?)
+										Some(articleImageMetaData.rssImage(&rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 									}
 								},
 							},
@@ -269,7 +269,7 @@ impl<'a> HtmlDocumentData<'a>
 				resource: articleImageResourceUrl.clone(),
 				tag: SiteMapImageTag,
 			};
-			images.push(articleImageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?);
+			images.push(articleImageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?);
 		};
 		
 		for siteMapImageResourceUrl in self.siteMapImages.iter()
@@ -282,8 +282,10 @@ impl<'a> HtmlDocumentData<'a>
 				resource: siteMapImageResourceUrl.clone(),
 				tag: SiteMapImageTag,
 			};
-			images.push(imageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), resources)?)
+			images.push(imageMetaData.siteMapWebPageImage(&siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 		}
+		
+		let videos = vec![];
 		
 		siteMapWebPages.push
 		(
@@ -293,7 +295,8 @@ impl<'a> HtmlDocumentData<'a>
 				changeFrequency,
 				priority,
 				urlsByIso639Dash1Alpha2Language: self.htmlUrls.linkHeaderAlternativeLanguageUrlsIncludingSelf()?,
-				images
+				images,
+				videos,
 			}
 		);
 		Ok(())

@@ -5,26 +5,26 @@
 #[derive(Debug, Clone)]
 pub(crate) struct SiteMapWebPageImage
 {
-	pub(crate) url: Rc<Url>,
+	pub(crate) url: ResourceReference,
+	pub(crate) licenseUrl: ResourceReference,
 	pub(crate) imageAbstract: Rc<ImageAbstract>,
-	pub(crate) licenseUrl: Rc<Url>,
 }
 
 impl SiteMapWebPageImage
 {
 	#[inline(always)]
-	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
 		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, |eventWriter|
 		{
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "loc", self.url.as_str())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "loc", self.url.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())?;
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "caption", &self.imageAbstract.caption)?;
 			if let Some(geographicLocation) = self.imageAbstract.geographic_location.as_ref()
 			{
 				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "geo_location", geographicLocation)?;
 			}
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "title", &self.imageAbstract.title)?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.as_str())
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())
 		})
 	}
 }

@@ -267,31 +267,31 @@ impl FacebookOpenGraphType
 
 			video_movie { ref movie } =>
 			{
-				addType(endHeadNodes, "audioVideo.movie");
+				addType(endHeadNodes, "video.movie");
 
 				movie.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData)?;
 			}
 
 			video_episode { ref episode, ref series } =>
 			{
-				addType(endHeadNodes, "audioVideo.episode");
+				addType(endHeadNodes, "video.episode");
 
 				episode.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData)?;
 
 				let url = series.findUrlForFacebookOpenGraph(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, FacebookOpenGraphTypeDiscriminant::video_tv_show)?;
-				endHeadNodes.push(meta_with_property_and_content("audioVideo:series", url.as_str()));
+				endHeadNodes.push(meta_with_property_and_content("video:series", url.as_str()));
 			}
 
 			video_tv_show { ref tv_show } =>
 			{
-				addType(endHeadNodes, "audioVideo.tv_show");
+				addType(endHeadNodes, "video.tv_show");
 
 				tv_show.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData)?;
 			}
 
 			video_other { ref other } =>
 			{
-				addType(endHeadNodes, "audioVideo.other");
+				addType(endHeadNodes, "video.other");
 
 				other.addTo(endHeadNodes, resources, fallbackIso639Dash1Alpha2Language, languageData)?;
 			}

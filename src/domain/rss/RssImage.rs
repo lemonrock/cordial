@@ -5,11 +5,7 @@
 #[derive(Debug, Clone)]
 pub(crate) struct RssImage
 {
-	pub(crate) width: u32,
-	pub(crate) height: u32,
-	pub(crate) url: Rc<Url>,
-	pub(crate) fileSize: u64,
-	pub(crate) mimeType: Mime,
+	pub(crate) url: ResourceReference,
 	pub(crate) imageAbstract: Rc<ImageAbstract>,
 	pub(crate) credit: FullName,
 	pub(crate) iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language,
@@ -18,13 +14,16 @@ pub(crate) struct RssImage
 impl RssImage
 {
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		let fileSize = format!("{}", self.fileSize);
-		let width = format!("{}", self.width);
-		let height = format!("{}", self.height);
-		let url = self.url.as_ref().as_str();
-		let mimeType = self.mimeType.as_ref();
+		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let url = urlData.url_str();
+		let mimeType = urlData.mimeType().as_ref();
+		
+		let (width, height, fileSize) = urlData.image()?;
+		let width = format!("{}", width);
+		let height = format!("{}", height);
+		let fileSize = format!("{}", fileSize);
 		
 		let enclosureAttributes =
 		[
@@ -59,4 +58,5 @@ impl RssImage
 			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
 		})
 	}
+	
 }

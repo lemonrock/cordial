@@ -9,3 +9,8 @@ include!("AudioVideoDisabledControl.rs");
 include!("AudioVideoLoad.rs");
 include!("AudioVideoTrack.rs");
 include!("AudioVideoTrackKind.rs");
+include!("VideoAbstract.rs");
+include!("VideoCountryRestriction.rs");
+include!("VideoPlatform.rs");
+include!("VideoPlatformRestriction.rs");
+include!("VideoStarRating.rs");

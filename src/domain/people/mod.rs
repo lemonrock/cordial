@@ -7,3 +7,4 @@ use super::*;
 
 include!("EMailAddress.rs");
 include!("FullName.rs");
+include!("Person.rs");

@@ -185,7 +185,7 @@ impl Configuration
 			
 			self.renderRssFeeds(&mut newResponses, oldResponses, handlebars, &resources, &rssChannelsByLanguage)?;
 			
-			self.renderSiteMapsAndRobotsTxt(&mut newResponses, oldResponses, handlebars, &siteMapWebPages)?;
+			self.renderSiteMapsAndRobotsTxt(&mut newResponses, oldResponses, handlebars, &resources, &siteMapWebPages)?;
 		}
 		
 		newResponses.addAnythingThatIsDiscontinued(oldResponses);
@@ -248,7 +248,7 @@ impl Configuration
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn renderSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &HandlebarsWrapper, siteMapWebPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	fn renderSiteMapsAndRobotsTxt(&self, newResponses: &mut Responses, oldResponses: &Arc<Responses>, handlebars: &HandlebarsWrapper, resources: &Resources, siteMapWebPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let mut robotsTxtByHostName = BTreeMap::new();
 		
@@ -256,7 +256,7 @@ impl Configuration
 		{
 			let mut robotsConfiguration = robotsTxtByHostName.entry(languageData.language.host.to_owned()).or_insert_with(|| RobotsTxtConfiguration::default());
 			
-			self.site_map.renderSiteMap(languageData, handlebars, self, newResponses, oldResponses, &mut robotsConfiguration, siteMapWebPages)?;
+			self.site_map.renderSiteMap(languageData, handlebars, self, resources, newResponses, oldResponses, &mut robotsConfiguration, siteMapWebPages)?;
 			
 			robotsConfiguration.addRelativeUrlPathForRobotDirective(languageData);
 			

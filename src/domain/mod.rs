@@ -108,6 +108,7 @@ pub(crate) mod svg;
 pub(crate) mod webAppManifest;
 
 
+include!("CountryRestrictionInclusion.rs");
 include!("HandlebarsTemplateRenderer.rs");
 include!("HandlebarsWrapper.rs");
 include!("HeaderGenerator.rs");

@@ -30,70 +30,15 @@ pub(crate) enum TwitterCardType
 //		iframe: ResourceUrl, // twitter:player
 //		iframe_width: u32, // twitter:player:width
 //		iframe_height: u32, // twitter:player:height
-//		placeholder: ResourceUrl, // twitter:image, twitter:image:alt  placeholder image for audioVideo or animation. Images with fewer than 68,600 pixels (a 262x262 square image, or a 350x196 16:9 image) will cause the player card not to render. Images must be less than 5MB in size. JPG, PNG, WEBP and GIF formats are supported.
+//		placeholder: ResourceUrl, // twitter:image, twitter:image:alt  placeholder image for video or animation. Images with fewer than 68,600 pixels (a 262x262 square image, or a 350x196 16:9 image) will cause the player card not to render. Images must be less than 5MB in size. JPG, PNG, WEBP and GIF formats are supported.
 //		mp4_stream: ResourceUrl, // twitter:player:stream  Codecs supported:  Video: H.264, Baseline Profile (BP), Level 3.0, up to 640 x 480 at 30 fps.  Audio: AAC, Low Complexity Profile (LC)
-//		mp4_stream_content_type: String, // twitter:player:stream:content_type  One of application/mp4 audioVideo/mp4 audio/mp4 BUT with additional codec information: https://tools.ietf.org/html/rfc6381#section-3.6
+//		mp4_stream_content_type: String, // twitter:player:stream:content_type  One of application/mp4 video/mp4 audio/mp4 BUT with additional codec information: https://tools.ietf.org/html/rfc6381#section-3.6
 //
 //		/*
 //
 //		Example of codecs:
-//			<meta name="twitter:player:stream:content_type" content="audioVideo/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;" />
-//			<meta name="twitter:player:stream:content_type" content="audioVideo/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;">
-//
-//		JWPlayer IFrame sample: https://www.jwplayer.com/blog/supporting-twitter-cards/
-//
-//		Basic HTML5 audioVideo:-
-//			<audioVideo src="audioVideo.webm" controls></audioVideo>
-//
-//		Fallback HTML5 audioVideo:-
-//			<audioVideo controls>
-//  				<source src="devstories.webm" type='audioVideo/webm;codecs="vp8, vorbis"'/>
-//  				<source src="devstories.mp4" type='audioVideo/mp4;codecs="avc1.42E01E, mp4a.40.2"'/>
-//			</audioVideo>
-//
-//		Start time and end time in seconds (Accept-Ranges required):-
-//			<source src="devstories.webm#t=10,20" type='audioVideo/webm;codecs="vp8, vorbis"' />
-//
-//		In hours, minutes and seconds, play only one minute: #t=,00:01:00
-//
-//		With a track element to caption in WebVTT format and a poster (plaecholder) image
-//		<audioVideo controls style="width:640px;height:360px;" poster="poster.png">
-//  <source src="devstories.webm"
-//          type='audioVideo/webm;codecs="vp8, vorbis"' />
-//  <source src="devstories.mp4"
-//          type='audioVideo/mp4;codecs="avc1.42E01E, mp4a.40.2"' />
-//  <track src="devstories-en.vtt" label="English subtitles"
-//         kind="subtitles" srclang="en" default></track>
-//</audioVideo>
-//
-//
-//
-//
-//		IFrame sample:-
-//
-//<!DOCTYPE html>
-//<html>
-//	<head>
-//
-//<style type="text/css">
-//audioVideo
-//{
-//   width:100%;
-//   max-width:600px;
-//   height:auto;
-//}
-//</style>
-//	</head>
-//	<body>
-//		<audioVideo width="100%" controls>
-//  			<source src="example.mp4" type="audioVideo/mp4">
-//			Your browser does not support audioVideo
-//		</audioVideo>
-//	</body>
-//</html>
-//
-//		*/
-//	},
+//			<meta name="twitter:player:stream:content_type" content="video/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;" />
+//			<meta name="twitter:player:stream:content_type" content="video/mp4; codecs=&quot;avc1.42E01E1, mp4a.40.2&quot;">
 }
 
 impl Default for TwitterCardType

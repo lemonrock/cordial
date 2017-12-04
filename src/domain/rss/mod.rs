@@ -3,11 +3,7 @@
 
 
 use super::*;
-use self::stylesheets::*;
 use ::std::str::from_utf8_unchecked;
-
-
-pub(crate) mod stylesheets;
 
 
 include!("RssCategoryName.rs");
@@ -19,3 +15,4 @@ include!("RssFeedlyChannelGoogleAnalyticsCode.rs");
 include!("RssImage.rs");
 include!("RssItem.rs");
 include!("RssItemLanguageVariant.rs");
+include!("StylesheetLink.rs");

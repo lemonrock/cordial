@@ -12,7 +12,7 @@ pub(crate) struct FacebookOpenGraph
 	#[serde(default)] pub(crate) pages: Vec<FacebookId>,
 	#[serde(default)] pub(crate) profile_id: Option<FacebookId>,
 	#[serde(default)] pub(crate) determiner: FacebookOpenGraphDeterminer,
-	#[serde(default)] pub(crate) country_restrictions: HashMap<Iso3166Dash1Alpha2CountryCode, FacebookOpenGraphCountryRestriction>,
+	#[serde(default)] pub(crate) country_restrictions: HashMap<Iso3166Dash1Alpha2CountryCode, CountryRestrictionInclusion>,
 	#[serde(default)] pub(crate) age_restriction: Option<FacebookOpenGraphAgeRestriction>,
 	#[serde(default)] pub(crate) content_restrictions: HashSet<FacebookOpenGraphContentRestriction>,
 	#[serde(default = "FacebookOpenGraph::is_rich_attachment_default")] pub(crate) is_rich_attachment: bool,
@@ -137,7 +137,7 @@ impl FacebookOpenGraph
 		
 		self.determiner.addTo(endHeadNodes);
 		
-		use self::FacebookOpenGraphCountryRestriction::*;
+		use self::CountryRestrictionInclusion::*;
 		
 		for country in self.country_restrictions.iter().filter(|&(_country, restriction)| *restriction == whitelist).map(|(country, _restriction)| country)
 		{

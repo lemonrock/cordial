@@ -29,26 +29,26 @@ impl FacebookOpenGraphVideo
 		for director in self.directors.iter()
 		{
 			let url = director.findUrlForFacebookOpenGraph(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, FacebookOpenGraphTypeDiscriminant::profile)?;
-			endHeadNodes.push(meta_with_property_and_content("audioVideo:director", url.as_str()));
+			endHeadNodes.push(meta_with_property_and_content("video:director", url.as_str()));
 		}
 
 		for writer in self.writers.iter()
 		{
 			let url = writer.findUrlForFacebookOpenGraph(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, FacebookOpenGraphTypeDiscriminant::profile)?;
-			endHeadNodes.push(meta_with_property_and_content("audioVideo:writer", url.as_str()));
+			endHeadNodes.push(meta_with_property_and_content("video:writer", url.as_str()));
 		}
 
 		if self.duration_in_seconds != 0
 		{
-			endHeadNodes.push(meta_with_property_and_content("audioVideo:duration", &format!("{}", self.duration_in_seconds)));
+			endHeadNodes.push(meta_with_property_and_content("video:duration", &format!("{}", self.duration_in_seconds)));
 		}
 
-		endHeadNodes.push(meta_with_property_and_content("audioVideo:release_date", &self.release_date.to_rfc3339()));
+		endHeadNodes.push(meta_with_property_and_content("video:release_date", &self.release_date.to_rfc3339()));
 
 		for tag in self.tags.iter()
 		{
 			let translatedTag = languageData.facebookOpenGraphVideoTagTranslation(tag);
-			endHeadNodes.push(meta_with_property_and_content("audioVideo:tag", translatedTag));
+			endHeadNodes.push(meta_with_property_and_content("video:tag", translatedTag));
 		}
 
 		Ok(())

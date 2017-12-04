@@ -10,13 +10,14 @@ pub(crate) struct SiteMapWebPage
 	pub(crate) priority: SiteMapPriority,
 	pub(crate) urlsByIso639Dash1Alpha2Language: BTreeMap<Iso639Dash1Alpha2Language, Url>,
 	pub(crate) images: Vec<SiteMapWebPageImage>,
+	pub(crate) videos: Vec<SiteMapWebPageVideo>,
 }
 
 impl SiteMapWebPage
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<bool, CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<bool, CordialError>
 	{
 		let locationUrl = self.urlsByIso639Dash1Alpha2Language.get(&iso639Dash1Alpha2Language);
 		if locationUrl.is_none()
@@ -41,7 +42,12 @@ impl SiteMapWebPage
 			
 			for image in self.images.iter()
 			{
-				image.writeXml(eventWriter, namespace, emptyAttributes)?;
+				image.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+			}
+			
+			for video in self.videos.iter()
+			{
+				video.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}
 			
 			Ok(())

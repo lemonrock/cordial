@@ -138,7 +138,7 @@ impl RssChannel
 				
 				for rssItem in rssItems.iter()
 				{
-					rssItem.writeXml(eventWriter, &namespace, &emptyAttributes)?;
+					rssItem.writeXml(eventWriter, &namespace, &emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 				}
 				
 				Ok(())

@@ -15,7 +15,7 @@ impl RssItem
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
 		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
 		
@@ -53,7 +53,7 @@ impl RssItem
 			
 			if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
 			{
-				primaryImage.writeXml(eventWriter, namespace, emptyAttributes)?;
+				primaryImage.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}
 			Ok(())
 		})

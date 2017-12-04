@@ -17,7 +17,7 @@ pub(crate) struct BrowserConfigPipeline
 	#[serde(default)] pub(crate) tile_color: [u8; 3],
 	#[serde(default)] pub(crate) badge_url: Option<ResourceUrl>,
 	#[serde(default)] pub(crate) badge_poll_frequency: BrowserConfigPollFrequencyInMinutes,
-	#[serde(default)] pub(crate) notification_urls: [Option<ResourceUrl>; 5],
+	#[serde(default)] pub(crate) notification_urls: ArrayVec<[ResourceUrl; 5]>,
 	#[serde(default)] pub(crate) notification_poll_frequency: BrowserConfigPollFrequencyInMinutes,
 	#[serde(default)] pub(crate) notification_poll_cycle: BrowserConfigPollNotificationCycle,
 }
@@ -39,7 +39,7 @@ impl Default for BrowserConfigPipeline
 			tile_color: [0; 3],
 			badge_url: None,
 			badge_poll_frequency: BrowserConfigPollFrequencyInMinutes::default(),
-			notification_urls: [None, None, None, None, None],
+			notification_urls: Default::default(),
 			notification_poll_frequency: BrowserConfigPollFrequencyInMinutes::default(),
 			notification_poll_cycle: BrowserConfigPollNotificationCycle::default(),
 		}
@@ -122,7 +122,7 @@ impl BrowserConfigPipeline
 					})?;
 				}
 				
-				if self.notification_urls[0].is_some()
+				if !self.notification_urls.is_empty()
 				{
 					eventWriter.writeWithinElement(Name::local("notification"), &namespace, &emptyAttributes, |mut eventWriter|
 					{
@@ -145,48 +145,25 @@ impl BrowserConfigPipeline
 	#[inline(always)]
 	fn writePollNotificationElements(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace)  -> Result<(), CordialError>
 	{
-		let mut keepWriting = true;
-		for index in 0..4
+		let mut index = 0;
+		for notificationUrl in self.notification_urls.iter()
 		{
-			if keepWriting
+			let elementName = match index
 			{
-				keepWriting = self.writePollNotificationElement(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, eventWriter, namespace, index)?;
-			}
-			else
-			{
-				if self.notification_urls[index].is_some()
-				{
-					return Err(CordialError::Configuration("Non-contiguous poll URIs".to_owned()));
-				}
-			}
+				0 => "polling-uri",
+				1 => "polling-uri1",
+				2 => "polling-uri2",
+				3 => "polling-uri3",
+				4 => "polling-uri4",
+				_ => unreachable!(),
+			};
+			
+			Self::writePollElement(eventWriter, namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, elementName, notificationUrl)?;
+			
+			index += 1;
 		}
 		
 		Ok(())
-	}
-	
-	#[inline(always)]
-	fn writePollNotificationElement(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, index: usize) -> Result<bool, CordialError>
-	{
-		match self.notification_urls[index]
-		{
-			None => Ok(false),
-			Some(ref resourceUrl) =>
-			{
-				let elementName = match index
-				{
-					0 => "polling-uri",
-					1 => "polling-uri1",
-					2 => "polling-uri2",
-					3 => "polling-uri3",
-					4 => "polling-uri4",
-					_ => unreachable!(),
-				};
-				
-				Self::writePollElement(eventWriter, namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, elementName, resourceUrl)?;
-				
-				Ok(true)
-			}
-		}
 	}
 	
 	#[inline(always)]

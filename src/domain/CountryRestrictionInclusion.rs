@@ -2,18 +2,19 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::xml::attribute::Attribute as XmlAttribute;
-use ::xml::name::Name;
-use ::xml::namespace::Namespace;
-use ::xml::namespace::NS_NO_PREFIX;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::EventWriter;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum CountryRestrictionInclusion
+{
+	whitelist,
+	blacklist,
+}
 
-
-include!("SiteMap.rs");
-include!("SiteMapChangeFrequency.rs");
-include!("SiteMapPriority.rs");
-include!("SiteMapWebPage.rs");
-include!("SiteMapWebPageImage.rs");
-include!("SiteMapWebPageVideo.rs");
+impl Default for CountryRestrictionInclusion
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		CountryRestrictionInclusion::blacklist
+	}
+}

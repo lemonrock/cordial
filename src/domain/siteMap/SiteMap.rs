@@ -28,7 +28,7 @@ impl SiteMap
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn renderSiteMap<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
+	pub(crate) fn renderSiteMap<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
@@ -42,7 +42,7 @@ impl SiteMap
 
 		let emptyAttributes = [];
 
-		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, webPages.get(&iso639Dash1Alpha2Language).unwrap())?;
+		let mut siteMaps = self.writeSiteMapFiles(languageData, handlebars, configuration, resources, webPages.get(&iso639Dash1Alpha2Language).unwrap())?;
 
 		let mut siteMaps = siteMaps.drain(..);
 		let mut keepLooping = true;
@@ -121,7 +121,7 @@ impl SiteMap
 
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
+	fn writeSiteMapFiles<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, resources: &Resources, webPages: &[SiteMapWebPage]) -> Result<Vec<(Url, RegularAndPjaxStaticResponse)>, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
@@ -132,7 +132,7 @@ impl SiteMap
 				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
 				"xhtml".to_owned() => "http://www.w3.org/1999/xhtml".to_owned(),
 				"image".to_owned() => "http://www.google.com/schemas/sitemap-image/1.1".to_owned(),
-				"audioVideo".to_owned() => "http://www.google.com/schemas/sitemap-audioVideo/1.1".to_owned(),
+				"video".to_owned() => "http://www.google.com/schemas/sitemap-video/1.1".to_owned(),
 			}
 		);
 
@@ -160,7 +160,7 @@ impl SiteMap
 				{
 					startingIndex += 1;
 
-					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &namespace, &emptyAttributes)?
+					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &namespace, &emptyAttributes, resources, configuration.fallbackIso639Dash1Alpha2Language())?
 					{
 						count += 1;
 

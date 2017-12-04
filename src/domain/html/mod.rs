@@ -16,7 +16,6 @@ include!("FacebookOpenGraphArticleContentTier.rs");
 include!("FacebookOpenGraphAgeRestriction.rs");
 include!("FacebookOpenGraphBusinessHours.rs");
 include!("FacebookOpenGraphContentRestriction.rs");
-include!("FacebookOpenGraphCountryRestriction.rs");
 include!("FacebookOpenGraphDayOfWeek.rs");
 include!("FacebookOpenGraphDeterminer.rs");
 //include!("FacebookOpenGraphProductGender.rs");

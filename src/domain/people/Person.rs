@@ -3,18 +3,31 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum FacebookOpenGraphCountryRestriction
+#[derive(Deserialize, Debug, Clone)]
+pub(crate) struct Person
 {
-	whitelist,
-	blacklist,
+	#[serde(default = "Person::full_name_default")] pub(crate) full_name: FullName,
+	#[serde(default)] pub(crate) url: Option<ResourceUrl>,
 }
 
-impl Default for FacebookOpenGraphCountryRestriction
+impl Default for Person
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		FacebookOpenGraphCountryRestriction::blacklist
+		Self
+		{
+			full_name: Self::full_name_default(),
+			url: None,
+		}
+	}
+}
+
+impl Person
+{
+	#[inline(always)]
+	fn full_name_default() -> FullName
+	{
+		Rc::new("webmaster@example.com".to_owned())
 	}
 }

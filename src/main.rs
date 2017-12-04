@@ -11,6 +11,7 @@
 #![recursion_limit="128"]
 
 
+extern crate arrayvec;
 extern crate audio_video_metadata;
 extern crate barcoders;
 extern crate base64;
@@ -85,6 +86,7 @@ use self::domain::images::*;
 use self::domain::inputFormats::*;
 use self::domain::localization::*;
 use self::html5::*;
+use ::arrayvec::ArrayVec;
 use ::audio_video_metadata::enums::Metadata as AudioVideoMetadata;
 use ::clap::App;
 use ::clap::Arg;

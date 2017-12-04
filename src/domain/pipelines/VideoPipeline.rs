@@ -23,7 +23,7 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) disabled_controls: BTreeSet<AudioVideoDisabledControl>,
 	
 	// Used by amp-video, Google Video Site Map, ?twitter player card? (if we decide to)
-	#[serde(default)] pub(crate) title: HashMap<Iso639Dash1Alpha2Language, Rc<String>>,
+	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<VideoAbstract>>,
 	
 	#[serde(default)] pub(crate) artist: Option<String>,
 	#[serde(default)] pub(crate) album: Option<String>,
@@ -51,7 +51,7 @@ impl Default for VideoPipeline
 			tracks: Default::default(),
 			show_controls: Self::show_controls_default(),
 			disabled_controls: Default::default(),
-			title: Default::default(),
+			abstracts: Default::default(),
 			
 			artist: None,
 			album: None,
@@ -102,7 +102,7 @@ impl Pipeline for VideoPipeline
 			self.createWebm(width, height, webmUrl, headerGenerator, inputContentFilePath, &mut result)?;
 		}
 		
-		self.createTwitterIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
+		self.createIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
 		
 		Ok(result)
 		
@@ -179,18 +179,18 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn createTwitterIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u32, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createIFramePlayer(&self, resourceUrl: &ResourceUrl, videoNode: UnattachedNode, width: u32, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Compressible: bool = true;
 		
-		let twitterIFramePlayerUrl = resourceUrl.replaceFileNameExtension(".twitter-iframe-player.html").url(languageData)?;
-		let twitterIFramePlayerBody = Self::twitterIFramePlayerHtmlBody(videoNode, width);
-		let twitterIFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, self.max_age_in_seconds, false, &twitterIFramePlayerUrl)?;
-		let twitterIFramePlayerTags = hashmap!
+		let iFramePlayerUrl = resourceUrl.replaceFileNameExtension(".twitter-iframe-player.html").url(languageData)?;
+		let iFramePlayerBody = Self::twitterIFramePlayerHtmlBody(videoNode, width);
+		let iFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, self.max_age_in_seconds, false, &iFramePlayerUrl)?;
+		let iFramePlayerTags = hashmap!
 		{
-			default => Rc::new(UrlDataDetails::generic(&twitterIFramePlayerBody))
+			default => Rc::new(UrlDataDetails::generic(&iFramePlayerBody))
 		};
-		result.push((twitterIFramePlayerUrl, twitterIFramePlayerTags, StatusCode::Ok, ContentType(mimeType(Self::WebMVp8MimeType)), twitterIFramePlayerHeaders, twitterIFramePlayerBody, None, Compressible));
+		result.push((iFramePlayerUrl, iFramePlayerTags, StatusCode::Ok, ContentType::html(), iFramePlayerHeaders, iFramePlayerBody, None, Compressible));
 		Ok(())
 	}
 	
@@ -292,10 +292,10 @@ impl VideoPipeline
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
-		let title = match self.title.get(&iso639Dash1Alpha2Language)
+		let title = match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{
-			None => return Err(CordialError::Configuration(format!("There is no title in {:?} for this video", iso639Dash1Alpha2Language))),
-			Some(title) => title,
+			None => return Err(CordialError::Configuration(format!("There is no abstract in {:?} for this video", iso639Dash1Alpha2Language))),
+			Some(videoAbstract) => &videoAbstract.title,
 		};
 		
 		let mut videoNode =
@@ -306,7 +306,7 @@ impl VideoPipeline
 				[
 					"width".string_attribute(format!("{}", width)),
 					"height".string_attribute(format!("{}", height)),
-					"title".str_attribute(title.as_str()),
+					"title".str_attribute(title),
 				]
 			)
 		;

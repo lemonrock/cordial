@@ -2,9 +2,10 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-
-
-include!("ITunesRssChannel.rs");
-include!("ITunesRssChannelLanguageSpecific.rs");
-include!("ITunesRssChannelType.rs");
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct ITunesRssChannelLanguageSpecific
+{
+	#[serde(default)] summary: Option<String>,
+	#[serde(default)] subtitle: String,
+}

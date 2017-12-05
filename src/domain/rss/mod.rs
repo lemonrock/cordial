@@ -4,11 +4,13 @@
 
 use super::*;
 use self::feedly::*;
+use self::googleplay::*;
 use self::itunes::*;
 use ::std::str::from_utf8_unchecked;
 
 
 pub(crate) mod feedly;
+pub(crate) mod googleplay;
 pub(crate) mod itunes;
 
 

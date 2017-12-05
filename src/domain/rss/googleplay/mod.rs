@@ -5,6 +5,4 @@
 use super::*;
 
 
-include!("ITunesRssChannel.rs");
-include!("ITunesRssChannelLanguageSpecific.rs");
-include!("ITunesRssChannelType.rs");
+include!("GooglePlayRssChannel.rs");

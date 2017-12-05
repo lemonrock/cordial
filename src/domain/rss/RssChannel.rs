@@ -11,6 +11,7 @@ pub(crate) struct RssChannel
 	#[serde(default)] compression: Compression,
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
 	#[serde(default)] details: HashMap<Iso639Dash1Alpha2Language, RssChannelLanguageSpecific>,
+	#[serde(default)] link: ResourceUrl,
 	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
@@ -91,6 +92,7 @@ impl RssChannel
 				RssImage::MediaNamespacePrefix.to_owned() => RssImage::MediaNamespaceUrl.to_owned(),
 				FeedlyRssChannel::WebfeedsNamespacePrefix.to_owned() => FeedlyRssChannel::WebfeedsNamespaceUrl.to_owned(),
 				ITunesRssChannel::ITunesNamespacePrefix.to_owned() => ITunesRssChannel::ITunesNamespaceUrl.to_owned(),
+				GooglePlayRssChannel::GooglePlayNamespacePrefix.to_owned() => GooglePlayRssChannel::GooglePlayNamespaceUrl.to_owned(),
 			}
 		);
 		
@@ -136,6 +138,15 @@ impl RssChannel
 					itunes.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?;
 				}
 				
+				let url = ResourceReference
+				{
+					resource: self.link.clone(),
+					tag: ResourceTag::default,
+				}.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+				
+				eventWriter.writeUnprefixedTextElementUrl(&rssNamespace, &emptyAttributes, "link", &url)?;
+				
+				// atom:link
 				let linkAttributes =
 				[
 					"rel".xml_str_attribute("self"),

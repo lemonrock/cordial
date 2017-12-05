@@ -15,7 +15,7 @@ pub(crate) struct SiteMapWebPageVideo
 	pub(crate) videoStarRating: Option<VideoStarRating>,
 	pub(crate) viewCount: Option<u64>,
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
-	pub(crate) canAppearInSafeSearch: bool,
+	pub(crate) explicit: bool,
 	pub(crate) countryRestrictions: Rc<VideoCountryRestriction>,
 	pub(crate) gallery: Option<ResourceUrl>,
 	pub(crate) requiresSubscription: bool,
@@ -98,7 +98,7 @@ impl SiteMapWebPageVideo
 				eventWriter.writePrefixedTextElementRfc3339(namespace, emptyAttributes, Self::VideoNamespacePrefix, "publication_date", publicationDate)?;
 			}
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "family_friendly", Self::booleanYesOrNo(self.canAppearInSafeSearch))?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "family_friendly", Self::booleanYesOrNo(self.explicit))?;
 			
 			self.videoAbstract.writeXmlForCanonicalizedTagString(eventWriter, namespace, emptyAttributes)?;
 			

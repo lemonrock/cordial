@@ -65,33 +65,8 @@ impl RssChannel
 		
 		if self.itunes.is_some()
 		{
-			const ITunesTitleLength: usize = 255;
-			if title.chars().count() > ITunesTitleLength
-			{
-				return Err(CordialError::Configuration(format!("RSS title exceeds iTunes's maximum of {} characters", ITunesTitleLength)))
-			}
-			
-			const ITunesDescriptionLength: usize = 4000;
-			if description.chars().count() > ITunesDescriptionLength
-			{
-				return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesDescriptionLength)))
-			}
-			
-			const ITunesCopyrightLength: usize = 255;
-			if copyright.chars().count() > ITunesCopyrightLength
-			{
-				return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesCopyrightLength)))
-			}
 		}
 		
-		if self.feedly.is_some()
-		{
-			const FeedlyDescriptionLength: usize = 140;
-			if description.chars().count() > FeedlyDescriptionLength
-			{
-				return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
-			}
-		}
 		
 		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let unversionedCanonicalUrl = ResourceUrl::rssUrl(rssChannelName, iso639Dash1Alpha2Language).url(languageData)?;
@@ -129,7 +104,36 @@ impl RssChannel
 				
 				if let Some(ref feedly) = self.feedly
 				{
+					const FeedlyDescriptionLength: usize = 140;
+					if description.chars().count() > FeedlyDescriptionLength
+					{
+						return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
+					}
+					
 					feedly.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
+				}
+				
+				if let Some(ref itunes) = self.itunes
+				{
+					const ITunesTitleLength: usize = 255;
+					if title.chars().count() > ITunesTitleLength
+					{
+						return Err(CordialError::Configuration(format!("RSS title exceeds iTunes's maximum of {} characters", ITunesTitleLength)))
+					}
+					
+					const ITunesDescriptionLength: usize = 4000;
+					if description.chars().count() > ITunesDescriptionLength
+					{
+						return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesDescriptionLength)))
+					}
+					
+					const ITunesCopyrightLength: usize = 255;
+					if copyright.chars().count() > ITunesCopyrightLength
+					{
+						return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesCopyrightLength)))
+					}
+					
+					itunes.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?;
 				}
 				
 				let linkAttributes =

@@ -15,38 +15,15 @@ pub(crate) struct RssChannel
 	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
 	#[serde(default)] categories: Vec<RssCategoryName>,
-	#[serde(default = "RssChannel::feedly_default")] feedly: Option<RssFeedlyChannel>,
+	#[serde(default = "RssChannel::feedly_default")] feedly: Option<FeedlyRssChannel>,
+	#[serde(default)] itunes: Option<ITunesRssChannel>,
 }
 
 impl RssChannel
 {
 	#[inline(always)]
-	pub fn renderRssChannel<'a, 'b: 'a, 'c>(&'c self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>, rssChannelName: &Rc<RssChannelName>, rssItems: &Vec<RssItem>) -> Result<(), CordialError>
+	fn timeToLiveInMinutes(&self) -> u32
 	{
-		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		
-		let detail = match self.details.get(&iso639Dash1Alpha2Language)
-		{
-			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso639Dash1Alpha2Language))),
-			Some(detail) => detail,
-		};
-		
-		let description = &detail.description;
-		const FeedlyDescriptionLength: usize = 140;
-		if description.chars().count() > FeedlyDescriptionLength
-		{
-			return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
-		}
-		
-		let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
-		let imageUrl = urlData.url_str();
-		let imageAbstract = resource.imageMetaData()?.imageAbstract(iso639Dash1Alpha2Language)?;
-		let image_alt = imageAbstract.alt.as_str();
-		let image_tooltip = imageAbstract.title.as_str();
-		let (imageWidth, imageHeight) = urlData.dimensions()?;
-		
-		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
-		let timeToLiveInMinutes =
 		{
 			let minutesRoundedDown = self.max_age_in_seconds / 60;
 			if minutesRoundedDown * 60 != self.max_age_in_seconds
@@ -57,7 +34,66 @@ impl RssChannel
 			{
 				minutesRoundedDown
 			}
+		}
+	}
+	
+	pub(crate) const AtomNamespacePrefix: &'static str = "atom";
+	
+	pub(crate) const AtomNamespaceUrl: &'static str = "http://www.w3.org/2005/Atom";
+	
+	#[inline(always)]
+	pub(crate) fn rssVersionAttributes<'a>() -> [XmlAttribute<'a>; 1]
+	{
+		[ "version".xml_str_attribute("2.0") ]
+	}
+	
+	#[inline(always)]
+	pub(crate) fn renderRssChannel<'a, 'b: 'a, 'c>(&'c self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>, rssChannelName: &Rc<RssChannelName>, rssItems: &Vec<RssItem>) -> Result<(), CordialError>
+	{
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let detail = match self.details.get(&iso639Dash1Alpha2Language)
+		{
+			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso639Dash1Alpha2Language))),
+			Some(detail) => detail,
 		};
+		
+		// trim() because Apple iTunes podcasts should not have leading or trailing whitespace: https://help.apple.com/itc/podcasts_connect/?lang=en#/itcb54353390
+		let title = detail.title.trim();
+		let description = detail.description.trim();
+		let copyright = detail.copyright.trim();
+		
+		if self.itunes.is_some()
+		{
+			const ITunesTitleLength: usize = 255;
+			if title.chars().count() > ITunesTitleLength
+			{
+				return Err(CordialError::Configuration(format!("RSS title exceeds iTunes's maximum of {} characters", ITunesTitleLength)))
+			}
+			
+			const ITunesDescriptionLength: usize = 4000;
+			if description.chars().count() > ITunesDescriptionLength
+			{
+				return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesDescriptionLength)))
+			}
+			
+			const ITunesCopyrightLength: usize = 255;
+			if copyright.chars().count() > ITunesCopyrightLength
+			{
+				return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesCopyrightLength)))
+			}
+		}
+		
+		if self.feedly.is_some()
+		{
+			const FeedlyDescriptionLength: usize = 140;
+			if description.chars().count() > FeedlyDescriptionLength
+			{
+				return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
+			}
+		}
+		
+		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let unversionedCanonicalUrl = ResourceUrl::rssUrl(rssChannelName, iso639Dash1Alpha2Language).url(languageData)?;
 		let emptyAttributes = [];
 		let mut eventWriter = Self::createEventWriter();
@@ -70,75 +106,92 @@ impl RssChannel
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
-		let namespace = Namespace
+		let rssNamespace = Namespace
 		(
 			btreemap!
 			{
-				"dc".to_owned() => "http://purl.org/dc/elements/1.1/".to_owned(),
-				"content".to_owned() => "http://purl.org/rss/1.0/modules/content/".to_owned(),
-				"atom".to_owned() => "http://www.w3.org/2005/Atom".to_owned(),
-				"media".to_owned() => "http://search.yahoo.com/mrss/".to_owned(),
-				"webfeeds".to_owned() => "http://webfeeds.org/rss/1.0".to_owned(),
+				RssItem::DcNamespacePrefix.to_owned() => RssItem::DcNamespaceUrl.to_owned(), // also needed by Feedly
+				"content".to_owned() => "http://purl.org/rss/1.0/modules/content/".to_owned(), // seems to be needed by Feedly
+				Self::AtomNamespacePrefix.to_owned() => Self::AtomNamespaceUrl.to_owned(),
+				RssImage::MediaNamespacePrefix.to_owned() => RssImage::MediaNamespaceUrl.to_owned(),
+				FeedlyRssChannel::WebfeedsNamespacePrefix.to_owned() => FeedlyRssChannel::WebfeedsNamespaceUrl.to_owned(),
+				ITunesRssChannel::ITunesNamespacePrefix.to_owned() => ITunesRssChannel::ITunesNamespaceUrl.to_owned(),
 			}
 		);
 		
-		let attributes =
-		[
-			XmlAttribute::new(Name::local("version"), "2.0"),
-		];
-		eventWriter.writeWithinElement(Name::local("rss"), &namespace, &attributes, |eventWriter|
+		eventWriter.writeWithinLocalElement("rss", &rssNamespace, &Self::rssVersionAttributes(), |eventWriter|
 		{
-			eventWriter.writeWithinElement(Name::local("channel"), &namespace, &emptyAttributes, |eventWriter|
+			eventWriter.writeWithinLocalElement("channel", &rssNamespace, &emptyAttributes, |eventWriter|
 			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", &detail.title)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", languageData.baseUrl(false).unwrap().as_ref())?;
+				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "title", title)?;
+				
+				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "link", languageData.baseUrl(false).unwrap().as_ref())?;
 				
 				if let Some(ref feedly) = self.feedly
 				{
-					feedly.writeXml(eventWriter, &namespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
+					feedly.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
 				}
 				
-				let attributes =
+				let linkAttributes =
 				[
-					XmlAttribute::new(Name::local("rel"), "self"),
-					XmlAttribute::new(Name::local("type"), "application/rss+xml"),
-					XmlAttribute::new(Name::local("href"), unversionedCanonicalUrl.as_ref()),
+					"rel".xml_str_attribute("self"),
+					"type".xml_str_attribute("application/rss+xml"),
+					"href".xml_url_attribute(&unversionedCanonicalUrl),
 				];
-				eventWriter.writeEmptyElement(&namespace, &attributes, Name::prefixed("link", "atom"))?;
+				eventWriter.writeEmptyElement(&rssNamespace, &linkAttributes, Self::AtomNamespacePrefix.prefixes_xml_name("link"))?;
 				
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", description)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "language", languageData.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code())?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "copyright", &detail.copyright)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "managingEditor", &self.managing_editor.to_string())?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "webMaster", &self.web_master.to_string())?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubDate", &deploymentDateTime.to_rfc2822())?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "lastBuildDate",  &deploymentDateTime.to_rfc2822())?;
+				eventWriter.writeCDataElement(&rssNamespace, &emptyAttributes, "description".xml_local_name(), description)?;
+				
+				eventWriter.writeUnprefixedTextElementLanguageCode(&rssNamespace, &emptyAttributes, "language", iso639Dash1Alpha2Language)?;
+				
+				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "copyright", copyright)?;
+				
+				eventWriter.writeUnprefixedTextElementEMailAddress(&rssNamespace, &emptyAttributes, "managingEditor", &self.managing_editor)?;
+				
+				eventWriter.writeUnprefixedTextElementEMailAddress(&rssNamespace, &emptyAttributes, "webMaster", &self.web_master)?;
+				
+				eventWriter.writeUnprefixedTextElementRfc2822(&rssNamespace, &emptyAttributes, "pubDate", deploymentDateTime)?;
+				
+				eventWriter.writeUnprefixedTextElementRfc2822(&rssNamespace, &emptyAttributes, "lastBuildDate",  deploymentDateTime)?;
+				
 				for category in self.categories.iter()
 				{
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "category", category)?;
+					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "category", category)?;
 				}
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "generator", "cordial")?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "docs", "http://www.rssboard.org/rss-specification")?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "ttl", &format!("{}", timeToLiveInMinutes))?;
-				eventWriter.writeWithinElement(Name::local("image"), &namespace, &emptyAttributes, |eventWriter|
+				
+				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "generator", "cordial")?;
+				
+				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "docs", "http://www.rssboard.org/rss-specification")?;
+				
+				eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "ttl", self.timeToLiveInMinutes())?;
+				
+				eventWriter.writeWithinLocalElement("image", &rssNamespace, &emptyAttributes, |eventWriter|
 				{
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "url", imageUrl)?;
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "title", image_alt)?;
-					eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "description", image_tooltip)?;
-					if imageWidth != 0
+					let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					
+					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "url", urlData.url_str())?;
+					
+					let imageAbstract = resource.imageMetaData()?.imageAbstract(iso639Dash1Alpha2Language)?;
+					
+					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "title", imageAbstract.alt.as_str())?;
+					
+					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "description", imageAbstract.title.as_str())?;
+					
+					let (imageWidth, imageHeight) = urlData.dimensions()?;
+					
+					if imageWidth != 0 && imageHeight != 0
 					{
-						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "width", &format!("{}", imageWidth))?;
+						eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "width", imageWidth)?;
+						
+						eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "height", imageHeight)?;
 					}
-					if imageHeight != 0
-					{
-						eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "height", &format!("{}", imageHeight))?;
-					}
+					
 					Ok(())
 				})?;
 				
 				for rssItem in rssItems.iter()
 				{
-					rssItem.writeXml(eventWriter, &namespace, &emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					rssItem.writeXml(eventWriter, &rssNamespace, &emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 				}
 				
 				Ok(())
@@ -199,8 +252,8 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn feedly_default() -> Option<RssFeedlyChannel>
+	fn feedly_default() -> Option<FeedlyRssChannel>
 	{
-		Some(RssFeedlyChannel::default())
+		Some(FeedlyRssChannel::default())
 	}
 }

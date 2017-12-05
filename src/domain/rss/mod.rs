@@ -3,15 +3,19 @@
 
 
 use super::*;
+use self::feedly::*;
+use self::itunes::*;
 use ::std::str::from_utf8_unchecked;
+
+
+pub(crate) mod feedly;
+pub(crate) mod itunes;
 
 
 include!("RssCategoryName.rs");
 include!("RssChannel.rs");
 include!("RssChannelName.rs");
 include!("RssChannelLanguageSpecific.rs");
-include!("RssFeedlyChannel.rs");
-include!("RssFeedlyChannelGoogleAnalyticsCode.rs");
 include!("RssImage.rs");
 include!("RssItem.rs");
 include!("RssItemLanguageVariant.rs");

@@ -32,7 +32,7 @@ impl SiteMap
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
-		let namespace = Namespace
+		let siteMapIndexNamespace = Namespace
 		(
 			btreemap!
 			{
@@ -59,7 +59,7 @@ impl SiteMap
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 
 			let mut count = 0;
-			eventWriter.writeWithinElement(Name::local("sitemapindex"), &namespace, &emptyAttributes, |eventWriter|
+			eventWriter.writeWithinLocalElement("sitemapindex", &siteMapIndexNamespace, &emptyAttributes, |eventWriter|
 			{
 				while count <= MaximumNumberOfUrlsInASiteMapIndex && bytesWritten.get() < SafeMaximumSiteMapIndexFileSizeInBytes
 				{
@@ -72,10 +72,10 @@ impl SiteMap
 						}
 						Some((url, currentResponse)) =>
 						{
-							let namespace = &namespace;
+							let namespace = &siteMapIndexNamespace;
 							let emptyAttributes = &emptyAttributes;
 							let resources = &mut *newResponses;
-							eventWriter.writeWithinElement(Name::local("sitemap"), namespace, emptyAttributes, move |eventWriter|
+							eventWriter.writeWithinLocalElement("sitemap", namespace, emptyAttributes, move |eventWriter|
 							{
 								eventWriter.writeUnprefixedTextElement(namespace, emptyAttributes, "loc", url.as_ref())?;
 
@@ -125,14 +125,14 @@ impl SiteMap
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
-		let namespace = Namespace
+		let siteMapNamespace = Namespace
 		(
 			btreemap!
 			{
 				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
-				"xhtml".to_owned() => "http://www.w3.org/1999/xhtml".to_owned(),
-				"image".to_owned() => "http://www.google.com/schemas/sitemap-image/1.1".to_owned(),
-				"video".to_owned() => "http://www.google.com/schemas/sitemap-video/1.1".to_owned(),
+				SiteMapWebPage::XhtmlNamespacePrefix.to_owned() => "http://www.w3.org/1999/xhtml".to_owned(),
+				SiteMapWebPageImage::ImageNamespacePrefix.to_owned() => "http://www.google.com/schemas/sitemap-image/1.1".to_owned(),
+				SiteMapWebPageVideo::VideoNamespacePrefix.to_owned() => "http://www.google.com/schemas/sitemap-video/1.1".to_owned(),
 			}
 		);
 
@@ -154,13 +154,13 @@ impl SiteMap
 
 			eventWriter.writeBasicXmlDocumentPreamble()?;
 
-			eventWriter.writeWithinElement(Name::local("urlset"), &namespace, &emptyAttributes, |eventWriter|
+			eventWriter.writeWithinLocalElement("urlset", &siteMapNamespace, &emptyAttributes, |eventWriter|
 			{
 				for webPage in webPagesForThisSiteMapFile.iter()
 				{
 					startingIndex += 1;
 
-					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &namespace, &emptyAttributes, resources, configuration.fallbackIso639Dash1Alpha2Language())?
+					if webPage.writeXml(iso639Dash1Alpha2Language, eventWriter, &siteMapNamespace, &emptyAttributes, resources, configuration.fallbackIso639Dash1Alpha2Language())?
 					{
 						count += 1;
 

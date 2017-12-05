@@ -2,19 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
-pub(crate) enum RssFeedlyChannelGoogleAnalyticsCode
-{
-	inherit,
-	specific(String),
-}
+use super::*;
 
-impl Default for RssFeedlyChannelGoogleAnalyticsCode
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		RssFeedlyChannelGoogleAnalyticsCode::inherit
-	}
-}
+
+include!("ITunesRssChannel.rs");
+include!("ITunesRssChannelPodcastType.rs");

@@ -13,29 +13,27 @@ pub(crate) struct RssItem
 
 impl RssItem
 {
+	pub(crate) const DcNamespacePrefix: &'static str = "dc";
+	
+	pub(crate) const DcNamespaceUrl: &'static str = "http://purl.org/dc/elements/1.1/";
+	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
 		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
 		
-		let versionAttributes =
-		[
-			XmlAttribute::new(Name::local("version"), "2.0"),
-		];
-		eventWriter.writeWithinElement(Name::local("item"), &namespace, &versionAttributes, |eventWriter|
+		eventWriter.writeWithinLocalElement("item", &namespace, &RssChannel::rssVersionAttributes(), |eventWriter|
 		{
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("title"), &rssItemLanguageVariant.webPageDescription)?;
+			eventWriter.writeCDataElement(&namespace, &emptyAttributes, "title".xml_local_name(), &rssItemLanguageVariant.webPageDescription)?;
 			
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, Name::local("description"), unsafe { from_utf8_unchecked(&rssItemLanguageVariant.webPageUsefulContentHtml) })?;
+			eventWriter.writeCDataElement(&namespace, &emptyAttributes, "description".xml_local_name(), unsafe { from_utf8_unchecked(&rssItemLanguageVariant.webPageUsefulContentHtml) })?;
 			
-			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "link", rssItemLanguageVariant.languageSpecificUrl.as_ref())?;
+			let languageSpecificUrl = &rssItemLanguageVariant.languageSpecificUrl;
 			
-			let guidAttributes =
-			[
-				XmlAttribute::new(Name::local("isPermaLink"), "true"),
-			];
-			eventWriter.writeUnprefixedTextElement(&namespace, &guidAttributes, "guid", rssItemLanguageVariant.languageSpecificUrl.as_ref())?;
+			eventWriter.writeUnprefixedTextElementUrl(&namespace, &emptyAttributes, "link", languageSpecificUrl)?;
+			
+			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", languageSpecificUrl)?;
 			
 			for category in self.categories.iter()
 			{
@@ -44,17 +42,18 @@ impl RssItem
 			
 			if let Some(lastModificationDate) = self.lastModificationDate
 			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "pubData", &lastModificationDate.to_rfc2822())?;
+				eventWriter.writeUnprefixedTextElementRfc2822(&namespace, &emptyAttributes, "pubData", lastModificationDate)?;
 			}
 			
-			eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "author", &self.author.to_string())?;
+			eventWriter.writeUnprefixedTextElementString(&namespace, &emptyAttributes, "author", self.author.to_string())?;
 			
-			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, "dc", "creator", &self.author.full_name)?;
+			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, Self::DcNamespacePrefix, "creator", &self.author.full_name)?;
 			
 			if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
 			{
 				primaryImage.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}
+			
 			Ok(())
 		})
 	}

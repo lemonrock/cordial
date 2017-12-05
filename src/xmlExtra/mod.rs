@@ -3,11 +3,18 @@
 
 
 use super::CordialError;
+use super::domain::UrlData;
+use super::domain::people::EMailAddress;
+use super::domain::localization::Iso639Dash1Alpha2Language;
+use ::chrono::DateTime;
+use ::chrono::Utc;
 use ::std::borrow::Cow;
 use ::std::cell::Cell;
 use ::std::io;
 use ::std::io::Write;
+use ::url::Url;
 use ::xml::attribute::Attribute;
+use ::xml::attribute::OwnedAttribute;
 use ::xml::common::XmlVersion;
 use ::xml::name::Name;
 use ::xml::namespace::Namespace;
@@ -17,3 +24,5 @@ use ::xml::writer::events::XmlEvent;
 
 include!("EventWriterExt.rs");
 include!("LengthTrackingWriter.rs");
+include!("XmlAttributeExt.rs");
+include!("XmlNameExt.rs");

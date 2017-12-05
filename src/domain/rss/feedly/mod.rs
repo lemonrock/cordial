@@ -3,16 +3,7 @@
 
 
 use super::*;
-use ::xml::attribute::Attribute as XmlAttribute;
-use ::xml::namespace::Namespace;
-use ::xml::namespace::NS_NO_PREFIX;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::EventWriter;
 
 
-include!("SiteMap.rs");
-include!("SiteMapChangeFrequency.rs");
-include!("SiteMapPriority.rs");
-include!("SiteMapWebPage.rs");
-include!("SiteMapWebPageImage.rs");
-include!("SiteMapWebPageVideo.rs");
+include!("FeedlyRssChannel.rs");
+include!("FeedlyRssChannelGoogleAnalyticsCode.rs");

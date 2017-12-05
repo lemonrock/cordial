@@ -2,17 +2,34 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::xml::attribute::Attribute as XmlAttribute;
-use ::xml::namespace::Namespace;
-use ::xml::namespace::NS_NO_PREFIX;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::EventWriter;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum ITunesRssChannelPodcastType
+{
+	episodic,
+	serial,
+}
 
+impl Default for ITunesRssChannelPodcastType
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ITunesRssChannelPodcastType::serial
+	}
+}
 
-include!("SiteMap.rs");
-include!("SiteMapChangeFrequency.rs");
-include!("SiteMapPriority.rs");
-include!("SiteMapWebPage.rs");
-include!("SiteMapWebPageImage.rs");
-include!("SiteMapWebPageVideo.rs");
+impl ITunesRssChannelPodcastType
+{
+	#[inline(always)]
+	pub(crate) fn to_str(&self) -> &'static str
+	{
+		use self::ITunesRssChannelPodcastType::*;
+		
+		match *self
+		{
+			episodic => "episodic",
+			serial => "serial",
+		}
+	}
+}

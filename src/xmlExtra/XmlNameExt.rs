@@ -2,17 +2,26 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::xml::attribute::Attribute as XmlAttribute;
-use ::xml::namespace::Namespace;
-use ::xml::namespace::NS_NO_PREFIX;
-use ::xml::writer::EmitterConfig;
-use ::xml::writer::EventWriter;
+pub(crate) trait XmlNameExt
+{
+	#[inline(always)]
+	fn xml_local_name<'a>(&'a self) -> Name<'a>;
+	
+	#[inline(always)]
+	fn prefixes_xml_name<'a>(&'a self, name: &'a str) -> Name<'a>;
+}
 
-
-include!("SiteMap.rs");
-include!("SiteMapChangeFrequency.rs");
-include!("SiteMapPriority.rs");
-include!("SiteMapWebPage.rs");
-include!("SiteMapWebPageImage.rs");
-include!("SiteMapWebPageVideo.rs");
+impl XmlNameExt for str
+{
+	#[inline(always)]
+	fn xml_local_name<'a>(&'a self) -> Name<'a>
+	{
+		Name::local(self)
+	}
+	
+	#[inline(always)]
+	fn prefixes_xml_name<'a>(&'a self, name: &'a str) -> Name<'a>
+	{
+		Name::prefixed(name, self)
+	}
+}

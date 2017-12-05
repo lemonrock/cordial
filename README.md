@@ -142,7 +142,9 @@ The license for this project is AGPL-3.0.
 * schema.org (using JSON+LD)
 	* breadcrumbs
 	* We need to move to 3 article images
-* Podcasts: https://developers.google.com/search/docs/data-types/podcasts
+* Podcasts:
+	* <https://developers.google.com/search/docs/data-types/podcasts>
+	* <https://theaudacitytopodcast.com/podcast-seo-for-itunes-google-play-music-and-more-apps-tap291/>
 * AMP
 	* amp-app-banner
 		* Implement a markdown plugin

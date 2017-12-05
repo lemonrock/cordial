@@ -13,49 +13,52 @@ pub(crate) struct RssImage
 
 impl RssImage
 {
+	pub(crate) const MediaNamespacePrefix: &'static str = "media";
+	
+	pub(crate) const MediaNamespaceUrl: &'static str = "http://search.yahoo.com/mrss/";
+	
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
 		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-		let url = urlData.url_str();
 		let mimeType = urlData.mimeType().as_ref();
-		
 		let (width, height, fileSize) = urlData.image()?;
-		let width = format!("{}", width);
-		let height = format!("{}", height);
-		let fileSize = format!("{}", fileSize);
 		
+		let lengthAttribute = "length".xml_u64_attribute(fileSize);
 		let enclosureAttributes =
 		[
-			XmlAttribute::new(Name::local("url"), url),
-			XmlAttribute::new(Name::local("length"), &fileSize),
-			XmlAttribute::new(Name::local("type"), mimeType),
+			"url".xml_url_from_UrlData_attribute(&urlData),
+			lengthAttribute.borrow(),
+			"type".xml_str_attribute(mimeType),
 		];
-		eventWriter.writeEmptyElement(namespace, &enclosureAttributes, Name::local("enclosure"))?;
+		eventWriter.writeEmptyElement(namespace, &enclosureAttributes, "enclosure".xml_local_name())?;
 		
+		let heightAttribute = "height".xml_u32_attribute(height);
+		let widthAttribute = "width".xml_u32_attribute(width);
+		let fileSizeAttribute = "fileSize".xml_u64_attribute(fileSize);
 		let contentAttributes =
 		[
-			XmlAttribute::new(Name::local("url"), url),
-			XmlAttribute::new(Name::local("medium"), "image"),
-			XmlAttribute::new(Name::local("height"), &height),
-			XmlAttribute::new(Name::local("width"), &width),
-			XmlAttribute::new(Name::local("fileSize"), &fileSize),
-			XmlAttribute::new(Name::local("type"), mimeType),
-			XmlAttribute::new(Name::local("lang"), self.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
+			"url".xml_url_from_UrlData_attribute(&urlData),
+			"medium".xml_str_attribute("image"),
+			heightAttribute.borrow(),
+			widthAttribute.borrow(),
+			fileSizeAttribute.borrow(),
+			"type".xml_str_attribute(mimeType),
+			"lang".xml_language_attribute(self.iso639Dash1Alpha2Language),
 		];
-		eventWriter.writeWithinElement(Name::prefixed("content", "media"), &namespace, &contentAttributes, |eventWriter|
+		eventWriter.writeWithinElement(Self::MediaNamespacePrefix.prefixes_xml_name("content"), &namespace, &contentAttributes, |eventWriter|
 		{
-			eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("description", "media"), &self.imageAbstract.alt)?;
+			eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("description"), &self.imageAbstract.alt)?;
 			
-			eventWriter.writeTextElement(namespace, &emptyAttributes, Name::prefixed("credit", "media"), &self.credit)?;
+			eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("credit"), &self.credit)?;
 			
 			let thumbnailAttributes =
 			[
-				XmlAttribute::new(Name::local("width"), &width),
-				XmlAttribute::new(Name::local("height"), &height),
-				XmlAttribute::new(Name::local("url"), url),
+				widthAttribute.borrow(),
+				heightAttribute.borrow(),
+				"url".xml_url_from_UrlData_attribute(&urlData),
 			];
-			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Name::prefixed("thumbnail", "media"))
+			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("thumbnail"))
 		})
 	}
 	

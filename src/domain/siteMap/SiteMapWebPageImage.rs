@@ -12,19 +12,21 @@ pub(crate) struct SiteMapWebPageImage
 
 impl SiteMapWebPageImage
 {
+	pub(crate) const ImageNamespacePrefix: &'static str = "image";
+	
 	#[inline(always)]
 	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		eventWriter.writeWithinElement(Name::prefixed("image", "image"), namespace, emptyAttributes, |eventWriter|
+		eventWriter.writeWithinElement(Self::ImageNamespacePrefix.prefixes_xml_name("image"), namespace, emptyAttributes, |eventWriter|
 		{
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "loc", self.url.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "caption", &self.imageAbstract.caption)?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::ImageNamespacePrefix, "loc", self.url.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::ImageNamespacePrefix, "caption", &self.imageAbstract.caption)?;
 			if let Some(geographicLocation) = self.imageAbstract.geographic_location.as_ref()
 			{
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "geo_location", geographicLocation)?;
+				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::ImageNamespacePrefix, "geo_location", geographicLocation)?;
 			}
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "title", &self.imageAbstract.title)?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "image", "license_url", self.licenseUrl.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::ImageNamespacePrefix, "title", &self.imageAbstract.title)?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::ImageNamespacePrefix, "license_url", self.licenseUrl.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.as_str())
 		})
 	}
 }

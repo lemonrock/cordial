@@ -4,17 +4,17 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct RssFeedlyChannel
+pub(crate) struct FeedlyRssChannel
 {
-	#[serde(default = "RssFeedlyChannel::png_cover_image_default")] png_cover_image: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::svg_icon_default")] svg_icon: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::svg_logo_default")] svg_logo: ResourceReference,
-	#[serde(default = "RssFeedlyChannel::accent_color_default")] accent_color: [u8; 3], // eg 00FF00, R, G, B
-	#[serde(default = "RssFeedlyChannel::related_default")] related: bool,
-	#[serde(default = "RssFeedlyChannel::google_analytics_default")] google_analytics: Option<RssFeedlyChannelGoogleAnalyticsCode>,
+	#[serde(default = "FeedlyRssChannel::png_cover_image_default")] png_cover_image: ResourceReference,
+	#[serde(default = "FeedlyRssChannel::svg_icon_default")] svg_icon: ResourceReference,
+	#[serde(default = "FeedlyRssChannel::svg_logo_default")] svg_logo: ResourceReference,
+	#[serde(default = "FeedlyRssChannel::accent_color_default")] accent_color: [u8; 3], // eg 00FF00, R, G, B
+	#[serde(default = "FeedlyRssChannel::related_default")] related: bool,
+	#[serde(default = "FeedlyRssChannel::google_analytics_default")] google_analytics: Option<FeedlyRssChannelGoogleAnalyticsCode>,
 }
 
-impl Default for RssFeedlyChannel
+impl Default for FeedlyRssChannel
 {
 	#[inline(always)]
 	fn default() -> Self
@@ -31,8 +31,12 @@ impl Default for RssFeedlyChannel
 	}
 }
 
-impl RssFeedlyChannel
+impl FeedlyRssChannel
 {
+	pub(crate) const WebfeedsNamespacePrefix: &'static str = "webfeeds";
+	
+	pub(crate) const WebfeedsNamespaceUrl: &'static str = "http://webfeeds.org/rss/1.0";
+	
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, 'b: 'a, 'c, W: Write>(&'c self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>) -> Result<(), CordialError>
 	{
@@ -41,35 +45,31 @@ impl RssFeedlyChannel
 		{
 			let urlData = self.png_cover_image.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsPng()?;
-			let attributes =
-			[
-				XmlAttribute::new(Name::local("image"), urlData.url_str()),
-			];
-			eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("cover", "webfeeds"))?;
+			eventWriter.writeEmptyElement(namespace, &[ "image".xml_url_from_UrlData_attribute(&urlData) ], Self::WebfeedsNamespacePrefix.prefixes_xml_name("cover"))?;
 		}
 
 		{
 			let urlData = self.svg_icon.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsSvg()?;
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "icon", urlData.url_str())?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "icon", urlData.url_str())?;
 		}
 
 		{
 			let urlData = self.svg_logo.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsSvg()?;
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "logo", urlData.url_str())?;
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "logo", urlData.url_str())?;
 		}
 
 		let accentColor = format!("{:02X}{:02X}{:02X}", self.accent_color[0], self.accent_color[1], self.accent_color[2]);
 
-		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, "webfeeds", "accentColor", &accentColor)?;
+		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "accentColor", &accentColor)?;
 
 		let attributes =
 		[
-			XmlAttribute::new(Name::local("layout"), "card"),
-			XmlAttribute::new(Name::local("target"), "browser"),
+			"layout".xml_str_attribute("card"),
+			"target".xml_str_attribute("browser"),
 		];
-		eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))?;
+		eventWriter.writeEmptyElement(namespace, &attributes, Self::WebfeedsNamespacePrefix.prefixes_xml_name("analytics"))?;
 
 		if let Some(ref googleAnalytics) = self.google_analytics
 		{
@@ -77,13 +77,13 @@ impl RssFeedlyChannel
 			{
 				let attributes =
 				[
-					XmlAttribute::new(Name::local("id"), code),
-					XmlAttribute::new(Name::local("engine"), "GoogleAnalytics"),
+					"id".xml_str_attribute(code),
+					"engine".xml_str_attribute("GoogleAnalytics"),
 				];
-				eventWriter.writeEmptyElement(namespace, &attributes, Name::prefixed("analytics", "webfeeds"))
+				eventWriter.writeEmptyElement(namespace, &attributes, FeedlyRssChannel::WebfeedsNamespacePrefix.prefixes_xml_name("analytics"))
 			}
 
-			use self::RssFeedlyChannelGoogleAnalyticsCode::*;
+			use self::FeedlyRssChannelGoogleAnalyticsCode::*;
 			match *googleAnalytics
 			{
 				specific(ref code) => writeGoogleAnalyticsCode(eventWriter, namespace, code)?,
@@ -129,8 +129,8 @@ impl RssFeedlyChannel
 	}
 
 	#[inline(always)]
-	fn google_analytics_default() -> Option<RssFeedlyChannelGoogleAnalyticsCode>
+	fn google_analytics_default() -> Option<FeedlyRssChannelGoogleAnalyticsCode>
 	{
-		Some(RssFeedlyChannelGoogleAnalyticsCode::inherit)
+		Some(FeedlyRssChannelGoogleAnalyticsCode::inherit)
 	}
 }

@@ -25,6 +25,25 @@ pub(crate) struct SiteMapWebPageVideo
 
 impl SiteMapWebPageVideo
 {
+	pub(crate) const VideoNamespacePrefix: &'static str = "video";
+	
+	const BooleanYes: &'static str = "yes";
+	
+	const BooleanNo: &'static str = "no";
+	
+	#[inline(always)]
+	fn booleanYesOrNo(boolean: bool) -> &'static str
+	{
+		if boolean
+		{
+			Self::BooleanYes
+		}
+		else
+		{
+			Self::BooleanNo
+		}
+	}
+	
 	#[inline(always)]
 	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
@@ -33,17 +52,17 @@ impl SiteMapWebPageVideo
 		let resource = self.placeHolderUrl.resourceMandatory(resources)?;
 		let thumbnailUrlData = resource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 		
-		eventWriter.writeWithinElement(Name::prefixed("video", "video"), namespace, emptyAttributes, |eventWriter|
+		eventWriter.writeWithinElement(Self::VideoNamespacePrefix.prefixes_xml_name("video"), namespace, emptyAttributes, |eventWriter|
 		{
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "thumbnail_loc", thumbnailUrlData.url_str())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "thumbnail_loc", thumbnailUrlData.url_str())?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "title", &self.videoAbstract.title)?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "title", &self.videoAbstract.title)?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "description", &self.videoAbstract.site_map_description)?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "description", &self.videoAbstract.site_map_description)?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "content_loc", self.mp4Url.as_ref())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "content_loc", self.mp4Url.as_ref())?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "player_loc", self.iFrameUrl.as_ref())?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "player_loc", self.iFrameUrl.as_ref())?;
 			
 			let live = if let Some(durationInSeconds) = self.durationInSeconds
 			{
@@ -51,35 +70,35 @@ impl SiteMapWebPageVideo
 				{
 					return Err(CordialError::Configuration("videos in site maps can not exceed eight hours duration".to_owned()));
 				}
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "duration", &format!("{}", durationInSeconds))?;
-				"no"
+				eventWriter.writePrefixedTextElementU64(namespace, emptyAttributes, Self::VideoNamespacePrefix, "duration", durationInSeconds)?;
+				Self::BooleanNo
 			}
 			else
 			{
-				"yes"
+				Self::BooleanYes
 			};
 			
 			if let Some(expirationDate) = self.expirationDate
 			{
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "expiration_date", &expirationDate.to_rfc3339())?;
+				eventWriter.writePrefixedTextElementRfc3339(namespace, emptyAttributes, Self::VideoNamespacePrefix, "expiration_date", expirationDate)?;
 			}
 			
 			if let Some(videoStarRating) = self.videoStarRating
 			{
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "rating", &videoStarRating.toGoogleSiteMapString())?;
+				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "rating", &videoStarRating.toGoogleSiteMapString())?;
 			}
 			
 			if let Some(viewCount) = self.viewCount
 			{
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "view_count", &format!("{}", viewCount))?;
+				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "view_count", &format!("{}", viewCount))?;
 			}
 			
 			if let Some(publicationDate) = self.publicationDate
 			{
-				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "publication_date", &publicationDate.to_rfc3339())?;
+				eventWriter.writePrefixedTextElementRfc3339(namespace, emptyAttributes, Self::VideoNamespacePrefix, "publication_date", publicationDate)?;
 			}
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "family_friendly", if self.canAppearInSafeSearch { "yes" } else { "no" })?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "family_friendly", Self::booleanYesOrNo(self.canAppearInSafeSearch))?;
 			
 			self.videoAbstract.writeXmlForCanonicalizedTagString(eventWriter, namespace, emptyAttributes)?;
 			
@@ -95,17 +114,18 @@ impl SiteMapWebPageVideo
 					tag: ResourceTag::default,
 				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 				
-				let attributes =
-				[
-					XmlAttribute::new(Name::local("title"), title.as_str())
-				];
-				
-				eventWriter.writePrefixedTextElement(namespace, &attributes, "video", "gallery_loc", url.as_str())?;
+				eventWriter.writePrefixedTextElement(namespace, &[ "title".xml_str_attribute(title.as_str()) ], Self::VideoNamespacePrefix, "gallery_loc", url.as_str())?;
 			}
 			
 			// Unimplemented: video:price (can be supported with a BTreeSet of (currency, type, resolution) tuples
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "requires_subscription", if self.requiresSubscription { "yes" } else { "no" })?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "requires_subscription", Self::booleanYesOrNo(self.requiresSubscription))?;
+			
+			#[inline(always)]
+			fn writeUploader<'a, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, uploaderName: &FullName, attributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+			{
+				eventWriter.writePrefixedTextElement(namespace, &attributes, SiteMapWebPageVideo::VideoNamespacePrefix, "uploader", uploaderName)
+			}
 			
 			if let Some(ref uploader) = self.uploader
 			{
@@ -119,22 +139,17 @@ impl SiteMapWebPageVideo
 						tag: ResourceTag::default,
 					}.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 					
-					let attributes =
-					[
-						XmlAttribute::new(Name::local("into"), url.as_str())
-					];
-					
-					eventWriter.writePrefixedTextElement(namespace, &attributes, "video", "uploader", uploaderName)?;
+					writeUploader(eventWriter, namespace, uploaderName, &["info".xml_url_attribute(&url)])?;
 				}
 				else
 				{
-					eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "uploader", uploaderName)?;
+					writeUploader(eventWriter, namespace, uploaderName, &emptyAttributes)?;
 				}
 			}
 			
 			self.platformRestrictions.writeXmlForRestriction(eventWriter, namespace)?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "live", live)
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "live", live)
 		})
 	}
 }

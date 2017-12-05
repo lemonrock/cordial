@@ -99,11 +99,11 @@ impl BrowserConfigPipeline
 			}
 		);
 		
-		eventWriter.writeWithinElement(Name::local("browserconfig"), &namespace, &emptyAttributes, |eventWriter|
+		eventWriter.writeWithinLocalElement("browserconfig", &namespace, &emptyAttributes, |eventWriter|
 		{
-			eventWriter.writeWithinElement(Name::local("msapplication"), &namespace, &emptyAttributes, |eventWriter|
+			eventWriter.writeWithinLocalElement("msapplication", &namespace, &emptyAttributes, |eventWriter|
 			{
-				eventWriter.writeWithinElement(Name::local("tile"), &namespace, &emptyAttributes, |mut eventWriter|
+				eventWriter.writeWithinLocalElement("tile", &namespace, &emptyAttributes, |mut eventWriter|
 				{
 					// TODO: Almost. In fact Microsoft recommends to use larger pictures. This is to present high resolution pictures to the user even when the desktop is scaled up. Therefore the recommended sizes are 128x128, 270x270, 558x558 and 558x270.
 					self.writeTileIconElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, 70, 70, 128, 128)?;
@@ -115,7 +115,7 @@ impl BrowserConfigPipeline
 				
 				if let Some(ref badge_url) = self.badge_url
 				{
-					eventWriter.writeWithinElement(Name::local("badge"), &namespace, &emptyAttributes, |mut eventWriter|
+					eventWriter.writeWithinLocalElement("badge", &namespace, &emptyAttributes, |mut eventWriter|
 					{
 						Self::writePollElement(&mut eventWriter, &namespace, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, "polling-uri", badge_url)?;
 						Self::writeFrequencyElement(&mut eventWriter, &namespace, self.badge_poll_frequency)
@@ -124,7 +124,7 @@ impl BrowserConfigPipeline
 				
 				if !self.notification_urls.is_empty()
 				{
-					eventWriter.writeWithinElement(Name::local("notification"), &namespace, &emptyAttributes, |mut eventWriter|
+					eventWriter.writeWithinLocalElement("notification", &namespace, &emptyAttributes, |mut eventWriter|
 					{
 						self.writePollNotificationElements(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &mut eventWriter, &namespace)?;
 						Self::writeFrequencyElement(&mut eventWriter, &namespace, self.notification_poll_frequency)?;
@@ -194,29 +194,25 @@ impl BrowserConfigPipeline
 	#[inline(always)]
 	fn writeTileColorElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace) -> Result<(), CordialError>
 	{
-		eventWriter.writeTextElement(&namespace, &[], Name::local("TileColor"), &format!("#{:02X}{:02X}{:02X}", self.tile_color[0], self.tile_color[1], self.tile_color[2]))
+		eventWriter.writeUnprefixedTextElementString(&namespace, &[], "TileColor", format!("#{:02X}{:02X}{:02X}", self.tile_color[0], self.tile_color[1], self.tile_color[2]))
 	}
 	
 	#[inline(always)]
 	fn writeFrequencyElement(eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, frequency: BrowserConfigPollFrequencyInMinutes) -> Result<(), CordialError>
 	{
-		eventWriter.writeTextElement(&namespace, &[], Name::local("frequency"), frequency.to_str())
+		eventWriter.writeTextElement(&namespace, &[], "frequency".xml_local_name(), frequency.to_str())
 	}
 	
 	#[inline(always)]
 	fn writePollCycleElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace) -> Result<(), CordialError>
 	{
-		eventWriter.writeTextElement(&namespace, &[], Name::local("cycle"), self.notification_poll_cycle.to_str())
+		eventWriter.writeTextElement(&namespace, &[], "cycle".xml_local_name(), self.notification_poll_cycle.to_str())
 	}
 	
 	#[inline(always)]
 	fn writeEmptyElementWithSrcAttribute(eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace, name: &str, urlData: Rc<UrlData>) -> Result<(), CordialError>
 	{
-		let attributes =
-		[
-			XmlAttribute::new(Name::local("src"), urlData.url_str()),
-		];
-		eventWriter.writeEmptyElement(&namespace, &attributes, Name::local(name))
+		eventWriter.writeEmptyElement(&namespace, &[ "src".xml_url_from_UrlData_attribute(&urlData) ], name.xml_local_name())
 	}
 	
 	#[inline(always)]

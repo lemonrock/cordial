@@ -35,10 +35,82 @@ pub(crate) trait EventWriterExt
 	fn writeUnprefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, text: &str) -> Result<(), CordialError>;
 	
 	#[inline(always)]
+	fn writeUnprefixedTextElementString<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, text: String) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElement(namespace, attributes, name, &text)
+	}
+	
+	#[inline(always)]
+	fn writePrefixedTextElementString<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, text: String) -> Result<(), CordialError>
+	{
+		self.writePrefixedTextElement(namespace, attributes, prefix, name, &text)
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementUrl<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, url: &Url) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElement(namespace, attributes, name, url.as_ref())
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementEMailAddress<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, emailAddress: &EMailAddress) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElementString(namespace, attributes, name, emailAddress.to_string())
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementLanguageCode<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElement(namespace, attributes, name, iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code())
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementRfc2822<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, dateTime: DateTime<Utc>) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElementString(namespace, attributes, name, dateTime.to_rfc2822())
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementRfc3339<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, dateTime: DateTime<Utc>) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElementString(namespace, attributes, name, dateTime.to_rfc3339())
+	}
+	
+	#[inline(always)]
+	fn writePrefixedTextElementRfc3339<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, dateTime: DateTime<Utc>) -> Result<(), CordialError>
+	{
+		self.writePrefixedTextElementString(namespace, attributes, prefix, name, dateTime.to_rfc3339())
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementU32<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, value: u32) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElementString(namespace, attributes, name, format!("{}", value))
+	}
+	
+	#[inline(always)]
+	fn writeUnprefixedTextElementU64<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, value: u64) -> Result<(), CordialError>
+	{
+		self.writeUnprefixedTextElementString(namespace, attributes, name, format!("{}", value))
+	}
+	
+	#[inline(always)]
+	fn writePrefixedTextElementU64<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, value: u64) -> Result<(), CordialError>
+	{
+		self.writePrefixedTextElementString(namespace, attributes, prefix, name, format!("{}", value))
+	}
+	
+	#[inline(always)]
 	fn writePrefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, text: &str) -> Result<(), CordialError>;
 	
 	#[inline(always)]
 	fn writeWithinElement<'a, F: FnOnce(&mut Self) -> Result<(), CordialError>>(&mut self, name: Name<'a>, namespace: &Namespace, attributes: &[Attribute<'a>], children: F) -> Result<(), CordialError>;
+	
+	#[inline(always)]
+	fn writeWithinLocalElement<'a, F: FnOnce(&mut Self) -> Result<(), CordialError>>(&mut self, name: &str, namespace: &Namespace, attributes: &[Attribute<'a>], children: F) -> Result<(), CordialError>
+	{
+		self.writeWithinElement(name.xml_local_name(), namespace, attributes, children)
+	}
 }
 
 impl<W: Write> EventWriterExt for EventWriter<W>
@@ -131,14 +203,14 @@ impl<W: Write> EventWriterExt for EventWriter<W>
 	#[inline(always)]
 	fn writeUnprefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], name: &str, text: &str) -> Result<(), CordialError>
 	{
-		self.writeTextElement(namespace, attributes, Name::local(name), text)?;
+		self.writeTextElement(namespace, attributes, name.xml_local_name(), text)?;
 		Ok(())
 	}
 	
 	#[inline(always)]
 	fn writePrefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, text: &str) -> Result<(), CordialError>
 	{
-		self.writeTextElement(namespace, attributes, Name::prefixed(name, prefix), text)?;
+		self.writeTextElement(namespace, attributes, prefix.prefixes_xml_name(name), text)?;
 		Ok(())
 	}
 	

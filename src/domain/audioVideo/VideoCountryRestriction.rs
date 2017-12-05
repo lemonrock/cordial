@@ -49,14 +49,19 @@ impl VideoCountryRestriction
 		}
 		
 		use self::CountryRestrictionInclusion::*;
-		let attributes =
-		[
-			XmlAttribute::new(Name::local("restriction"), match self.restriction
-			{
-				whitelist => "allow",
-				blacklist => "deny",
-			}),
-		];
-		eventWriter.writePrefixedTextElement(namespace, &attributes, "video", "restriction", &countries)
+		eventWriter.writePrefixedTextElement
+		(
+			namespace,
+			&[
+				"restriction".xml_str_attribute(match self.restriction
+				{
+					whitelist => "allow",
+					blacklist => "deny",
+				})
+			],
+			"video",
+			"restriction",
+			&countries
+		)
 	}
 }

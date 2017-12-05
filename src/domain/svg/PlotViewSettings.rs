@@ -55,8 +55,7 @@ impl PlotViewSettings
 			{
 				PlotKind::Scatter { ref data, ref marker, ref color } =>
 				{
-					let colour = format!("#{:02X}{:02X}{:02X}", color[0], color[1], color[2]);
-					let style = Style::new().marker(marker.toMarker()).colour(colour);
+					let style = Style::new().marker(marker.toMarker()).colour(color.toStringWithHashPrefix());
 					scattersToMaintainLifetimesHack.push(Scatter::from_vec(&data).style(style));
 				}
 				_ => (),

@@ -111,6 +111,7 @@ include!("CountryRestrictionInclusion.rs");
 include!("HandlebarsTemplateRenderer.rs");
 include!("HandlebarsWrapper.rs");
 include!("HeaderGenerator.rs");
+include!("HexadecimalColor.rs");
 include!("MimeNewType.rs");
 include!("mimeType.rs");
 include!("ProcessingPriority.rs");

@@ -14,7 +14,7 @@ pub(crate) struct BrowserConfigPipeline
 	#[serde(default)] input_format: Option<BrowserConfigInputFormat>,
 	
 	#[serde(default)] pub(crate) tile_url: ResourceUrl,
-	#[serde(default)] pub(crate) tile_color: [u8; 3],
+	#[serde(default)] pub(crate) tile_color: HexadecimalColor,
 	#[serde(default)] pub(crate) badge_url: Option<ResourceUrl>,
 	#[serde(default)] pub(crate) badge_poll_frequency: BrowserConfigPollFrequencyInMinutes,
 	#[serde(default)] pub(crate) notification_urls: ArrayVec<[ResourceUrl; 5]>,
@@ -36,7 +36,7 @@ impl Default for BrowserConfigPipeline
 			input_format: None,
 			
 			tile_url: Default::default(),
-			tile_color: [0; 3],
+			tile_color: Default::default(),
 			badge_url: None,
 			badge_poll_frequency: BrowserConfigPollFrequencyInMinutes::default(),
 			notification_urls: Default::default(),
@@ -194,7 +194,7 @@ impl BrowserConfigPipeline
 	#[inline(always)]
 	fn writeTileColorElement(&self, eventWriter: &mut EventWriter<Vec<u8>>, namespace: &Namespace) -> Result<(), CordialError>
 	{
-		eventWriter.writeUnprefixedTextElementString(&namespace, &[], "TileColor", format!("#{:02X}{:02X}{:02X}", self.tile_color[0], self.tile_color[1], self.tile_color[2]))
+		eventWriter.writeUnprefixedTextElementString(&namespace, &[], "TileColor", self.tile_color.toStringWithHashPrefix())
 	}
 	
 	#[inline(always)]

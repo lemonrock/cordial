@@ -9,7 +9,7 @@ pub(crate) struct FeedlyRssChannel
 	#[serde(default = "FeedlyRssChannel::png_cover_image_default")] png_cover_image: ResourceUrl,
 	#[serde(default = "FeedlyRssChannel::svg_icon_default")] svg_icon: ResourceUrl,
 	#[serde(default = "FeedlyRssChannel::svg_logo_default")] svg_logo: ResourceUrl,
-	#[serde(default = "FeedlyRssChannel::accent_color_default")] accent_color: [u8; 3], // eg 00FF00, R, G, B
+	#[serde(default)] accent_color: HexadecimalColor,
 	#[serde(default = "FeedlyRssChannel::related_default")] related: bool,
 	#[serde(default = "FeedlyRssChannel::google_analytics_default")] google_analytics: Option<FeedlyRssChannelGoogleAnalyticsCode>,
 }
@@ -24,7 +24,7 @@ impl Default for FeedlyRssChannel
 			png_cover_image: Self::png_cover_image_default(),
 			svg_icon: Self::svg_icon_default(),
 			svg_logo: Self::svg_logo_default(),
-			accent_color: Self::accent_color_default(),
+			accent_color: Default::default(),
 			related: Self::related_default(),
 			google_analytics: Self::google_analytics_default(),
 		}
@@ -71,10 +71,8 @@ impl FeedlyRssChannel
 			urlData.validateIsSvg()?;
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "logo", urlData.url_str())?;
 		}
-
-		let accentColor = format!("{:02X}{:02X}{:02X}", self.accent_color[0], self.accent_color[1], self.accent_color[2]);
-
-		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "accentColor", &accentColor)?;
+		
+		eventWriter.writePrefixedTextElementString(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "accentColor", self.accent_color.toStringWithoutHashPrefix())?;
 
 		let attributes =
 		[
@@ -127,13 +125,7 @@ impl FeedlyRssChannel
 	{
 		ResourceUrl::string("/organization-logo.svg")
 	}
-
-	#[inline(always)]
-	fn accent_color_default() -> [u8; 3]
-	{
-		[0x00, 0xFF, 0x00]
-	}
-
+	
 	#[inline(always)]
 	fn related_default() -> bool
 	{

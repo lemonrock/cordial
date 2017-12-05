@@ -3,41 +3,20 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone, PartialOrd, PartialEq)]
-pub(crate) enum PlotKind
-{
-	Histogram
-	{
-		#[serde(default)] data: Vec<f64>,
-		#[serde(default = "PlotKind::number_of_bins_default")] number_of_bins: u32,
-	},
-	
-	Scatter
-	{
-		#[serde(default)] data: Vec<(f64, f64)>,
-		#[serde(default)] marker: PlotMarker,
-		#[serde(default)] color: HexadecimalColor,
-	},
-}
+#[derive(Deserialize, Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub struct HexadecimalColor(pub(crate) [u8; 3]);
 
-impl PlotKind
+impl HexadecimalColor
 {
 	#[inline(always)]
-	fn number_of_bins_default() -> u32
+	fn toStringWithoutHashPrefix(&self) -> String
 	{
-		8
+		format!("{:02X}{:02X}{:02X}", self.0[0], self.0[1], self.0[2])
 	}
-}
-
-impl Default for PlotKind
-{
+	
 	#[inline(always)]
-	fn default() -> Self
+	fn toStringWithHashPrefix(&self) -> String
 	{
-		PlotKind::Histogram
-		{
-			data: Default::default(),
-			number_of_bins: Self::number_of_bins_default(),
-		}
+		format!("#{:02X}{:02X}{:02X}", self.0[0], self.0[1], self.0[2])
 	}
 }

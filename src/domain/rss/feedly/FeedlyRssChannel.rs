@@ -6,9 +6,9 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct FeedlyRssChannel
 {
-	#[serde(default = "FeedlyRssChannel::png_cover_image_default")] png_cover_image: ResourceReference,
-	#[serde(default = "FeedlyRssChannel::svg_icon_default")] svg_icon: ResourceReference,
-	#[serde(default = "FeedlyRssChannel::svg_logo_default")] svg_logo: ResourceReference,
+	#[serde(default = "FeedlyRssChannel::png_cover_image_default")] png_cover_image: ResourceUrl,
+	#[serde(default = "FeedlyRssChannel::svg_icon_default")] svg_icon: ResourceUrl,
+	#[serde(default = "FeedlyRssChannel::svg_logo_default")] svg_logo: ResourceUrl,
 	#[serde(default = "FeedlyRssChannel::accent_color_default")] accent_color: [u8; 3], // eg 00FF00, R, G, B
 	#[serde(default = "FeedlyRssChannel::related_default")] related: bool,
 	#[serde(default = "FeedlyRssChannel::google_analytics_default")] google_analytics: Option<FeedlyRssChannelGoogleAnalyticsCode>,
@@ -43,19 +43,31 @@ impl FeedlyRssChannel
 		let iso639Dash1Alpha2Language = Some(iso639Dash1Alpha2Language);
 
 		{
-			let urlData = self.png_cover_image.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			let urlData = ResourceReference
+			{
+				resource: self.png_cover_image.clone(),
+				tag: ResourceTag::largest_image,
+			}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsPng()?;
 			eventWriter.writeEmptyElement(namespace, &[ "image".xml_url_from_UrlData_attribute(&urlData) ], Self::WebfeedsNamespacePrefix.prefixes_xml_name("cover"))?;
 		}
 
 		{
-			let urlData = self.svg_icon.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			let urlData = ResourceReference
+			{
+				resource: self.svg_icon.clone(),
+				tag: ResourceTag::default,
+			}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsSvg()?;
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "icon", urlData.url_str())?;
 		}
 
 		{
-			let urlData = self.svg_logo.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			let urlData = ResourceReference
+			{
+				resource: self.svg_logo.clone(),
+				tag: ResourceTag::default,
+			}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			urlData.validateIsSvg()?;
 			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, Self::WebfeedsNamespacePrefix, "logo", urlData.url_str())?;
 		}
@@ -99,21 +111,21 @@ impl FeedlyRssChannel
 	}
 
 	#[inline(always)]
-	fn png_cover_image_default() -> ResourceReference
+	fn png_cover_image_default() -> ResourceUrl
 	{
-		ResourceReference::new("/cover.png", ResourceTag::largest_image)
+		ResourceUrl::string("/cover.png")
 	}
 
 	#[inline(always)]
-	fn svg_icon_default() -> ResourceReference
+	fn svg_icon_default() -> ResourceUrl
 	{
-		ResourceReference::new("/favicon.svg", ResourceTag::default)
+		ResourceUrl::string("/favicon.svg")
 	}
 
 	#[inline(always)]
-	fn svg_logo_default() -> ResourceReference
+	fn svg_logo_default() -> ResourceUrl
 	{
-		ResourceReference::new("/organization-logo.svg", ResourceTag::default)
+		ResourceUrl::string("/organization-logo.svg")
 	}
 
 	#[inline(always)]

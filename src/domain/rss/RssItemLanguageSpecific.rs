@@ -3,10 +3,11 @@
 
 
 #[derive(Debug, Clone)]
-pub(crate) struct RssItemLanguageVariant
+pub(crate) struct RssItemLanguageSpecific
 {
-	pub(crate) webPageDescription: Rc<String>, // eg HTML <meta name="description">, used for RSS title
-	pub(crate) webPageUsefulContentHtml: Vec<u8>,
+	pub(crate) webPageDescription: Rc<String>, // put into <title>
+	pub(crate) webPageUsefulContentHtml: Vec<u8>, // put into <description>
+	// <content:encoded> could be supported but isn't
 	pub(crate) languageSpecificUrl: Url,
 	pub(crate) primaryImage: Option<RssImage>,
 }

@@ -5,10 +5,13 @@
 #[derive(Debug, Clone)]
 pub(crate) struct RssItem
 {
-	pub(crate) rssItemLanguageVariant: RssItemLanguageVariant,
+	pub(crate) rssItemLanguageSpecific: RssItemLanguageSpecific,
 	pub(crate) lastModificationDate: Option<DateTime<Utc>>,
 	pub(crate) author: Rc<EMailAddress>,
 	pub(crate) categories: Rc<BTreeSet<String>>,
+	pub(crate) source: Option<ResourceUrl>,
+	// third-party source
+	// rss <source url="">Title Text</source>
 }
 
 impl RssItem
@@ -21,7 +24,7 @@ impl RssItem
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		let rssItemLanguageVariant = &self.rssItemLanguageVariant;
+		let rssItemLanguageVariant = &self.rssItemLanguageSpecific;
 		
 		eventWriter.writeWithinLocalElement("item", &namespace, &RssChannel::rssVersionAttributes(), |eventWriter|
 		{
@@ -33,6 +36,15 @@ impl RssItem
 			
 			eventWriter.writeUnprefixedTextElementUrl(&namespace, &emptyAttributes, "link", languageSpecificUrl)?;
 			
+			if let Some(ref source) = self.source
+			{
+				let (url, title) = ResourceReference
+				{
+					resource: source.clone(),
+					tag: ResourceTag::default,
+				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language.unwrap_or(fallbackIso639Dash1Alpha2Language))?;
+				eventWriter.writeUnprefixedTextElement(&namespace, &["url".xml_url_attribute(&url)], "source", &title)?;
+			}
 			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", languageSpecificUrl)?;
 			
 			for category in self.categories.iter()

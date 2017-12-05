@@ -206,7 +206,7 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addToRssChannels(&self, resources: &Resources, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, author: &Rc<EMailAddress>, rssChannelsToCategories: &OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<(), CordialError>
+	pub(crate) fn addToRssChannels(&self, resources: &Resources, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, author: &Rc<EMailAddress>, source: Option<&ResourceUrl>, rssChannelsToCategories: &OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<(), CordialError>
 	{
 		const RssImageResourceTag: ResourceTag = ResourceTag::largest_image;
 		
@@ -223,7 +223,7 @@ impl<'a> HtmlDocumentData<'a>
 					(
 						RssItem
 						{
-							rssItemLanguageVariant: RssItemLanguageVariant
+							rssItemLanguageSpecific: RssItemLanguageSpecific
 							{
 								webPageDescription: self.htmlAbstract.description.clone(),
 								webPageUsefulContentHtml: rssHtml,
@@ -245,6 +245,7 @@ impl<'a> HtmlDocumentData<'a>
 							lastModificationDate: self.lastModificationDateOrPublicationDate,
 							author: author.clone(),
 							categories: categories.clone(),
+							source: source.map(|resourceUrl| resourceUrl.clone()),
 						}
 					);
 				}

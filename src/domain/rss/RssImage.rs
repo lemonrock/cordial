@@ -20,6 +20,7 @@ impl RssImage
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
+		// <enclosure>
 		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 		let mimeType = urlData.mimeType().as_ref();
 		let (width, height, fileSize) = urlData.image()?;
@@ -33,33 +34,35 @@ impl RssImage
 		];
 		eventWriter.writeEmptyElement(namespace, &enclosureAttributes, "enclosure".xml_local_name())?;
 		
-		let heightAttribute = "height".xml_u32_attribute(height);
-		let widthAttribute = "width".xml_u32_attribute(width);
-		let fileSizeAttribute = "fileSize".xml_u64_attribute(fileSize);
-		let contentAttributes =
-		[
-			"url".xml_url_from_UrlData_attribute(&urlData),
-			"medium".xml_str_attribute("image"),
-			heightAttribute.borrow(),
-			widthAttribute.borrow(),
-			fileSizeAttribute.borrow(),
-			"type".xml_str_attribute(mimeType),
-			"lang".xml_language_attribute(self.iso639Dash1Alpha2Language),
-		];
-		eventWriter.writeWithinElement(Self::MediaNamespacePrefix.prefixes_xml_name("content"), &namespace, &contentAttributes, |eventWriter|
+		// <media:content>; used by MailChimp, for instance
 		{
-			eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("description"), &self.imageAbstract.alt)?;
-			
-			eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("credit"), &self.credit)?;
-			
-			let thumbnailAttributes =
+			let heightAttribute = "height".xml_u32_attribute(height);
+			let widthAttribute = "width".xml_u32_attribute(width);
+			let fileSizeAttribute = "fileSize".xml_u64_attribute(fileSize);
+			let contentAttributes =
 			[
-				widthAttribute.borrow(),
-				heightAttribute.borrow(),
 				"url".xml_url_from_UrlData_attribute(&urlData),
+				"medium".xml_str_attribute("image"),
+				heightAttribute.borrow(),
+				widthAttribute.borrow(),
+				fileSizeAttribute.borrow(),
+				"type".xml_str_attribute(mimeType),
+				"lang".xml_language_attribute(self.iso639Dash1Alpha2Language),
 			];
-			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("thumbnail"))
-		})
+			eventWriter.writeWithinElement(Self::MediaNamespacePrefix.prefixes_xml_name("content"), &namespace, &contentAttributes, |eventWriter|
+			{
+				eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("description"), &self.imageAbstract.alt)?;
+				
+				eventWriter.writeTextElement(namespace, &emptyAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("credit"), &self.credit)?;
+				
+				let thumbnailAttributes =
+				[
+					widthAttribute.borrow(),
+					heightAttribute.borrow(),
+					"url".xml_url_from_UrlData_attribute(&urlData),
+				];
+				eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, Self::MediaNamespacePrefix.prefixes_xml_name("thumbnail"))
+			})
+		}
 	}
-	
 }

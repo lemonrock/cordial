@@ -16,6 +16,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] site_map_images: Vec<ResourceUrl>,
 	#[serde(default)] site_map_videos: Vec<ResourceUrl>,
 	#[serde(default)] rss_author: Rc<EMailAddress>,
+	#[serde(default)] rss_source: Option<ResourceUrl>,
 	#[serde(default)] rss_channels_to_categories: OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>,
 	#[serde(default)] author: Option<ResourceUrl>,
 	// open graph, RSS, schema.org
@@ -64,6 +65,7 @@ impl Default for HtmlPipeline
 			site_map_videos: Default::default(),
 			rss_channels_to_categories: Default::default(),
 			rss_author: Default::default(),
+			rss_source: None,
 			author: None,
 			publication_date: None,
 			modifications: Default::default(),
@@ -204,7 +206,7 @@ impl Pipeline for HtmlPipeline
 			windowsTilesBrowserConfig: self.windows_tiles_browser_config.as_ref(),
 		};
 		
-		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;
+		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, self.rss_source.as_ref(), &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;
 		if self.site_map
 		{
 			htmlDocumentData.addToSiteMaps(resources, siteMapWebPages, self.site_map_change_frequency, self.site_map_priority)?;

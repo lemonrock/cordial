@@ -20,5 +20,5 @@ include!("RssChannelName.rs");
 include!("RssChannelLanguageSpecific.rs");
 include!("RssImage.rs");
 include!("RssItem.rs");
-include!("RssItemLanguageVariant.rs");
+include!("RssItemLanguageSpecific.rs");
 include!("StylesheetLink.rs");

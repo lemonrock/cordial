@@ -183,6 +183,7 @@ impl RssChannel
 				eventWriter.writeWithinLocalElement("image", &rssNamespace, &emptyAttributes, |eventWriter|
 				{
 					let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					urlData.validateIsSuitableForRssImage()?;
 					
 					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "url", urlData.url_str())?;
 					
@@ -194,19 +195,16 @@ impl RssChannel
 					
 					let (imageWidth, imageHeight) = urlData.dimensions()?;
 					
-					if imageWidth != 0 && imageHeight != 0
-					{
-						eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "width", imageWidth)?;
-						
-						eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "height", imageHeight)?;
-					}
+					eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "width", imageWidth)?;
+					
+					eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "height", imageHeight)?;
 					
 					Ok(())
 				})?;
 				
 				for rssItem in rssItems.iter()
 				{
-					rssItem.writeXml(eventWriter, &rssNamespace, &emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					rssItem.writeXml(eventWriter, &rssNamespace, &emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 				}
 				
 				Ok(())
@@ -233,6 +231,31 @@ impl RssChannel
 		newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
 		
 		Ok(())
+	}
+	
+	#[inline(always)]
+	fn writeITunesDetails<'c, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], details: &RssChannelLanguageSpecific) -> Result<(), CordialError>
+	{
+		if let Some(ref summary) = details.itunes_summary
+		{
+			let summary = summary.trim();
+			
+			if summary.chars().count() > 4000
+			{
+				return Err(CordialError::Configuration("A podcast summary should not exceed 4,000 characters".to_owned()));
+			}
+			
+			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, ITunesRssChannel::ITunesNamespacePrefix, "summary", summary)?;
+		}
+		
+		let subtitle = details.itunes_subtitle.trim();
+		
+		if subtitle.chars().count() > 255
+		{
+			return Err(CordialError::Configuration("A podcast subtitle should not exceed 255 characters".to_owned()));
+		}
+		
+		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, ITunesRssChannel::ITunesNamespacePrefix, "subtitle", &subtitle)
 	}
 	
 	#[inline(always)]

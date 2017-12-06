@@ -68,7 +68,7 @@ impl Resource
 				
 				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
 				{
-					if urlData.isSuitableForTwitterCardsImage()
+					if urlData.isSuitableForGoogleVideoSiteMapThumbnailImage()
 					{
 						match resourceTag
 						{
@@ -89,7 +89,54 @@ impl Resource
 				match idealImageUrlData
 				{
 					Some(urlData) => Ok(urlData),
-					None => Err(CordialError::Configuration(format!("Could not find an ideal image for Google Video Sitemap image for '{:?}'", self.name()))),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for iTunes Artwork image for '{:?}'", self.name()))),
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn findITunesRssArtwork(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
+	{
+		// Find the largest image that is acceptable
+		// Artwork must be a minimum size of 1400 x 1400 pixels and a maximum size of 3000 x 3000 pixels, in JPEG or PNG format, 72 dpi, with appropriate file extensions (.jpg, .png), and in the RGB colorspace.
+		// Under 500Kb
+		
+		const FiveHundredKilobytes: u64 = 500 * 1024;
+		
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an image for iTunes Artwork for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForITunesArtwork() && urlData.size() < FiveHundredKilobytes
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if width > idealImageWidth && width >= 1400 && width <= 3000 && height >= 1400 && height <= 3000
+								{
+									idealImageWidth = width;
+									idealImageUrlData = Some(urlData);
+								}
+							}
+							
+							_ => (),
+						}
+					}
+				}
+				
+				match idealImageUrlData
+				{
+					Some(urlData) => Ok(urlData),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for iTunes Artwork for '{:?}'", self.name()))),
 				}
 			}
 		}

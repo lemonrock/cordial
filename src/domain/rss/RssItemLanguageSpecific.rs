@@ -10,4 +10,5 @@ pub(crate) struct RssItemLanguageSpecific
 	// <content:encoded> could be supported but isn't
 	pub(crate) languageSpecificUrl: Url,
 	pub(crate) primaryImage: Option<RssImage>,
+	pub(crate) itunes: Option<Rc<ITunesRssItemLanguageSpecific>>,
 }

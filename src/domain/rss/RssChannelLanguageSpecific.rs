@@ -10,4 +10,6 @@ pub(crate) struct RssChannelLanguageSpecific
 	title: String,
 	description: String,
 	copyright: String,
+	itunes_summary: Option<String>,
+	itunes_subtitle: String,
 }

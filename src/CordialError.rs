@@ -56,7 +56,15 @@ quick_error!
 		CouldNotParseSvg(parseError: ::svgdom::Error)
 		{
 			description("Could not parse SVG")
-			display("Could not parse SVG in because '{:?}'", parseError)
+			display("Could not parse SVG because '{:?}'", parseError)
+			from()
+		}
+		
+		CouldNotParseMp3(cause: ::mp3_metadata::Error)
+		{
+			cause(cause)
+			description("Could not parse MP3")
+			display("Could not parse MP3 because {:?}", cause)
 			from()
 		}
 		
@@ -64,14 +72,14 @@ quick_error!
 		CouldNotParseMp4(parseError: ::mp4parse::Error)
 		{
 			description("Could not parse MP4")
-			display("Could not parse MP4 in because '{:?}'", parseError)
+			display("Could not parse MP4 because '{:?}'", parseError)
 			from()
 		}
 		
 		CouldNotCleanSvg(cleanError: ::svgcleaner::Error)
 		{
 			description("Could not clean SVG")
-			display("Could not clean SVG in because '{:?}'", cleanError)
+			display("Could not clean SVG because '{:?}'", cleanError)
 			from()
 		}
 		

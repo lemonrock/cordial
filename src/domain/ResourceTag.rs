@@ -23,6 +23,8 @@ pub(crate) enum ResourceTag
 	amp_redirect,
 
 	audio_preview,
+	
+	audio_mp3,
 
 	video_mp4,
 	video_webm,

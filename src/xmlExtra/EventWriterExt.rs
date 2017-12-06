@@ -101,6 +101,12 @@ pub(crate) trait EventWriterExt
 	}
 	
 	#[inline(always)]
+	fn writePrefixedTextElementU16<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, value: u16) -> Result<(), CordialError>
+	{
+		self.writePrefixedTextElementString(namespace, attributes, prefix, name, format!("{}", value))
+	}
+	
+	#[inline(always)]
 	fn writePrefixedTextElement<'a>(&mut self, namespace: &Namespace, attributes: &[Attribute<'a>], prefix: &str, name: &str, text: &str) -> Result<(), CordialError>;
 	
 	#[inline(always)]

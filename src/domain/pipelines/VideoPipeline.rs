@@ -123,7 +123,7 @@ impl Pipeline for VideoPipeline
 		
 		let mut result = Vec::new();
 		
-		let (mp4Body, width, height) = if isPrimaryLanguage
+		let (mp4Body, width, height, durationInSeconds) = if isPrimaryLanguage
 		{
 			let mp4Url = self.mp4Url(resourceUrl, configuration)?;
 			*self.mp4Url.borrow_mut() = Some(mp4Url);
@@ -137,26 +137,26 @@ impl Pipeline for VideoPipeline
 			self.dimensions.set((width, height));
 			self.durationInSeconds.set(durationInSeconds);
 			
-			(Some(mp4Body), width, height)
+			(Some(mp4Body), width, height, durationInSeconds)
 		}
 		else
 		{
 			let (width, height) = self.dimensions.get();
-			(None, width, height)
+			(None, width, height, self.durationInSeconds.get())
 		};
 		
 		let videoNode =
 		{
 			let mp4UrlBorrow = self.mp4Url.borrow();
 			let webmUrlBorrow = self.webmUrl.borrow();
-			self.createVideoNode(resources, configuration, languageData, width, height, mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), self.durationInSeconds.get())?
+			self.createVideoNode(resources, configuration, languageData, width, height, mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds)?
 		};
 		
 		if isPrimaryLanguage
 		{
 			self.createWebVttTracks(inputContentFilePath, resourceUrl, configuration, headerGenerator, &mut result)?;
-			self.createMp4(width, height, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, mp4Body.unwrap(), &mut result)?;
-			self.createWebm(width, height, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, inputContentFilePath, &mut result)?;
+			self.createMp4(width, height, durationInSeconds, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, mp4Body.unwrap(), &mut result)?;
+			self.createWebm(width, height, durationInSeconds, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, inputContentFilePath, &mut result)?;
 		}
 		
 		self.createIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result)?;
@@ -276,21 +276,21 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn createMp4(&self, width: u16, height: u16, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createMp4(&self, width: u16, height: u16, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
 		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, self.max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
 		let mp4Tags = hashmap!
 		{
-			video_mp4 => Rc::new(UrlDataDetails::video(&mp4Body, width, height))
+			video_mp4 => Rc::new(UrlDataDetails::video(&mp4Body, width, height, durationInSeconds))
 		};
 		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::Mp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn createWebm(&self, width: u16, height: u16, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn createWebm(&self, width: u16, height: u16, durationInSeconds: u64, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
@@ -299,7 +299,7 @@ impl VideoPipeline
 		let webmHeaders = headerGenerator.generateHeadersForAsset(Incompressible, self.max_age_in_seconds, self.isDownloadable(), &webmUrl)?;
 		let webmTags = hashmap!
 		{
-			video_webm => Rc::new(UrlDataDetails::video(&webmBody, width, height))
+			video_webm => Rc::new(UrlDataDetails::video(&webmBody, width, height, durationInSeconds))
 		};
 		result.push((webmUrl, webmTags, StatusCode::Ok, ContentType(mimeType(Self::WebMVp8MimeType)), webmHeaders, webmBody, None, Incompressible));
 		Ok(())

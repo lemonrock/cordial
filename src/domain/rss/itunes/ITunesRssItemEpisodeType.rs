@@ -2,13 +2,36 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum ITunesRssItemEpisodeType
+{
+	full,
+	trailer,
+	bonus,
+}
 
+impl Default for ITunesRssItemEpisodeType
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ITunesRssItemEpisodeType::full
+	}
+}
 
-include!("ITunesRssChannel.rs");
-include!("ITunesRssChannelType.rs");
-include!("ITunesRssItemEpisodeType.rs");
-include!("ITunesRssChannelCategorisation.rs");
-include!("ITunesRssChannelTopLevelCategory.rs");
-include!("ITunesRssItemLanguageSpecific.rs");
-include!("NonZeroNumber.rs");
+impl ITunesRssItemEpisodeType
+{
+	#[inline(always)]
+	pub(crate) fn to_str(&self) -> &'static str
+	{
+		use self::ITunesRssItemEpisodeType::*;
+		
+		match *self
+		{
+			full => "full",
+			trailer => "trailer",
+			bonus => "bonus",
+		}
+	}
+}

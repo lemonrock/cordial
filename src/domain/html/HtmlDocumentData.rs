@@ -241,6 +241,7 @@ impl<'a> HtmlDocumentData<'a>
 										Some(articleImageMetaData.rssImage(rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 									}
 								},
+								itunes: None,
 							},
 							lastModificationDate: self.lastModificationDateOrPublicationDate,
 							author: author.clone(),

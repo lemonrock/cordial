@@ -49,6 +49,12 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn durationInSeconds(&self) -> Result<u64, CordialError>
+	{
+		self.urlDataDetails.durationInSeconds()
+	}
+	
+	#[inline(always)]
 	pub(crate) fn size(&self) -> u64
 	{
 		self.urlDataDetails.size()
@@ -89,6 +95,56 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn isSuitableForGoogleVideoSiteMapThumbnailImage(&self) -> bool
+	{
+		match self.mimeType.type_()
+		{
+			mime::IMAGE => match self.mimeType.subtype()
+			{
+				mime::JPEG => true,
+				
+				mime::PNG => true,
+				
+				_ => self.mimeType == "image/webp".parse::<Mime>().unwrap(),
+			}
+			
+			_ => false,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn isSuitableForITunesArtwork(&self) -> bool
+	{
+		match self.mimeType.type_()
+		{
+			mime::IMAGE => match self.mimeType.subtype()
+			{
+				mime::JPEG => true,
+				
+				mime::PNG => true,
+				
+				_ => false,
+			}
+			
+			_ => false,
+		}
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn validateIsMp3(&self) -> Result<(), CordialError>
+	{
+		if self.mimeType == mimeType("audio/mpeg")
+		{
+			Ok(())
+		}
+		else
+		{
+			Err(CordialError::Configuration("Resource should be a MP3".to_owned()))
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn validateIsPng(&self) -> Result<(), CordialError>
 	{
 		match (self.mimeType.type_(), self.mimeType.subtype())
@@ -96,6 +152,19 @@ impl UrlData
 			(mime::IMAGE, mime::PNG) => Ok(()),
 			
 			_ => Err(CordialError::Configuration("Resource should be a PNG".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn validateIsSuitableForRssImage(&self) -> Result<(), CordialError>
+	{
+		if self.isSuitableForITunesArtwork()
+		{
+			Ok(())
+		}
+		else
+		{
+			Err(CordialError::Configuration("Resource should be a JPEG or PNG".to_owned()))
 		}
 	}
 	

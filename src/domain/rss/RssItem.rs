@@ -10,8 +10,6 @@ pub(crate) struct RssItem
 	pub(crate) author: Rc<EMailAddress>,
 	pub(crate) categories: Rc<BTreeSet<String>>,
 	pub(crate) source: Option<ResourceUrl>,
-	// third-party source
-	// rss <source url="">Title Text</source>
 }
 
 impl RssItem
@@ -22,7 +20,7 @@ impl RssItem
 	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
 		let rssItemLanguageVariant = &self.rssItemLanguageSpecific;
 		
@@ -42,7 +40,7 @@ impl RssItem
 				{
 					resource: source.clone(),
 					tag: ResourceTag::default,
-				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language.unwrap_or(fallbackIso639Dash1Alpha2Language))?;
+				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 				eventWriter.writeUnprefixedTextElement(&namespace, &["url".xml_url_attribute(&url)], "source", &title)?;
 			}
 			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", languageSpecificUrl)?;
@@ -61,7 +59,11 @@ impl RssItem
 			
 			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, Self::DcNamespacePrefix, "creator", &self.author.full_name)?;
 			
-			if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
+			if let Some(ref itunes) = self.rssItemLanguageSpecific.itunes
+			{
+				itunes.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+			}
+			else if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
 			{
 				primaryImage.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}

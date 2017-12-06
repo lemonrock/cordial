@@ -216,20 +216,13 @@ The license for this project is AGPL-3.0.
 	* Support for opengraph
 	* Support for twitter cards
 * Videos
-	* Support a video site map
-	* Support for twitter cards
-		* Make sure: `twitter:player:stream is provided AND the twitter:player:stream:content_type is specified as “video/mp4”`.
-		* Need a placeholder image
-		* `twitter:player` specifies an IFRAME URL.
 	* Support for opengraph
-* RSS
-	* ?Register with Feedly, InoReader, Bazqux, The Older Reader and Feedbin?
-	* Support itunes extensions for podcasts
 * Fonts
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* Use Fontello's curl API to support Icon font creation
 Other
+	* [Google Cloud Podcasts](https://www.gcppodcast.com/)
 	* Check <http://www.accessify.com/r/play.rust-lang.org> for page load speed analysis
 	* <https://www.freepik.com/>
 	* [BBC engineers on multi-lingual website design](http://responsivenews.co.uk/post/123104512468/13-tips-for-making-responsive-web-design)

@@ -42,6 +42,7 @@ extern crate mktemp;
 extern crate mime_guess;
 extern crate mime_multipart;
 extern crate mon_artist;
+extern crate mp3_metadata;
 extern crate mp4parse;
 extern crate net2;
 #[cfg(unix)] extern crate nix;

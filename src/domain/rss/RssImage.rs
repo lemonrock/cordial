@@ -18,21 +18,25 @@ impl RssImage
 	pub(crate) const MediaNamespaceUrl: &'static str = "http://search.yahoo.com/mrss/";
 	
 	#[inline(always)]
-	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
-		// <enclosure>
-		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let urlData = self.url.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		urlData.validateIsSuitableForRssImage()?;
+		
 		let mimeType = urlData.mimeType().as_ref();
 		let (width, height, fileSize) = urlData.image()?;
 		
-		let lengthAttribute = "length".xml_u64_attribute(fileSize);
-		let enclosureAttributes =
-		[
-			"url".xml_url_from_UrlData_attribute(&urlData),
-			lengthAttribute.borrow(),
-			"type".xml_str_attribute(mimeType),
-		];
-		eventWriter.writeEmptyElement(namespace, &enclosureAttributes, "enclosure".xml_local_name())?;
+		// <enclosure>
+		{
+			let lengthAttribute = "length".xml_u64_attribute(fileSize);
+			let enclosureAttributes =
+			[
+				"url".xml_url_from_UrlData_attribute(&urlData),
+				lengthAttribute.borrow(),
+				"type".xml_str_attribute(mimeType),
+			];
+			eventWriter.writeEmptyElement(namespace, &enclosureAttributes, "enclosure".xml_local_name())?;
+		}
 		
 		// <media:content>; used by MailChimp, for instance
 		{

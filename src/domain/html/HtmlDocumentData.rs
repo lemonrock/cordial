@@ -13,6 +13,7 @@ pub(crate) struct HtmlDocumentData<'a>
 	pub(crate) htmlAbstract: Rc<HtmlAbstract>,
 	pub(crate) articleImage: Option<(ResourceUrl, Rc<ImageMetaData>)>,
 	pub(crate) siteMapImages: &'a [ResourceUrl],
+	pub(crate) siteMapAudios: &'a [ResourceUrl],
 	pub(crate) siteMapVideos: &'a [ResourceUrl],
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
 	pub(crate) lastModificationDateOrPublicationDate: Option<DateTime<Utc>>,
@@ -182,9 +183,10 @@ impl<'a> HtmlDocumentData<'a>
 	#[inline(always)]
 	fn addTwitterCardHtmlNodes(&self, endHeadNodes: &mut Vec<UnattachedNode>, resources: &Resources) -> Result<(), CordialError>
 	{
+		let articleAudio = self.siteMapAudios.get(0);
 		let articleVideo = self.siteMapVideos.get(0);
 		
-		self.twitterCard.addTo(endHeadNodes, &self.articleImage, articleVideo, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
+		self.twitterCard.addTo(endHeadNodes, &self.articleImage, articleAudio, articleVideo, resources, self.fallbackIso639Dash1Alpha2Language, self.htmlUrls.languageData)
 	}
 	
 	#[inline(always)]
@@ -271,6 +273,14 @@ impl<'a> HtmlDocumentData<'a>
 		}
 		
 		let mut audiosVideos = vec![];
+		
+		for siteMapAudioResourceUrl in self.siteMapAudios.iter()
+		{
+			let resourceRef = siteMapAudioResourceUrl.resourceMandatory(resources)?;
+			let audioPipeline = resourceRef.audioPipeline()?;
+			audiosVideos.push(audioPipeline.siteMapWebPageAudio(siteMapAudioResourceUrl, self.htmlUrls.languageData, self.configuration)?);
+		}
+		
 		for siteMapVideoResourceUrl in self.siteMapVideos.iter()
 		{
 			let resourceRef = siteMapVideoResourceUrl.resourceMandatory(resources)?;

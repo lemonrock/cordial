@@ -22,9 +22,9 @@ pub(crate) enum TwitterCardType
 		#[serde(default)] googleplay: Option<TwitterCardAppReference>,
 	},
 	
-	video_player,
+	audio_player,
 	
-	//audio_player,
+	video_player,
 }
 
 impl Default for TwitterCardType
@@ -40,7 +40,7 @@ impl TwitterCardType
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
+	pub(crate) fn addTo(&self, endHeadNodes: &mut Vec<UnattachedNode>, site: &Option<TwitterAtHandle>, articleImage: &Option<(ResourceUrl, Rc<ImageMetaData>)>, articleAudio: Option<&ResourceUrl>, articleVideo: Option<&ResourceUrl>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData) -> Result<(), CordialError>
 	{
 		fn validateTwitterAtHandle<'a>(twitterAtHandle: &'a String, name: &str) -> Result<&'a str, CordialError>
 		{
@@ -131,6 +131,43 @@ impl TwitterCardType
 				TwitterCardAppReference::addToIf(googleplay, "googleplay", endHeadNodes);
 			}
 			
+			audio_player => match articleAudio
+			{
+				None => return Err(CordialError::Configuration("Twitter player cards require at least one associated audio".to_owned())),
+				Some(articleAudio) =>
+				{
+					let articleAudioResource = articleAudio.resourceMandatory(resources)?;
+					let audioPipeline = articleAudioResource.audioPipeline()?;
+					
+					addType(endHeadNodes, "player");
+					
+					addTwitterHandle(endHeadNodes, site, "site")?;
+					
+					endHeadNodes.push(meta_with_name_and_content("twitter:player", audioPipeline.iFramePlayerUrl(articleAudio, languageData)?.as_str()));
+					
+					let (width, height) = audioPipeline.dimensions();
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:width", &format!("{}", width)));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:height", &format!("{}", height)));
+					
+					let placeHolderResource = audioPipeline.metadata.placeholder.resourceMandatory(resources)?;
+					let placeHolderUrlData = placeHolderResource.findUrlDataForTwitterCardPlayerPlaceHolderImage(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					
+					endHeadNodes.push(meta_with_property_and_content("twitter:image", placeHolderUrlData.url_str()));
+					let placeHolderImageMetaData = placeHolderResource.imageMetaData()?;
+					let altText = placeHolderImageMetaData.alt(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+					if altText.chars().count() > 420
+					{
+						return Err(CordialError::Configuration("Twitter restricts image alt text to 420 characters".to_owned()));
+					}
+					endHeadNodes.push(meta_with_property_and_content("twitter:image:alt", altText));
+					
+					let mp4UrlBorrow = audioPipeline.mp4Url.borrow();
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", mp4UrlBorrow.as_ref().unwrap().as_str())));
+					
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", audioPipeline.twitterContentType()));
+				}
+			}
+			
 			video_player => match articleVideo
 			{
 				None => return Err(CordialError::Configuration("Twitter player cards require at least one associated video".to_owned())),
@@ -147,10 +184,9 @@ impl TwitterCardType
 					
 					let (width, height) = videoPipeline.dimensions();
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:width", &format!("{}", width)));
-					
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:height", &format!("{}", height)));
 					
-					let placeHolderResource = videoPipeline.placeholder.resourceMandatory(resources)?;
+					let placeHolderResource = videoPipeline.metadata.placeholder.resourceMandatory(resources)?;
 					let placeHolderUrlData = placeHolderResource.findUrlDataForTwitterCardPlayerPlaceHolderImage(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 					
 					endHeadNodes.push(meta_with_property_and_content("twitter:image", placeHolderUrlData.url_str()));
@@ -165,7 +201,7 @@ impl TwitterCardType
 					let mp4UrlBorrow = videoPipeline.mp4Url.borrow();
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", mp4UrlBorrow.as_ref().unwrap().as_str())));
 					
-					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.mp4ContentType()));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.twitterContentType()));
 				}
 			}
 		}

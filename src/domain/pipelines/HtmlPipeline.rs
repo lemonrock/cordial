@@ -14,6 +14,7 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] site_map_change_frequency: SiteMapChangeFrequency,
 	#[serde(default)] site_map_priority: SiteMapPriority,
 	#[serde(default)] site_map_images: Vec<ResourceUrl>,
+	#[serde(default)] site_map_audios: Vec<ResourceUrl>,
 	#[serde(default)] site_map_videos: Vec<ResourceUrl>,
 	#[serde(default)] rss: Option<Rc<HtmlDocumentItem>>,
 	#[serde(default, deserialize_with = "HtmlPipeline::rss_channels_deserialize_with")] rss_channels: OrderMap<Rc<RssChannelName>, ()>,
@@ -61,6 +62,7 @@ impl Default for HtmlPipeline
 			site_map_change_frequency: Default::default(),
 			site_map_priority: Default::default(),
 			site_map_images: Default::default(),
+			site_map_audios: Default::default(),
 			site_map_videos: Default::default(),
 			rss: None,
 			rss_channels: Default::default(),
@@ -166,6 +168,7 @@ impl Pipeline for HtmlPipeline
 				}
 			},
 			siteMapImages: &self.site_map_images,
+			siteMapAudios: &self.site_map_audios,
 			siteMapVideos: &self.site_map_videos,
 			publicationDate: self.publication_date,
 			lastModificationDateOrPublicationDate: match self.modifications.keys().rev().next()

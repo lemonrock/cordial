@@ -6,7 +6,10 @@ use super::*;
 use ::mp4parse::MediaContext;
 use ::mp4parse::read_mp4;
 use ::mp4parse::SampleEntry;
+use ::mp4parse::Track;
+use ::mp4parse::VideoSampleEntry;
 use ::std::io::Cursor;
 
 
-include!("firstVideoTrackDurationWidthAndHeight.rs");
+include!("videoTrackDurationWidthAndHeight.rs");
+include!("onlyAudioTrackDuration.rs");

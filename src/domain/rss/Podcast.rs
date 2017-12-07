@@ -60,7 +60,7 @@ impl Podcast
 			let mp3UrlData = ResourceReference
 			{
 				resource: self.mp3.clone(),
-				tag: ResourceTag::audio_mp3
+				tag: ResourceTag::audio_mp4
 			}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 			mp3UrlData.validateIsMp3()?;
 			

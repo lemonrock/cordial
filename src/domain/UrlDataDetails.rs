@@ -55,7 +55,6 @@ impl UrlDataDetails
 		}
 	}
 	
-	//::mp3_metadata::read_from_slice(mp3Body)?.duration.as_secs();
 	#[inline(always)]
 	pub(crate) fn audio(body: &[u8], durationInSeconds: u64) -> Self
 	{

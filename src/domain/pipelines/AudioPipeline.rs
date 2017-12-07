@@ -5,22 +5,20 @@
 // See https://www.w3.org/TR/appmanifest/#webappmanifest-dictionary
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct VideoPipeline
+pub(crate) struct AudioPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
-	#[serde(default)] input_format: Option<VideoInputFormat>,
+	#[serde(default)] input_format: Option<AudioInputFormat>,
 	
 	#[serde(default)] pub(crate) metadata: Rc<AudioVideoMetaData>,
-	#[serde(default)] pub(crate) plays_inline: bool,
+	#[serde(default = "AudioPipeline::width_default")] pub(crate) width: u16,
 	
-	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u16, u16)>,
 	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
 	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
-	#[serde(default, skip_deserializing)] pub(crate) webmUrl: RefCell<Option<Url>>,
 }
 
-impl Default for VideoPipeline
+impl Default for AudioPipeline
 {
 	#[inline(always)]
 	fn default() -> Self
@@ -32,17 +30,15 @@ impl Default for VideoPipeline
 			input_format: None,
 			
 			metadata: Default::default(),
-			plays_inline: false,
+			width: Self::width_default(),
 			
-			dimensions: Default::default(),
 			durationInSeconds: Default::default(),
 			mp4Url: Default::default(),
-			webmUrl: Default::default(),
 		}
 	}
 }
 
-impl Pipeline for VideoPipeline
+impl Pipeline for AudioPipeline
 {
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
@@ -69,49 +65,42 @@ impl Pipeline for VideoPipeline
 		
 		let mut result = Vec::new();
 		
-		let (width, height, durationInSeconds) = if isPrimaryLanguage
+		let durationInSeconds = if isPrimaryLanguage
 		{
 			let mp4Url = self.mp4Url(resourceUrl, configuration)?;
 			*self.mp4Url.borrow_mut() = Some(mp4Url);
 			
-			let webmUrl = self.webmUrl(resourceUrl, configuration)?;
-			*self.webmUrl.borrow_mut() = Some(webmUrl);
-			
 			let mp4Body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
 			
-			let (width, height, durationInSeconds) = videoTrackDurationWidthAndHeight(&mp4Body)?;
-			self.dimensions.set((width, height));
+			let durationInSeconds = onlyAudioTrackDuration(&mp4Body)?;
 			self.durationInSeconds.set(durationInSeconds);
 			
 			self.metadata.createWebVttTracks(inputContentFilePath, resourceUrl, configuration, headerGenerator, &mut result, self.max_age_in_seconds)?;
-			self.metadata.createVideoMp4(width, height, durationInSeconds, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, mp4Body, &mut result, self.max_age_in_seconds)?;
-			self.metadata.createWebm(width, height, durationInSeconds, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, inputContentFilePath, &mut result, self.max_age_in_seconds)?;
+			self.metadata.createAudioMp4(durationInSeconds, self.mp4Url.borrow().as_ref().unwrap().clone(), headerGenerator, mp4Body, &mut result, self.max_age_in_seconds)?;
 			
-			(width, height, durationInSeconds)
+			durationInSeconds
 		}
 		else
 		{
-			let (width, height) = self.dimensions.get();
-			(width, height, self.durationInSeconds.get())
+			self.durationInSeconds.get()
 		};
 		
-		let videoNode =
+		let audioNode =
 		{
 			let mp4UrlBorrow = self.mp4Url.borrow();
-			let webmUrlBorrow = self.webmUrl.borrow();
-			self.metadata.createVideoNode(resources, configuration, languageData, width, height, mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds, self.plays_inline)?
+			self.metadata.createAudioNode(resources, configuration, languageData, mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)?
 		};
 		
-		AudioVideoMetaData::createIFramePlayer(resourceUrl, videoNode, width, languageData, headerGenerator, &mut result, self.max_age_in_seconds)?;
+		AudioVideoMetaData::createIFramePlayer(resourceUrl, audioNode, self.width, languageData, headerGenerator, &mut result, self.max_age_in_seconds)?;
 		
 		Ok(result)
 	}
 }
 
-impl VideoPipeline
+impl AudioPipeline
 {
 	#[inline(always)]
-	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData, configuration: &Configuration) -> Result<SiteMapWebPageAudioVideo, CordialError>
+	pub(crate) fn siteMapWebPageAudio(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData, configuration: &Configuration) -> Result<SiteMapWebPageAudioVideo, CordialError>
 	{
 		Ok
 		(
@@ -129,13 +118,13 @@ impl VideoPipeline
 	#[inline(always)]
 	pub(crate) fn dimensions(&self) -> (u16, u16)
 	{
-		self.dimensions.get()
+		(self.width, 60)
 	}
 	
 	#[inline(always)]
 	pub(crate) fn twitterContentType(&self) -> &str
 	{
-		AudioVideoMetaData::VideoMp4TwitterMimeType
+		AudioVideoMetaData::AudioMp4TwitterMimeType
 	}
 	
 	#[inline(always)]
@@ -145,35 +134,31 @@ impl VideoPipeline
 	}
 	
 	#[inline(always)]
-	fn webmUrl(&self, resourceUrl: &ResourceUrl, configuration: &Configuration) -> Result<Url, CordialError>
-	{
-		resourceUrl.replaceFileNameExtension(".webm").url(&configuration.primaryLanguageData()?)
-	}
-	
-	#[inline(always)]
 	pub(crate) fn iFramePlayerUrl(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
 	{
 		AudioVideoMetaData::iFramePlayerUrl(resourceUrl, languageData)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn videoNode(&self, isForAmp: bool, resources: &Resources, configuration: &Configuration, languageData: &LanguageData) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn audioNode(&self, isForAmp: bool, resources: &Resources, configuration: &Configuration, languageData: &LanguageData) -> Result<UnattachedNode, CordialError>
 	{
-		let (width, height) = self.dimensions.get();
-		
 		let mp4UrlBorrow = self.mp4Url.borrow();
-		
-		let webmUrlBorrow = self.webmUrl.borrow();
 		
 		let durationInSeconds = self.durationInSeconds.get();
 		
 		if isForAmp
 		{
-			self.metadata.createAmpVideoNode(resources, configuration, languageData, width, height, &mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds, self.plays_inline)
+			self.metadata.createAmpAudioNode(resources, configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)
 		}
 		else
 		{
-			self.metadata.createVideoNode(resources, configuration, languageData, width, height, &mp4UrlBorrow.as_ref().unwrap(), &webmUrlBorrow.as_ref().unwrap(), durationInSeconds, self.plays_inline)
+			self.metadata.createAudioNode(resources, configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)
 		}
+	}
+	
+	#[inline(always)]
+	fn width_default() -> u16
+	{
+		400
 	}
 }

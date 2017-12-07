@@ -7,6 +7,7 @@
 pub(crate) struct Resource
 {
 	#[serde(default)] pipeline: ResourcePipeline,
+	#[serde(default)] audio: AudioPipeline,
 	#[serde(default)] browser_config: BrowserConfigPipeline,
 	#[serde(default)] css: CssPipeline,
 	#[serde(default)] font: FontPipeline,
@@ -356,6 +357,16 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn audioPipeline(&self) -> Result<&AudioPipeline, CordialError>
+	{
+		match self.pipeline
+		{
+			ResourcePipeline::audio => Ok(&self.audio),
+			_ => Err(CordialError::Configuration("Not an audio resource".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn videoPipeline(&self) -> Result<&VideoPipeline, CordialError>
 	{
 		match self.pipeline
@@ -609,6 +620,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			browser_config => self.browser_config.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			css => self.css.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
 			font => self.font.anchorTitleAttribute(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
@@ -628,6 +640,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.addToImgAttributes(attributes),
 			browser_config => self.browser_config.addToImgAttributes(attributes),
 			css => self.css.addToImgAttributes(attributes),
 			font => self.font.addToImgAttributes(attributes),
@@ -647,6 +660,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.imageMetaData(),
 			browser_config => self.browser_config.imageMetaData(),
 			css => self.css.imageMetaData(),
 			font => self.font.imageMetaData(),
@@ -666,6 +680,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.processingPriority(),
 			browser_config => self.browser_config.processingPriority(),
 			css => self.css.processingPriority(),
 			font => self.font.processingPriority(),
@@ -685,6 +700,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.resourceInputContentFileNamesWithExtension(resourceInputName),
 			browser_config => self.browser_config.resourceInputContentFileNamesWithExtension(resourceInputName),
 			css => self.css.resourceInputContentFileNamesWithExtension(resourceInputName),
 			font => self.font.resourceInputContentFileNamesWithExtension(resourceInputName),
@@ -704,6 +720,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.is(),
 			browser_config => self.browser_config.is(),
 			css => self.css.is(),
 			font => self.font.is(),
@@ -723,6 +740,7 @@ impl Resource
 		use self::ResourcePipeline::*;
 		match self.pipeline
 		{
+			audio => self.audio.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			browser_config => self.browser_config.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			css => self.css.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),
 			font => self.font.execute(resources, inputContentFilePath, resourceUrl, handlebars, headerGenerator, languageData, configuration, rssChannelsToRssItems, siteMapWebPages),

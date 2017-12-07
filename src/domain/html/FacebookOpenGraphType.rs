@@ -169,7 +169,7 @@ impl FacebookOpenGraphType
 			endHeadNodes.push(meta_with_property_and_content("og:type", type_));
 		}
 
-		const MusicSongPreviewTag: ResourceTag = ResourceTag::audio_preview;
+		const MusicSongPreviewTag: ResourceTag = ResourceTag::audio_mp4;
 
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 

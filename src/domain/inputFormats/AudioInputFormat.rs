@@ -2,41 +2,44 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-//noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ResourceTag
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum AudioInputFormat
 {
-	default,
-	
-	smallest_image,
-	largest_image,
-	primary_image,
-	width_image(u32),
-	height_image(u32),
-	width_height_image(u32, u32),
-	
-	// Value is index in source set
-	animation_placeholder(usize),
-	
-	redirect,
-	amp,
-	amp_redirect,
-	
-	audio_video_iframe_player,
-	audio_video_track(AudioVideoTrackKind, Iso639Dash1Alpha2Language),
-	
-	audio_mp4,
-
-	video_mp4,
-	video_webm,
+	MP3,
 }
 
-impl Default for ResourceTag
+impl Default for AudioInputFormat
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ResourceTag::default
+		AudioInputFormat::MP3
 	}
+}
+
+impl InputFormat for AudioInputFormat
+{
+	#[inline(always)]
+	fn fileExtensions(&self) -> &'static [&'static str]
+	{
+		use self::AudioInputFormat::*;
+		
+		match *self
+		{
+			MP3 => &[".mp3"],
+		}
+	}
+	
+	#[inline(always)]
+	fn allFileExtensions() -> &'static [&'static str]
+	{
+		&[
+			".mp3",
+		]
+	}
+}
+
+impl AudioInputFormat
+{
 }

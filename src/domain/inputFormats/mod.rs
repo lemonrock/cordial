@@ -13,6 +13,7 @@ use ::serde_json::Map as JsonMap;
 use ::woff2_sys::convertTtfToWoff2;
 
 
+include!("AudioInputFormat.rs");
 include!("BrowserConfigInputFormat.rs");
 include!("CssInputFormat.rs");
 include!("FontInputFormat.rs");

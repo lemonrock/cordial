@@ -6,6 +6,16 @@
 #[derive(Deserialize, Default, Debug, Clone)]
 pub(crate) struct AudioVideoMetaData
 {
+	#[serde(default)] pub(crate) load: AudioVideoLoad,
+	#[serde(default)] pub(crate) initially_muted: bool,
+	#[serde(default)] pub(crate) loops: bool,
+	#[serde(default)] pub(crate) placeholder: ResourceUrl,
+	#[serde(default)] pub(crate) starts_at_seconds_inclusive: u32,
+	#[serde(default)] pub(crate) ends_at_seconds_exclusive: Option<u32>,
+	#[serde(default)] pub(crate) tracks: Vec<AudioVideoTrack>,
+	#[serde(default = "AudioVideoMetaData::show_controls_default")] pub(crate) show_controls: bool,
+	#[serde(default)] pub(crate) disabled_controls: BTreeSet<AudioVideoDisabledControl>,
+	
 	// Used by amp-video, Google Video Site Map, ?twitter player card? (if we decide to)
 	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<AudioVideoAbstract>>,
 	
@@ -27,10 +37,407 @@ pub(crate) struct AudioVideoMetaData
 	#[serde(default)] pub(crate) gallery: Option<ResourceUrl>,
 	#[serde(default)] pub(crate) requires_subscription: bool,
 	#[serde(default)] pub(crate) uploader: Option<Person>,
+	
+	#[serde(default, skip_deserializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
 }
 
 impl AudioVideoMetaData
 {
+	#[inline(always)]
+	pub(crate) fn createAudioMp4(&self, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	{
+		const Incompressible: bool = false;
+		
+		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
+		let mp4Tags = hashmap!
+		{
+			ResourceTag::audio_mp4 => Rc::new(UrlDataDetails::audio(&mp4Body, durationInSeconds))
+		};
+		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::AudioMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
+		Ok(())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createVideoMp4(&self, width: u16, height: u16, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	{
+		const Incompressible: bool = false;
+		
+		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
+		let mp4Tags = hashmap!
+		{
+			ResourceTag::video_mp4 => Rc::new(UrlDataDetails::video(&mp4Body, width, height, durationInSeconds))
+		};
+		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::VideoMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
+		Ok(())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createWebm(&self, width: u16, height: u16, durationInSeconds: u64, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	{
+		const Incompressible: bool = false;
+		
+		let webmInputContentFilePath = inputContentFilePath.with_extension("webm");
+		let webmBody = webmInputContentFilePath.fileContentsAsBytes().context(webmInputContentFilePath)?;
+		let webmHeaders = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &webmUrl)?;
+		let webmTags = hashmap!
+		{
+			ResourceTag::video_webm => Rc::new(UrlDataDetails::video(&webmBody, width, height, durationInSeconds))
+		};
+		result.push((webmUrl, webmTags, StatusCode::Ok, ContentType(mimeType(Self::WebMVp8MimeType)), webmHeaders, webmBody, None, Incompressible));
+		Ok(())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createIFramePlayer(resourceUrl: &ResourceUrl, audioOrVideoNode: UnattachedNode, width: u16, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	{
+		#[inline(always)]
+		fn iFramePlayerHtmlBody(audioVideoNode: UnattachedNode, width: u16) -> Vec<u8>
+		{
+			let htmlNode = "html"
+			.with_child_element
+			(
+				"head"
+				.with_child_element
+				(
+					"style"
+					.with_type_attribute("text/css")
+					.with_child_text(format!("width:100%;max-width:{};height:auto", width))
+				)
+				.with_child_element
+				(
+					meta_with_name_and_content("robots", X_Robots_Tag_Data)
+				)
+			)
+			.with_child_element
+			(
+				"body"
+				.with_child_element(audioVideoNode)
+			);
+			
+			htmlNode.to_html5_document(true).into_bytes()
+		}
+		const Compressible: bool = true;
+		
+		let iFramePlayerUrl = Self::iFramePlayerUrl(resourceUrl, languageData)?;
+		let iFramePlayerBody = iFramePlayerHtmlBody(audioOrVideoNode, width);
+		let iFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, max_age_in_seconds, false, &iFramePlayerUrl)?;
+		let iFramePlayerTags = hashmap!
+		{
+			ResourceTag::audio_video_iframe_player => Rc::new(UrlDataDetails::generic(&iFramePlayerBody))
+		};
+		result.push((iFramePlayerUrl, iFramePlayerTags, StatusCode::Ok, ContentType::html(), iFramePlayerHeaders, iFramePlayerBody, None, Compressible));
+		Ok(())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createWebVttTracks(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	{
+		for track in self.tracks.iter()
+		{
+			const CanBeCompressed: bool = true;
+			
+			configuration.visitLanguagesWithPrimaryFirst(|languageData, _isPrimaryLanguage|
+			{
+				if let Some((webVttBody, webVttUrl)) = track.bodyAndUrl(languageData, inputContentFilePath, resourceUrl)?
+				{
+					self.orderedMapOfWebVttUrls.borrow_mut().insert((track.kind, languageData.iso639Dash1Alpha2Language), webVttUrl.clone());
+					
+					let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
+					result.push((webVttUrl, hashmap! { ResourceTag::audio_video_track(track.kind, languageData.iso639Dash1Alpha2Language) => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
+				}
+				
+				Ok(())
+			})?;
+		}
+		Ok(())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createAmpAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp3Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	{
+		unimplemented!();
+	}
+	
+	#[inline(always)]
+	pub(crate) fn createAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp3Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	{
+		unimplemented!();
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn createAmpVideoNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64, plays_inline: bool) -> Result<UnattachedNode, CordialError>
+	{
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
+		
+		let placeHolderUrlData = ResourceReference
+		{
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		
+		let mut ampVideoNode =
+			"amp-video"
+			.with_attributes
+			(
+				vec!
+				[
+					"width".string_attribute(format!("{}", width)),
+					"height".string_attribute(format!("{}", height)),
+					"title".str_attribute(title),
+					"poster".str_attribute(placeHolderUrlData.url_str()),
+					"layout".str_attribute("responsive"),
+				]
+			)
+		;
+		
+		ampVideoNode = self.load.addToVideoNode(ampVideoNode, durationInSeconds);
+		
+		if self.load == AudioVideoLoad::auto_play
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("autoplay");
+		}
+		
+		if self.loops
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("loop");
+		}
+		
+		if self.show_controls
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("controls");
+			
+			if !self.disabled_controls.is_empty()
+			{
+				ampVideoNode = ampVideoNode.with_attribute("controlslist".space_separated_attribute(self.disabled_controls.iter().map(|disabled_control| disabled_control.deref())));
+			}
+		}
+		
+		if self.disabled_controls.contains(&AudioVideoDisabledControl::noremoteplayback)
+		{
+			ampVideoNode = ampVideoNode.with_empty_attribute("disableremoteplayback");
+		}
+		
+		if let Some(ref artist) = self.artist
+		{
+			ampVideoNode = ampVideoNode.with_attribute("artist".str_attribute(artist));
+		}
+		
+		if let Some(ref album) = self.album
+		{
+			ampVideoNode = ampVideoNode.with_attribute("album".str_attribute(album));
+		}
+		
+		if let Some(ref artwork) = self.artwork
+		{
+			// 256x256 or 512x512? Whilst artwork is an array, it's not clear if amp-video supports it.
+			const ArtworkWidth: u32 = 512;
+			const ArtworkHeight: u32 = 512;
+			
+			let artworkUrlData = ResourceReference
+			{
+				resource: artwork.clone(),
+				tag: ResourceTag::width_height_image(ArtworkWidth, ArtworkHeight)
+			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+			artworkUrlData.validateIsPng()?;
+			
+			ampVideoNode = ampVideoNode.with_attribute("artwork".str_attribute(artworkUrlData.url_str()));
+		}
+		
+		ampVideoNode = ampVideoNode
+			.with_child_element
+			(
+				"noscript"
+				.with_child_element(self.createVideoNode(resources, configuration, languageData, width, height, mp4Url, webmUrl, durationInSeconds, plays_inline)?)
+			)
+			.with_child_element
+			(
+				"div"
+				.with_empty_attribute("fallback")
+				.with_child_text(languageData.requiredTranslation(RequiredTranslation::missing_video_fallback)?.as_str())
+			);
+		
+		self.addSourcesAndTracks(ampVideoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn createVideoNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, width: u16, height: u16, mp4Url: &Url, webmUrl: &Url, durationInSeconds: u64, plays_inline: bool) -> Result<UnattachedNode, CordialError>
+	{
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
+		
+		let placeHolderUrlData = ResourceReference
+		{
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		
+		let mut videoNode =
+			"video"
+			.with_attributes
+			(
+				vec!
+				[
+					"width".string_attribute(format!("{}", width)),
+					"height".string_attribute(format!("{}", height)),
+					"title".str_attribute(title),
+					"poster".str_attribute(placeHolderUrlData.url_str()),
+				]
+			)
+		;
+		
+		videoNode = self.load.addToVideoNode(videoNode, durationInSeconds);
+		
+		// Twitter Player Card Rules: Default to ‘sound off’ for videos that automatically play content
+		if self.initially_muted || self.load == AudioVideoLoad::auto_play
+		{
+			videoNode = videoNode.with_empty_attribute("muted");
+		}
+		
+		if plays_inline
+		{
+			videoNode = videoNode.with_empty_attribute("playsinline");
+		}
+		
+		if self.loops
+		{
+			videoNode = videoNode.with_empty_attribute("loop");
+		}
+		
+		if self.show_controls
+		{
+			videoNode = videoNode.with_empty_attribute("controls");
+			
+			if !self.disabled_controls.is_empty()
+			{
+				videoNode = videoNode.with_attribute("controlsList".space_separated_attribute(self.disabled_controls.iter().map(|disabled_control| disabled_control.deref())));
+			}
+		}
+		
+		videoNode = self.addSourcesAndTracks(videoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)?;
+		
+		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_video)?;
+		videoNode = videoNode.with_child_text(translation.deref().as_str());
+		
+		Ok(videoNode)
+	}
+	
+	fn addSourcesAndTracks(&self, mut videoNode: UnattachedNode, mp4Url: &Url, webmUrl: &Url, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
+	{
+		let mediaTimeFragment = match self.ends_at_seconds_exclusive
+		{
+			None => if self.starts_at_seconds_inclusive == 0
+			{
+				"".to_owned()
+			}
+			else
+			{
+				format!("#t={}", self.starts_at_seconds_inclusive)
+			},
+			Some(ends_at_seconds_exclusive) => if ends_at_seconds_exclusive <= self.starts_at_seconds_inclusive
+			{
+				return Err(CordialError::Configuration("ends_at_seconds_exclusive must be greater than starts_at_seconds_inclusive is specified".to_owned()));
+			}
+			else
+			{
+				if self.starts_at_seconds_inclusive == 0
+				{
+					format!("#t=,{}", ends_at_seconds_exclusive)
+				}
+				else
+				{
+					format!("#t={},{}", self.starts_at_seconds_inclusive, ends_at_seconds_exclusive)
+				}
+			},
+		};
+		
+		videoNode = videoNode.with_child_element
+		(
+			"source"
+			.with_type_attribute(Self::WebMVp8MimeType)
+			.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
+		)
+		.with_child_element
+		(
+			"source"
+			.with_type_attribute(Self::VideoMp4TwitterMimeType)
+			.with_attribute("src".string_attribute(format!("{}{}", mp4Url.as_ref(), &mediaTimeFragment)))
+		)
+		;
+		
+		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), iso639Dash1Alpha2Language)?;
+		for (iso639Dash1Alpha2Language, _language) in configuration.otherLanguages(iso639Dash1Alpha2Language).iter()
+		{
+			isDefaultTrackAndVideoNode = self.addTracksForLanguage(isDefaultTrackAndVideoNode, *iso639Dash1Alpha2Language)?;
+		}
+		Ok(isDefaultTrackAndVideoNode.1)
+	}
+	
+	fn addTracksForLanguage(&self, isFirstAndVideoNode: (bool, UnattachedNode), iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(bool, UnattachedNode), CordialError>
+	{
+		let (mut isDefaultTrack, mut videoNode) = isFirstAndVideoNode;
+		
+		let orderedMapOfWebVttUrls = self.orderedMapOfWebVttUrls.borrow();
+		
+		for track in self.tracks.iter()
+		{
+			if let Some(webVttUrl) = orderedMapOfWebVttUrls.get(&(track.kind, iso639Dash1Alpha2Language))
+			{
+				let trackNode = track.asNode(isDefaultTrack, iso639Dash1Alpha2Language, &webVttUrl)?;
+				videoNode = videoNode.with_child_element(trackNode);
+				
+				if isDefaultTrack
+				{
+					isDefaultTrack = false;
+				}
+			}
+		}
+		Ok((isDefaultTrack, videoNode))
+	}
+	
+	#[inline(always)]
+	fn title(&self, configuration: &Configuration, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&str, CordialError>
+	{
+		Ok(&self.audioVideoAbstract(configuration.fallbackIso639Dash1Alpha2Language(), iso639Dash1Alpha2Language)?.title)
+	}
+	
+	#[inline(always)]
+	fn isDownloadable(&self) -> bool
+	{
+		if self.disabled_controls.contains(&AudioVideoDisabledControl::nodownload)
+		{
+			false
+		}
+		else
+		{
+			true
+		}
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn iFramePlayerUrl(resourceUrl: &ResourceUrl, languageData: &LanguageData) -> Result<Url, CordialError>
+	{
+		resourceUrl.replaceFileNameExtension(".iframe-player.html").url(languageData)
+	}
+	
+	// See http://www.leanbackplayer.com/test/h5mt.html for most variants
+	
+	//noinspection SpellCheckingInspection
+	pub(crate) const AudioMp4TwitterMimeType: &'static str = "audio/mp4;codecs=\"mp4a.40.2\"";
+	
+	//noinspection SpellCheckingInspection
+	pub(crate) const VideoMp4TwitterMimeType: &'static str = "video/mp4;codecs=\"avc1.42E01E,mp4a.40.2\"";
+	
+	//noinspection SpellCheckingInspection
+	const WebMVp8MimeType: &'static str = "video/webm;codecs=\"vp8,vorbis\"";
+	
 	#[inline(always)]
 	pub(crate) fn audioVideoAbstract(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&AudioVideoAbstract, CordialError>
 	{
@@ -51,6 +458,10 @@ impl AudioVideoMetaData
 	#[inline(always)]
 	pub(crate) fn writeSiteMapXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, mediaUrl: &Url, iFrameUrl: &Url, durationInSeconds: Option<u64>) -> Result<(), CordialError>
 	{
+		let thumbnailResource = self.placeholder.resourceMandatory(resources)?;
+		let thumbnailUrlData = thumbnailResource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix, "thumbnail_loc", thumbnailUrlData.url_str())?;
+		
 		self.audioVideoAbstract(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.writeSiteMapXml(eventWriter, namespace, emptyAttributes)?;
 		
 		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix, "content_loc", mediaUrl.as_ref())?;
@@ -199,5 +610,11 @@ impl AudioVideoMetaData
 		{
 			Ok(())
 		}
+	}
+	
+	#[inline(always)]
+	fn show_controls_default() -> bool
+	{
+		true
 	}
 }

@@ -5,7 +5,6 @@
 #[derive(Debug, Clone)]
 pub(crate) struct SiteMapWebPageAudioVideo
 {
-	pub(crate) placeHolderUrl: ResourceUrl,
 	pub(crate) durationInSeconds: Option<u64>,
 	pub(crate) mediaUrl: Url,
 	pub(crate) iFrameUrl: Url,
@@ -24,11 +23,6 @@ impl SiteMapWebPageAudioVideo
 	{
 		eventWriter.writeWithinElement(Self::VideoNamespacePrefix.prefixes_xml_name("video"), namespace, emptyAttributes, |eventWriter|
 		{
-			// TODO: Unify with artwork
-			let thumbnailResource = self.placeHolderUrl.resourceMandatory(resources)?;
-			let thumbnailUrlData = thumbnailResource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "thumbnail_loc", thumbnailUrlData.url_str())?;
-			
 			self.audioVideoMetaData.writeSiteMapXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &self.mediaUrl, &self.iFrameUrl, self.durationInSeconds)
 		})
 	}

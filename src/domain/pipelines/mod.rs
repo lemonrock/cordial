@@ -4,7 +4,6 @@
 
 use super::*;
 use super::svg::*;
-use super::super::webserver::headers::X_Robots_Tag_Data;
 use self::ProcessingPriority::*;
 use self::ResourceTag::*;
 use ::ordermap::OrderMap;
@@ -12,6 +11,7 @@ use ::serde::de;
 use ::serde_json::Map as JsonMap;
 
 
+include!("AudioPipeline.rs");
 include!("BrowserConfigPipeline.rs");
 include!("CssPipeline.rs");
 include!("GifAnimationPipeline.rs");

@@ -6,6 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) enum ResourcePipeline
 {
+	audio,
 	browser_config,
 	css,
 	font,

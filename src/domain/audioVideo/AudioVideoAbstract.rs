@@ -4,13 +4,13 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct VideoAbstract
+pub(crate) struct AudioVideoAbstract
 {
 	pub(crate) title: String,
 	pub(crate) site_map_description: String,
 }
 
-impl VideoAbstract
+impl AudioVideoAbstract
 {
 	#[inline(always)]
 	pub(crate) fn writeXmlForSiteMapTitle<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>

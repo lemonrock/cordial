@@ -6,7 +6,7 @@
 pub(crate) struct SiteMapWebPageVideo
 {
 	pub(crate) placeHolderUrl: ResourceUrl,
-	pub(crate) videoAbstract: Rc<VideoAbstract>,
+	pub(crate) videoAbstract: Rc<AudioVideoAbstract>,
 
 	pub(crate) mp4Url: Url,
 	pub(crate) iFrameUrl: Url,

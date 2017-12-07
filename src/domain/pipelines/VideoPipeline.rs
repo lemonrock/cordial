@@ -23,7 +23,7 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) disabled_controls: BTreeSet<AudioVideoDisabledControl>,
 	
 	// Used by amp-video, Google Video Site Map, ?twitter player card? (if we decide to)
-	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<VideoAbstract>>,
+	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<AudioVideoAbstract>>,
 	
 	// Used by amp-video
 	#[serde(default)] pub(crate) artist: Option<String>,
@@ -339,7 +339,7 @@ impl VideoPipeline
 	}
 
 	#[inline(always)]
-	fn videoAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<VideoAbstract>, CordialError>
+	fn videoAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<AudioVideoAbstract>, CordialError>
 	{
 		match self.abstracts.get(&iso639Dash1Alpha2Language)
 		{

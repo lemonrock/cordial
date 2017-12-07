@@ -213,6 +213,7 @@ The license for this project is AGPL-3.0.
 			* Is it worthwhile?
 * Modify zopfli crate to allow specifying options
 * Audio / Podcasts
+	* Support for WebVTT by using the video element: <https://www.iandevlin.com/blog/2015/12/html5/webvtt-and-audio/>
 	* Support for opengraph
 	* Support for twitter cards
 * Videos
@@ -231,6 +232,7 @@ Other
 	* And also <https://duckduckgo.com/?q=language+menu+pure+css&t=ffab&ia=web>
 	* [Google Web Designer](https://www.google.com/webdesigner/)
 	* [Vega](https://vega.github.io/vega/)
+	* [podgallery](http://podgallery.com/); also has a rather nice details view for podcasts
 	
 ### Ideas
 * Styling <https://userstyles.org/categories/site> - indicative of the top sites on the internet that people use regularly

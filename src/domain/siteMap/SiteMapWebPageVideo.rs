@@ -10,6 +10,9 @@ pub(crate) struct SiteMapWebPageVideo
 
 	pub(crate) mp4Url: Url,
 	pub(crate) iFrameUrl: Url,
+	
+	pub(crate) category: Option<Rc<String>>,
+	pub(crate) tags: Rc<ArrayVec<[String; 32]>>,
 	pub(crate) durationInSeconds: Option<u64>,
 	pub(crate) expirationDate: Option<DateTime<Utc>>,
 	pub(crate) videoStarRating: Option<VideoStarRating>,
@@ -29,25 +32,8 @@ impl SiteMapWebPageVideo
 	
 	pub(crate) const VideoNamespaceUrl: &'static str = "http://www.google.com/schemas/sitemap-video/1.1";
 	
-	const BooleanYes: &'static str = "yes";
-	
-	const BooleanNo: &'static str = "no";
-	
 	#[inline(always)]
-	fn booleanYesOrNo(boolean: bool) -> &'static str
-	{
-		if boolean
-		{
-			Self::BooleanYes
-		}
-		else
-		{
-			Self::BooleanNo
-		}
-	}
-	
-	#[inline(always)]
-	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
+	pub(crate) fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
 		const GoogleMaximumDurationOfEightHoursInSeconds: u64 = 28_800;
 		
@@ -58,9 +44,9 @@ impl SiteMapWebPageVideo
 		{
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "thumbnail_loc", thumbnailUrlData.url_str())?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "title", &self.videoAbstract.title)?;
+			self.videoAbstract.writeXmlForSiteMapTitle(eventWriter, namespace, emptyAttributes)?;
 			
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "description", &self.videoAbstract.site_map_description)?;
+			self.videoAbstract.writeXmlForSiteMapDescription(eventWriter, namespace, emptyAttributes)?;
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "content_loc", self.mp4Url.as_ref())?;
 			
@@ -102,9 +88,9 @@ impl SiteMapWebPageVideo
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "family_friendly", Self::booleanYesOrNo(self.explicit))?;
 			
-			self.videoAbstract.writeXmlForCanonicalizedTagString(eventWriter, namespace, emptyAttributes)?;
+			self.writeXmlForCanonicalizedTagString(eventWriter, namespace, emptyAttributes)?;
 			
-			self.videoAbstract.writeXmlForCategory(eventWriter, namespace, emptyAttributes)?;
+			self.writeXmlForCategory(eventWriter, namespace, emptyAttributes)?;
 			
 			self.countryRestrictions.writeXmlForRestriction(eventWriter, namespace)?;
 			
@@ -153,5 +139,60 @@ impl SiteMapWebPageVideo
 			
 			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "live", live)
 		})
+	}
+	
+	const BooleanYes: &'static str = "yes";
+	
+	const BooleanNo: &'static str = "no";
+	
+	#[inline(always)]
+	fn booleanYesOrNo(boolean: bool) -> &'static str
+	{
+		if boolean
+		{
+			Self::BooleanYes
+		}
+		else
+		{
+			Self::BooleanNo
+		}
+	}
+	
+	#[inline(always)]
+	fn writeXmlForCanonicalizedTagString<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	{
+		let mut canonicalizedOrderedTags = OrderMap::with_capacity(self.tags.len());
+		for toBeCanonicalizedTag in self.tags.iter()
+		{
+			let lowerCased = toBeCanonicalizedTag.to_lowercase();
+			if !canonicalizedOrderedTags.contains_key(&lowerCased)
+			{
+				canonicalizedOrderedTags.insert(lowerCased, ());
+			}
+		}
+		for canonicalizedSortedTag in canonicalizedOrderedTags.keys()
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "tag", canonicalizedSortedTag)?;
+		}
+		
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn writeXmlForCategory<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	{
+		if let Some(ref category) = self.category
+		{
+			if category.chars().count() > 256
+			{
+				return Err(CordialError::Configuration("Video site map category can not exceed 256 characters".to_owned()));
+			}
+			
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, Self::VideoNamespacePrefix, "category", category)
+		}
+		else
+		{
+			Ok(())
+		}
 	}
 }

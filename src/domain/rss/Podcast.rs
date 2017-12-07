@@ -7,7 +7,7 @@
 pub(crate) struct Podcast
 {
 	#[serde(default)] details: HashMap<Iso639Dash1Alpha2Language, RefCell<PodcastLanguageSpecificRssItemVariant>>,
-	enclosure: ResourceUrl,
+	mp3: ResourceUrl,
 	#[serde(default)] googleplay_author: Option<FullName>,
 	#[serde(default)] itunes_author: Option<FullName>,
 	#[serde(default)] googleplay_block: Option<bool>,
@@ -59,7 +59,7 @@ impl Podcast
 		{
 			let mp3UrlData = ResourceReference
 			{
-				resource: self.enclosure.clone(),
+				resource: self.mp3.clone(),
 				tag: ResourceTag::audio_mp3
 			}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 			mp3UrlData.validateIsMp3()?;

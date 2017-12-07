@@ -8,38 +8,24 @@ pub(crate) struct VideoAbstract
 {
 	pub(crate) title: String,
 	pub(crate) site_map_description: String,
-	pub(crate) site_map_category: String,
-	pub(crate) site_map_tags: ArrayVec<[String; 32]>,
 }
 
 impl VideoAbstract
 {
 	#[inline(always)]
-	pub(crate) fn writeXmlForCanonicalizedTagString<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	pub(crate) fn writeXmlForSiteMapTitle<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
 	{
-		// tags; canonicalized and sorted
-		let mut canonicalizedSortedTags = BTreeSet::new();
-		for toBeCanonicalizedTag in self.site_map_tags.iter()
-		{
-			let lowerCased = toBeCanonicalizedTag.to_lowercase();
-			canonicalizedSortedTags.insert(lowerCased);
-		}
-		for canonicalizedSortedTag in canonicalizedSortedTags.iter()
-		{
-			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "tag", canonicalizedSortedTag)?;
-		}
-		
-		Ok(())
+		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageVideo::VideoNamespacePrefix.prefixes_xml_name("title"), &self.title)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn writeXmlForCategory<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	pub(crate) fn writeXmlForSiteMapDescription<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
 	{
-		if self.site_map_category.len() > 256
+		if self.site_map_description.chars().count() > 2048
 		{
-			return Err(CordialError::Configuration("Video site map category can not exceed 256 characters".to_owned()));
+			return Err(CordialError::Configuration("Video site map description can not exceed 2048 characters".to_owned()));
 		}
 		
-		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, "video", "category", &self.site_map_category)
+		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageVideo::VideoNamespacePrefix.prefixes_xml_name("description"), &self.site_map_description)
 	}
 }

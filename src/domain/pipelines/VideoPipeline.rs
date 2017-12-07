@@ -30,7 +30,9 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) album: Option<String>,
 	#[serde(default)] pub(crate) artwork: Option<ResourceUrl>,
 	
-	// Used by site map
+	// Used by site map (and some by mRSS: https://developers.google.com/webmasters/videosearch/markups)
+	#[serde(default)] pub(crate) site_map_category: Option<Rc<String>>,
+	#[serde(default)] pub(crate) site_map_tags: Rc<ArrayVec<[String; 32]>>,
 	#[serde(default)] pub(crate) expiration_date: Option<DateTime<Utc>>,
 	#[serde(default)] pub(crate) publication_date: Option<DateTime<Utc>>,
 	#[serde(default)] pub(crate) rating: Option<VideoStarRating>,
@@ -76,6 +78,8 @@ impl Default for VideoPipeline
 			album: None,
 			artwork: None,
 			
+			site_map_category: None,
+			site_map_tags: Default::default(),
 			expiration_date: None,
 			publication_date: None,
 			rating: None,
@@ -176,12 +180,14 @@ impl VideoPipeline
 			SiteMapWebPageVideo
 			{
 				placeHolderUrl: self.placeholder.clone(),
-				
 				videoAbstract: self.videoAbstract(iso639Dash1Alpha2Language)?.clone(),
+				
 				mp4Url: self.mp4Url(resourceUrl, configuration)?,
 				iFrameUrl: self.iFramePlayerUrl(resourceUrl, languageData)?,
-				durationInSeconds: Some(self.durationInSeconds.get()),
 				
+				category: self.site_map_category.clone(),
+				tags: self.site_map_tags.clone(),
+				durationInSeconds: Some(self.durationInSeconds.get()),
 				expirationDate: self.expiration_date,
 				videoStarRating: self.rating,
 				viewCount: self.views,

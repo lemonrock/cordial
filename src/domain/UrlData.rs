@@ -136,20 +136,6 @@ impl UrlData
 		}
 	}
 	
-	//noinspection SpellCheckingInspection
-	#[inline(always)]
-	pub(crate) fn validateIsMp3(&self) -> Result<(), CordialError>
-	{
-		if self.mimeType == mimeType("audio/mpeg")
-		{
-			Ok(())
-		}
-		else
-		{
-			Err(CordialError::Configuration("Resource should be a MP3".to_owned()))
-		}
-	}
-	
 	#[inline(always)]
 	pub(crate) fn validateIsPng(&self) -> Result<(), CordialError>
 	{

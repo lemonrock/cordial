@@ -226,13 +226,12 @@ impl<'a> HtmlDocumentData<'a>
 					{
 						const IsNotForAmp: bool = false;
 						let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, IsNotForAmp, IsNotForAmp, handlebars, rssChannelName)?;
-						rss.withRssHtml(description.clone(), rssHtml, iso639Dash1Alpha2Language)?;
+						rss.withPodcastRssHtml(lastModificationDate, description.clone(), rssHtml, iso639Dash1Alpha2Language)?;
 						rssItems.push
 						(
 							RssItem
 							{
 								canonicalLinkUrl: canonicalLinkUrl.clone(),
-								lastModificationDate,
 								htmlDocumentItem: rss.clone(),
 							}
 						);

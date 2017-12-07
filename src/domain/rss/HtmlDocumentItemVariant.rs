@@ -9,10 +9,15 @@ pub(crate) enum HtmlDocumentItemVariant
 	Article
 	{
 		#[serde(default, skip_deserializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant>>,
+		#[serde(default, skip_deserializing)] lastModifiedDate: Cell<Option<DateTime<Utc>>>,
 		#[serde(default)] image: Option<ResourceUrl>,
 	},
 	
-	Podcast(Podcast),
+	Podcast
+	{
+		#[serde(default, skip_deserializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant>>,
+		#[serde(default)] podcast: ResourceUrl,
+	},
 }
 
 impl Default for HtmlDocumentItemVariant
@@ -23,6 +28,7 @@ impl Default for HtmlDocumentItemVariant
 		HtmlDocumentItemVariant::Article
 		{
 			details: Default::default(),
+			lastModifiedDate: Default::default(),
 			image: None,
 		}
 	}
@@ -31,43 +37,53 @@ impl Default for HtmlDocumentItemVariant
 impl HtmlDocumentItemVariant
 {
 	#[inline(always)]
-	pub(crate) fn withRssHtml(&self, description: Rc<String>, rssHtml: Vec<u8>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
+	pub(crate) fn withPodcastRssHtml(&self, containingHtmlDocumentLastModifiedDate: Option<DateTime<Utc>>, description: Rc<String>, rssHtml: Vec<u8>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
 		use self::HtmlDocumentItemVariant::*;
 		
 		match *self
 		{
-			Article { ref details, .. } =>
+			Article { ref details, ref lastModifiedDate, .. } =>
 			{
 				details.borrow_mut().insert(iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant
 				{
 					rssTitle: description,
 					rssDescription: rssHtml,
 				});
+				lastModifiedDate.set(containingHtmlDocumentLastModifiedDate);
 				Ok(())
 			}
 			
-			Podcast(ref podcast) => podcast.withRssHtml(description, rssHtml, iso639Dash1Alpha2Language),
+			Podcast { ref details, .. } =>
+			{
+				details.borrow_mut().insert(iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant
+				{
+					description,
+					episode_note_html: rssHtml,
+				});
+				Ok(())
+			}
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn titleDescriptionAndContentEncoded<R, User: FnMut(&str, &str, Option<&str>) -> Result<R, CordialError>>(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, user: User) -> Result<R, CordialError>
+	pub(crate) fn titleDescriptionContentEncodedAndPublicationDate<R, User: FnMut(&str, &str, Option<&str>, Option<DateTime<Utc>>) -> Result<R, CordialError>>(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, mut user: User) -> Result<R, CordialError>
 	{
 		use self::HtmlDocumentItemVariant::*;
 		
 		match *self
 		{
-			Article { ref details, .. } =>
+			Article { ref details, ref lastModifiedDate, .. } =>
 			{
 				let details = details.borrow();
+				let lastModifiedDate = lastModifiedDate.get();
 				if let Some(languageSpecificRssItemVariant) = details.get(&iso639Dash1Alpha2Language)
 				{
-					languageSpecificRssItemVariant.titleDescriptionAndContentEncoded(user)
+					languageSpecificRssItemVariant.titleDescriptionContentEncodedAndPublicationDate(user, lastModifiedDate)
 				}
 				else if let Some(languageSpecificRssItemVariant) = details.get(&fallbackIso639Dash1Alpha2Language)
 				{
-					languageSpecificRssItemVariant.titleDescriptionAndContentEncoded(user)
+					languageSpecificRssItemVariant.titleDescriptionContentEncodedAndPublicationDate(user, lastModifiedDate)
 				}
 				else
 				{
@@ -75,7 +91,29 @@ impl HtmlDocumentItemVariant
 				}
 			}
 			
-			Podcast(ref podcast) => podcast.titleDescriptionAndContentEncoded(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, user),
+			Podcast { ref details, ref podcast } =>
+			{
+				let podcastResource = podcast.resourceMandatory(resources)?;
+				let audioVideoMetaData = podcastResource.audioVideoMetaData()?;
+				let title = &audioVideoMetaData.audioVideoAbstract(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.title;
+				let publicationDate = audioVideoMetaData.publication_date;
+				
+				let details = details.borrow();
+				if let Some(languageSpecificRssItemVariant) = details.get(&iso639Dash1Alpha2Language)
+				{
+					let (description, contentEncoded) = languageSpecificRssItemVariant.descriptionAndContentEncoded();
+					user(title, description, contentEncoded, publicationDate)
+				}
+				else if let Some(languageSpecificRssItemVariant) = details.get(&fallbackIso639Dash1Alpha2Language)
+				{
+					let (description, contentEncoded) = languageSpecificRssItemVariant.descriptionAndContentEncoded();
+					user(title, description, contentEncoded, publicationDate)
+				}
+				else
+				{
+					Err(CordialError::Configuration("No PodcastLanguageSpecificRssItemVariant for language or its fallback".to_owned()))
+				}
+			}
 		}
 	}
 	
@@ -172,7 +210,16 @@ impl HtmlDocumentItemVariant
 				Ok(())
 			},
 			
-			Podcast(ref podcast) => podcast.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language),
+			Podcast { ref podcast, .. } =>
+			{
+				let (podcastUrlData, podcastResource) = ResourceReference
+				{
+					resource: podcast.clone(),
+					tag: ResourceTag::default,
+				}.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+				
+				podcastResource.audioVideoMetaData()?.writePodcastRssXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &podcastUrlData)
+			},
 		}
 	}
 }

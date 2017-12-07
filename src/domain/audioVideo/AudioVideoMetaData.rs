@@ -38,6 +38,20 @@ pub(crate) struct AudioVideoMetaData
 	#[serde(default)] pub(crate) requires_subscription: bool,
 	#[serde(default)] pub(crate) uploader: Option<Person>,
 	
+	// Used by Podcasts
+	#[serde(default)] pub(crate) googleplay_author: Option<FullName>,
+	#[serde(default)] pub(crate) itunes_author: Option<FullName>,
+	#[serde(default)] pub(crate) googleplay_block: Option<bool>,
+	#[serde(default)] pub(crate) itunes_block: bool,
+	#[serde(default)] pub(crate) season_number: NonZeroNumber,
+	#[serde(default)] pub(crate) episode_number: NonZeroNumber,
+	#[serde(default)] pub(crate) episode_order: Option<NonZeroNumber>,
+	#[serde(default)] pub(crate) episode_type: ITunesEpisodeType,
+	#[serde(default)] pub(crate) googleplay_explicit: Option<bool>,
+	#[serde(default)] pub(crate) itunes_explicit: bool,
+	#[serde(default)] pub(crate) itunes_artwork: Option<ResourceUrl>,
+	#[serde(default)] pub(crate) close_captioned: bool,
+	
 	#[serde(default, skip_deserializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
 }
 
@@ -49,9 +63,11 @@ impl AudioVideoMetaData
 		const Incompressible: bool = false;
 		
 		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
+		let urlDataDetails = Rc::new(UrlDataDetails::audio(&mp4Body, durationInSeconds));
 		let mp4Tags = hashmap!
 		{
-			ResourceTag::audio_mp4 => Rc::new(UrlDataDetails::audio(&mp4Body, durationInSeconds))
+			ResourceTag::audio_mp4 => urlDataDetails.clone(),
+			ResourceTag::default => urlDataDetails,
 		};
 		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::AudioMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
 		Ok(())
@@ -63,9 +79,11 @@ impl AudioVideoMetaData
 		const Incompressible: bool = false;
 		
 		let mp4Headers = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &mp4Url)?;
+		let urlDataDetails = Rc::new(UrlDataDetails::video(&mp4Body, width, height, durationInSeconds));
 		let mp4Tags = hashmap!
 		{
-			ResourceTag::video_mp4 => Rc::new(UrlDataDetails::video(&mp4Body, width, height, durationInSeconds))
+			ResourceTag::video_mp4 => urlDataDetails.clone(),
+			ResourceTag::default => urlDataDetails,
 		};
 		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::VideoMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
 		Ok(())
@@ -610,6 +628,102 @@ impl AudioVideoMetaData
 		{
 			Ok(())
 		}
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn writePodcastRssXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, podcastUrlData: &UrlData) -> Result<(), CordialError>
+	{
+		let audioVideoAbstract = self.audioVideoAbstract(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		audioVideoAbstract.writePodcastRssXml(eventWriter, namespace, emptyAttributes)?;
+		
+		let length = "length".xml_u64_attribute(podcastUrlData.size());
+		let enclosureAttributes =
+		[
+			"url".xml_str_attribute(podcastUrlData.url_str()),
+			length.borrow(),
+			"type".xml_str_attribute(podcastUrlData.mimeType().as_ref()),
+		];
+		eventWriter.writeEmptyElement(namespace, &enclosureAttributes, "enclosure".xml_local_name())?;
+		
+		if let Some(ref googlePlayAuthor) = self.googleplay_author
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::GooglePlayNamespacePrefix, "author", googlePlayAuthor)?;
+		}
+		
+		if let Some(ref iTunesAuthor) = self.itunes_author
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "author", iTunesAuthor)?;
+		}
+		
+		if let Some(googlePlayBlock) = self.googleplay_block
+		{
+			if googlePlayBlock
+			{
+				eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::GooglePlayNamespacePrefix, "block", "yes")?;
+			}
+		}
+		
+		if self.itunes_block
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "block", ITunesBooleanYes)?;
+		}
+		
+		let durationInSeconds = podcastUrlData.durationInSeconds()?;
+		const SecondsInAMinute: u64 = 60;
+		const MinutesInAnHour: u64 = 60;
+		const SecondsInAnHour: u64 = SecondsInAMinute * MinutesInAnHour;
+		let hours = durationInSeconds / SecondsInAnHour;
+		let remainingSeconds = durationInSeconds % SecondsInAnHour;
+		let minutes = remainingSeconds / SecondsInAMinute;
+		let seconds = remainingSeconds % SecondsInAMinute;
+		let formattedDuration = if hours > 0
+		{
+			format!("{}:{:02}:{:02}", hours, minutes, seconds)
+		}
+		else if minutes > 9
+		{
+			format!("{:02}:{:02}", minutes, seconds)
+		}
+		else if minutes > 0
+		{
+			format!("{}:{:02}", minutes, seconds)
+		}
+		else
+		{
+			format!("{}", seconds)
+		};
+		eventWriter.writePrefixedTextElementString(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "duration", formattedDuration)?;
+		
+		eventWriter.writePrefixedTextElementU16(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "episode", self.episode_number.0)?;
+		
+		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "episodeType", self.episode_type.to_str())?;
+		
+		if let Some(googlePlayExplicit) = self.googleplay_explicit
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::GooglePlayNamespacePrefix, "explicit", googlePlayExplicitness(googlePlayExplicit))?;
+		}
+		
+		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "explicit", iTunesExplicitness(self.itunes_explicit))?;
+		
+		if let Some(ref iTunesArtwork) = self.itunes_artwork
+		{
+			let resource = iTunesArtwork.resourceMandatory(resources)?;
+			let urlData = resource.findITunesRssArtwork(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "image", urlData.url_str())?;
+		}
+		
+		if self.close_captioned
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "isCloseCaptioned", ITunesBooleanYes)?;
+		}
+		
+		if let Some(episodeOrder) = self.episode_order
+		{
+			eventWriter.writePrefixedTextElementU16(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "order", episodeOrder.0)?;
+		}
+		
+		eventWriter.writePrefixedTextElementU16(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "season", self.season_number.0)
 	}
 	
 	#[inline(always)]

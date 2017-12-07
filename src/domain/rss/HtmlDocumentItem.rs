@@ -15,15 +15,15 @@ pub(crate) struct HtmlDocumentItem
 impl HtmlDocumentItem
 {
 	#[inline(always)]
-	pub(crate) fn withRssHtml(&self, description: Rc<String>, rssHtml: Vec<u8>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
+	pub(crate) fn withPodcastRssHtml(&self, containingHtmlDocumentLastModifiedDate: Option<DateTime<Utc>>, description: Rc<String>, rssHtml: Vec<u8>, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
-		self.htmlDocumentItemVariant.withRssHtml(description, rssHtml, iso639Dash1Alpha2Language)
+		self.htmlDocumentItemVariant.withPodcastRssHtml(containingHtmlDocumentLastModifiedDate, description, rssHtml, iso639Dash1Alpha2Language)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn titleDescriptionAndContentEncoded<R, User: FnMut(&str, &str, Option<&str>) -> Result<R, CordialError>>(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, user: User) -> Result<R, CordialError>
+	pub(crate) fn titleDescriptionContentEncodedAndPublicationDate<R, User: FnMut(&str, &str, Option<&str>, Option<DateTime<Utc>>) -> Result<R, CordialError>>(&self, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, user: User) -> Result<R, CordialError>
 	{
-		self.htmlDocumentItemVariant.titleDescriptionAndContentEncoded(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, user)
+		self.htmlDocumentItemVariant.titleDescriptionContentEncodedAndPublicationDate(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, user)
 	}
 	
 	#[inline(always)]

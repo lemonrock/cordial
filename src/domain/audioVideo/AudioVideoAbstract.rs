@@ -8,6 +8,12 @@ pub(crate) struct AudioVideoAbstract
 {
 	pub(crate) title: String,
 	pub(crate) site_map_description: String,
+	
+	// For Podcast RSS
+	#[serde(default)] pub(crate) itunes_title: String,
+	#[serde(default)] pub(crate) itunes_subtitle: String,
+	#[serde(default)] pub(crate) googleplay_summary_description: Option<String>, // defaults to itunes_summary_description then <description>
+	#[serde(default)] pub(crate) itunes_summary_description: Option<String>, // defaults to <description>
 }
 
 impl AudioVideoAbstract
@@ -35,5 +41,39 @@ impl AudioVideoAbstract
 		}
 		
 		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix.prefixes_xml_name("description"), &self.site_map_description)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn writePodcastRssXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	{
+		let subtitle = self.itunes_subtitle.trim();
+		if subtitle.chars().count() > 255
+		{
+			return Err(CordialError::Configuration("iTunes subtitle must be no more than 255 characters when trimmed".to_owned()));
+		}
+		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "subtitle", subtitle)?;
+		
+		if let Some(ref description) = self.googleplay_summary_description
+		{
+			let description = description.trim();
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::GooglePlayNamespacePrefix, "description", description)?;
+		}
+		
+		if let Some(ref description) = self.itunes_summary_description
+		{
+			let description = description.trim();
+			if description.chars().count() > 4000
+			{
+				return Err(CordialError::Configuration("iTunes summary description must be no more than 4,000 characters when trimmed".to_owned()));
+			}
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "summary", description)?;
+		}
+		
+		let title = self.itunes_title.trim();
+		if title.chars().count() > 255
+		{
+			return Err(CordialError::Configuration("iTunes title must be no more than 255 characters when trimmed".to_owned()));
+		}
+		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "title", title)
 	}
 }

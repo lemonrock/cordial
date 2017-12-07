@@ -12,8 +12,8 @@ pub(crate) struct ArticleLanguageSpecificRssItemVariant
 impl ArticleLanguageSpecificRssItemVariant
 {
 	#[inline(always)]
-	pub(crate) fn titleDescriptionAndContentEncoded<R, User: FnMut(&str, &str, Option<&str>) -> Result<R, CordialError>>(&self, mut user: User) -> Result<R, CordialError>
+	pub(crate) fn titleDescriptionContentEncodedAndPublicationDate<R, User: FnMut(&str, &str, Option<&str>, Option<DateTime<Utc>>) -> Result<R, CordialError>>(&self, mut user: User, lastModifiedDate: Option<DateTime<Utc>>) -> Result<R, CordialError>
 	{
-		user(&self.rssTitle, unsafe { from_utf8_unchecked(&self.rssDescription) }, None)
+		user(&self.rssTitle, unsafe { from_utf8_unchecked(&self.rssDescription) }, None, lastModifiedDate)
 	}
 }

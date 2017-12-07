@@ -357,6 +357,17 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn audioVideoMetaData(&self) -> Result<&Rc<AudioVideoMetaData>, CordialError>
+	{
+		match self.pipeline
+		{
+			ResourcePipeline::audio => Ok(&self.audio.metadata),
+			ResourcePipeline::video => Ok(&self.video.metadata),
+			_ => Err(CordialError::Configuration("Not an audio or video resource".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn audioPipeline(&self) -> Result<&AudioPipeline, CordialError>
 	{
 		match self.pipeline

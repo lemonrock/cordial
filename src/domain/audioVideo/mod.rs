@@ -3,6 +3,8 @@
 
 
 use super::*;
+use super::googleplay::*;
+use super::itunes::*;
 use super::super::webserver::headers::X_Robots_Tag_Data;
 
 

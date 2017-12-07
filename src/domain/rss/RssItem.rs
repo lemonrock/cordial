@@ -6,9 +6,6 @@
 pub(crate) struct RssItem
 {
 	pub(crate) canonicalLinkUrl: Rc<Url>,
-	pub(crate) lastModificationDate: Option<DateTime<Utc>>,
-	
-	// These are all from the HtmlDocument
 	pub(crate) htmlDocumentItem: Rc<HtmlDocumentItem>,
 }
 
@@ -22,7 +19,7 @@ impl RssItem
 		
 		eventWriter.writeWithinLocalElement("item", &namespace, &RssChannel::rssVersionAttributes(), |eventWriter|
 		{
-			self.htmlDocumentItem.titleDescriptionAndContentEncoded(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, |title, description, contentEncoded|
+			self.htmlDocumentItem.titleDescriptionContentEncodedAndPublicationDate(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, |title, description, contentEncoded, publicationDate|
 			{
 				eventWriter.writeCDataElement(&namespace, &emptyAttributes, "title".xml_local_name(), title)?;
 				
@@ -33,6 +30,11 @@ impl RssItem
 					eventWriter.writeCDataElement(&namespace, &emptyAttributes, RssChannel::ContentNamespacePrefix.prefixes_xml_name("encoded"), contentEncoded)?;
 				}
 				
+				if let Some(publicationDate) = publicationDate
+				{
+					eventWriter.writeUnprefixedTextElementRfc2822(&namespace, &emptyAttributes, "pubDate", publicationDate)?;
+				}
+				
 				Ok(())
 			})?;
 			
@@ -40,10 +42,6 @@ impl RssItem
 			
 			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", canonicalLinkUrl)?;
 			
-			if let Some(lastModificationDate) = self.lastModificationDate
-			{
-				eventWriter.writeUnprefixedTextElementRfc2822(&namespace, &emptyAttributes, "pubData", lastModificationDate)?;
-			}
 			
 			self.htmlDocumentItem.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 		})

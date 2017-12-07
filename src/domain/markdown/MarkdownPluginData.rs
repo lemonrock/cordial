@@ -65,6 +65,14 @@ impl<'a> MarkdownPluginData<'a>
 	}
 	
 	#[inline(always)]
+	pub(crate) fn audioNode(&'a self, audioResourceUrl: ResourceUrl, isForAmp: bool) -> Result<UnattachedNode, CordialError>
+	{
+		let audioResource = audioResourceUrl.resourceMandatory(self.resources)?;
+		let audioPipeline = audioResource.audioPipeline()?;
+		audioPipeline.audioNode(isForAmp, self.resources, self.configuration, self.languageData)
+	}
+	
+	#[inline(always)]
 	pub(crate) fn videoNode(&'a self, videoResourceUrl: ResourceUrl, isForAmp: bool) -> Result<UnattachedNode, CordialError>
 	{
 		let videoResource = videoResourceUrl.resourceMandatory(self.resources)?;

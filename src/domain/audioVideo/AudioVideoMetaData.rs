@@ -171,13 +171,13 @@ impl AudioVideoMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createAmpAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp3Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn createAmpAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
 	{
 		unimplemented!();
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp3Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn createAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
 	{
 		unimplemented!();
 	}

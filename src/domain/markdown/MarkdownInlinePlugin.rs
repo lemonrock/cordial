@@ -8,6 +8,7 @@ pub(crate) enum MarkdownInlinePlugin
 {
 	//app_banner,
 	image,
+	audio,
 	video,
 }
 
@@ -22,6 +23,7 @@ impl MarkdownInlinePlugin
 		{
 			//b"app_banner".to_vec() => app_banner,
 			b"image".to_vec() => image,
+			b"audio".to_vec() => audio,
 			b"video".to_vec() => video,
 		}
 	}
@@ -37,6 +39,7 @@ impl MarkdownInlinePlugin
 		{
 			//app_banner => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 			image => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			audio => Self::audio(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 			video => Self::video(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 		}
 	}
@@ -85,7 +88,7 @@ impl MarkdownInlinePlugin
 		{
 			match name.deref()
 			{
-				"image" =>
+				"url" =>
 				{
 					imageResourceUrl = Some(ResourceUrl(Rc::new(value.to_string())))
 				}
@@ -168,6 +171,36 @@ impl MarkdownInlinePlugin
 		MarkdownPluginResult::ok(vec![figureNode])
 	}
 	
+	fn audio(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
+	{
+		let mut audioResourceUrl = None;
+		for (name, value) in arguments
+		{
+			match name.deref()
+			{
+				"url" =>
+				{
+					audioResourceUrl = Some(ResourceUrl(Rc::new(value.to_string())))
+				}
+				
+				_ => return Err(CordialError::Configuration(format!("audio inline plugin does not take the argument '{}'", name))),
+			}
+		}
+		
+		let audioNode = match audioResourceUrl
+		{
+			None => return Err(CordialError::Configuration("audio inline plugin resource can not be omitted".to_owned())),
+			Some(audioResourceUrl) => markdownPluginData.audioNode(audioResourceUrl, isForAmp)?,
+		};
+		
+		if isForAmp
+		{
+			nodesForOtherPlacesInHtml.ampScript("amp-audio", "https://cdn.ampproject.org/v0/amp-audio-0.1.js")
+		}
+		
+		MarkdownPluginResult::ok(vec![audioNode])
+	}
+	
 	fn video(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
 	{
 		let mut videoResourceUrl = None;
@@ -175,7 +208,7 @@ impl MarkdownInlinePlugin
 		{
 			match name.deref()
 			{
-				"video" =>
+				"url" =>
 				{
 					videoResourceUrl = Some(ResourceUrl(Rc::new(value.to_string())))
 				}

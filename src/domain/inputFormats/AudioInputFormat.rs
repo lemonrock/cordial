@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum AudioInputFormat
 {
-	MP3,
+	MP4,
 }
 
 impl Default for AudioInputFormat
@@ -14,7 +14,7 @@ impl Default for AudioInputFormat
 	#[inline(always)]
 	fn default() -> Self
 	{
-		AudioInputFormat::MP3
+		AudioInputFormat::MP4
 	}
 }
 
@@ -27,7 +27,7 @@ impl InputFormat for AudioInputFormat
 		
 		match *self
 		{
-			MP3 => &[".mp3"],
+			MP4 => &[".mp4"],
 		}
 	}
 	
@@ -35,7 +35,7 @@ impl InputFormat for AudioInputFormat
 	fn allFileExtensions() -> &'static [&'static str]
 	{
 		&[
-			".mp3",
+			".mp4",
 		]
 	}
 }

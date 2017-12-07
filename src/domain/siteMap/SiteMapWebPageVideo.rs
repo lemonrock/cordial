@@ -15,15 +15,15 @@ pub(crate) struct SiteMapWebPageVideo
 	pub(crate) tags: Rc<ArrayVec<[String; 32]>>,
 	pub(crate) durationInSeconds: Option<u64>,
 	pub(crate) expirationDate: Option<DateTime<Utc>>,
-	pub(crate) videoStarRating: Option<VideoStarRating>,
+	pub(crate) videoStarRating: Option<AudioVideoStarRating>,
 	pub(crate) viewCount: Option<u64>,
 	pub(crate) publicationDate: Option<DateTime<Utc>>,
 	pub(crate) explicit: bool,
-	pub(crate) countryRestrictions: Rc<VideoCountryRestriction>,
+	pub(crate) countryRestrictions: Rc<AudioVideoCountryRestriction>,
 	pub(crate) gallery: Option<ResourceUrl>,
 	pub(crate) requiresSubscription: bool,
 	pub(crate) uploader: Option<Rc<Person>>,
-	pub(crate) platformRestrictions: Rc<VideoPlatformRestriction>,
+	pub(crate) platformRestrictions: Rc<AudioVideoPlatformRestriction>,
 }
 
 impl SiteMapWebPageVideo

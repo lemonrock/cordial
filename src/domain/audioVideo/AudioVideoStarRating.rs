@@ -2,36 +2,29 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum VideoPlatform
-{
-	WEB,
-	MOBILE,
-	TV,
-}
+#[derive(Default, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub struct AudioVideoStarRating(u8);
 
-impl Default for VideoPlatform
+impl<'de> Deserialize<'de> for AudioVideoStarRating
 {
-	#[inline(always)]
-	fn default() -> Self
+	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
 	{
-		VideoPlatform::WEB
+		let value = u8::deserialize(deserializer)?;
+		if value > 50
+		{
+			return Err(D::Error::custom("value exceeds 50"))
+		}
+		Ok(AudioVideoStarRating(value))
 	}
 }
 
-impl VideoPlatform
+impl AudioVideoStarRating
 {
 	#[inline(always)]
-	pub(crate) fn to_str(&self) -> &'static str
+	pub(crate) fn toGoogleSiteMapString(&self) -> String
 	{
-		use self::VideoPlatform::*;
-		
-		match *self
-		{
-			WEB => "WEB",
-			MOBILE => "MOBILE",
-			TV => "TV",
-		}
+		let major = self.0 / 10;
+		let minor = self.0 % 10;
+		format!("{}.{}", major, minor)
 	}
 }

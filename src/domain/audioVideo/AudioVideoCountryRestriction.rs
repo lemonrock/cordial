@@ -4,13 +4,13 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
-pub(crate) struct VideoPlatformRestriction
+pub(crate) struct AudioVideoCountryRestriction
 {
 	#[serde(default)] pub(crate) restriction: CountryRestrictionInclusion,
-	#[serde(default)] pub(crate) platforms: BTreeSet<VideoPlatform>,
+	#[serde(default)] pub(crate) countries: BTreeSet<Iso3166Dash1Alpha2CountryCode>,
 }
 
-impl Default for VideoPlatformRestriction
+impl Default for AudioVideoCountryRestriction
 {
 	#[inline(always)]
 	fn default() -> Self
@@ -18,34 +18,34 @@ impl Default for VideoPlatformRestriction
 		Self
 		{
 			restriction: Default::default(),
-			platforms: Default::default(),
+			countries: Default::default(),
 		}
 	}
 }
 
-impl VideoPlatformRestriction
+impl AudioVideoCountryRestriction
 {
 	#[inline(always)]
 	pub(crate) fn writeXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
 	{
-		if self.platforms.is_empty()
+		if self.countries.is_empty()
 		{
 			return Ok(());
 		}
 		
 		let mut afterFirst = false;
-		let mut platforms = String::new();
-		for platform in self.platforms.iter()
+		let mut countries = String::new();
+		for country in self.countries.iter()
 		{
 			if afterFirst
 			{
-				platforms.push(' ');
+				countries.push(' ');
 			}
 			else
 			{
 				afterFirst = true;
 			}
-			platforms.push_str(platform.to_str());
+			countries.push_str(country.to_iso_3166_1_alpha_2_language_code());
 		}
 		
 		use self::CountryRestrictionInclusion::*;
@@ -60,8 +60,8 @@ impl VideoPlatformRestriction
 				})
 			],
 			"video",
-			"platform",
-			&platforms
+			"restriction",
+			&countries
 		)
 	}
 }

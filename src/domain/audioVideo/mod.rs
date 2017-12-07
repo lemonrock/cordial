@@ -6,11 +6,11 @@ use super::*;
 
 
 include!("AudioVideoAbstract.rs");
+include!("AudioVideoCountryRestriction.rs");
 include!("AudioVideoDisabledControl.rs");
 include!("AudioVideoLoad.rs");
+include!("AudioVideoPlatform.rs");
+include!("AudioVideoPlatformRestriction.rs");
+include!("AudioVideoStarRating.rs");
 include!("AudioVideoTrack.rs");
 include!("AudioVideoTrackKind.rs");
-include!("VideoCountryRestriction.rs");
-include!("VideoPlatform.rs");
-include!("VideoPlatformRestriction.rs");
-include!("VideoStarRating.rs");

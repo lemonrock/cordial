@@ -27,6 +27,8 @@ impl SiteMapWebPageVideo
 {
 	pub(crate) const VideoNamespacePrefix: &'static str = "video";
 	
+	pub(crate) const VideoNamespaceUrl: &'static str = "http://www.google.com/schemas/sitemap-video/1.1";
+	
 	const BooleanYes: &'static str = "yes";
 	
 	const BooleanNo: &'static str = "no";

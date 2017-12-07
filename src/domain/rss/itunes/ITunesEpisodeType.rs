@@ -4,32 +4,34 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ITunesRssChannelType
+pub(crate) enum ITunesEpisodeType
 {
-	episodic,
-	serial,
+	full,
+	trailer,
+	bonus,
 }
 
-impl Default for ITunesRssChannelType
+impl Default for ITunesEpisodeType
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ITunesRssChannelType::serial
+		ITunesEpisodeType::full
 	}
 }
 
-impl ITunesRssChannelType
+impl ITunesEpisodeType
 {
 	#[inline(always)]
 	pub(crate) fn to_str(&self) -> &'static str
 	{
-		use self::ITunesRssChannelType::*;
+		use self::ITunesEpisodeType::*;
 		
 		match *self
 		{
-			episodic => "episodic",
-			serial => "serial",
+			full => "full",
+			trailer => "trailer",
+			bonus => "bonus",
 		}
 	}
 }

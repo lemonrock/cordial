@@ -2,9 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-include!("ITunesBooleanYes.rs");
-include!("ITunesCategory.rs");
-include!("ITunesCategoryAndSubCategory.rs");
-include!("ITunesChannelType.rs");
-include!("ITunesEpisodeType.rs");
-include!("iTunesExplicitness.rs");
+#[inline(always)]
+pub(crate) fn googlePlayExplicitness(isExplicit: bool) -> &'static str
+{
+	if isExplicit { "Yes" } else { "No" }
+}

@@ -5,7 +5,7 @@
 // From https://help.apple.com/itc/podcasts_connect/?lang=en#/itc9267a2f12
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ITunesRssChannelTopLevelCategory
+pub(crate) enum ITunesCategory
 {
 	Arts,
 	
@@ -40,21 +40,21 @@ pub(crate) enum ITunesRssChannelTopLevelCategory
 	#[serde(rename = "TV & Film")] TV_and_Film,
 }
 
-impl Default for ITunesRssChannelTopLevelCategory
+impl Default for ITunesCategory
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ITunesRssChannelTopLevelCategory::Technology
+		ITunesCategory::Technology
 	}
 }
 
-impl ITunesRssChannelTopLevelCategory
+impl ITunesCategory
 {
 	#[inline(always)]
 	pub(crate) fn toCategoryStr(&self) -> &'static str
 	{
-		use self::ITunesRssChannelTopLevelCategory::*;
+		use self::ITunesCategory::*;
 		
 		match *self
 		{

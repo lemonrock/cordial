@@ -12,12 +12,11 @@ pub(crate) struct RssChannel
 	#[serde(default)] stylesheets: Vec<StylesheetLink>,
 	#[serde(default)] details: HashMap<Iso639Dash1Alpha2Language, RssChannelLanguageSpecific>,
 	#[serde(default)] link: ResourceUrl,
-	#[serde(default = "RssChannel::image_url_default")] image_url: ResourceReference,
-	#[serde(default)] managing_editor: EMailAddress, // Consider using a back-reference to an users list
-	#[serde(default)] web_master: EMailAddress, // Consider using a back-reference to an users list
-	#[serde(default)] categories: Vec<RssCategoryName>,
+	#[serde(default = "RssChannel::artwork_default")] artwork: ResourceUrl,
+
+	#[serde(default)] categories: HashSet<RssCategoryName>,
 	#[serde(default = "RssChannel::feedly_default")] feedly: Option<FeedlyRssChannel>,
-	#[serde(default)] itunes: Option<ITunesRssChannel>,
+	#[serde(default)] podcast: Option<PodcastRssChannel>,
 }
 
 impl RssChannel
@@ -42,6 +41,26 @@ impl RssChannel
 	
 	pub(crate) const AtomNamespaceUrl: &'static str = "http://www.w3.org/2005/Atom";
 	
+	pub(crate) const ContentNamespacePrefix: &'static str = "content";
+	
+	pub(crate) const ContentNamespaceUrl: &'static str = "http://purl.org/rss/1.0/modules/content/";
+	
+	pub(crate) const DcNamespacePrefix: &'static str = "dc";
+	
+	pub(crate) const DcNamespaceUrl: &'static str = "http://purl.org/dc/elements/1.1/";
+	
+	pub(crate) const GooglePlayNamespacePrefix: &'static str = "googleplay";
+	
+	pub(crate) const GooglePlayNamespaceUrl: &'static str = "http://www.google.com/schemas/play-podcasts/1.0";
+	
+	pub(crate) const ITunesNamespacePrefix: &'static str = "itunes";
+	
+	pub(crate) const ITunesNamespaceUrl: &'static str = "http://www.itunes.com/dtds/podcast-1.0.dtd";
+	
+	pub(crate) const MediaNamespacePrefix: &'static str = "media";
+	
+	pub(crate) const MediaNamespaceUrl: &'static str = "http://search.yahoo.com/mrss/";
+	
 	#[inline(always)]
 	pub(crate) fn rssVersionAttributes<'a>() -> [XmlAttribute<'a>; 1]
 	{
@@ -52,22 +71,8 @@ impl RssChannel
 	pub(crate) fn renderRssChannel<'a, 'b: 'a, 'c>(&'c self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, newResponses: &'b mut Responses, oldResponses: &Arc<Responses>, resources: &'a Resources, parentGoogleAnalyticsCode: Option<&str>, rssChannelName: &Rc<RssChannelName>, rssItems: &Vec<RssItem>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		
-		let detail = match self.details.get(&iso639Dash1Alpha2Language)
-		{
-			None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso639Dash1Alpha2Language))),
-			Some(detail) => detail,
-		};
-		
-		// trim() because Apple iTunes podcasts should not have leading or trailing whitespace: https://help.apple.com/itc/podcasts_connect/?lang=en#/itcb54353390
-		let title = detail.title.trim();
-		let description = detail.description.trim();
-		let copyright = detail.copyright.trim();
-		
-		if self.itunes.is_some()
-		{
-		}
-		
+		let isUsingFeedly = self.feedly.is_some();
+		let isForPodcasting = self.podcast.is_some();
 		
 		let deploymentDateTime: DateTime<Utc> = DateTime::from(configuration.deploymentDate);
 		let unversionedCanonicalUrl = ResourceUrl::rssUrl(rssChannelName, iso639Dash1Alpha2Language).url(languageData)?;
@@ -82,69 +87,46 @@ impl RssChannel
 			eventWriter.writeProcessingInstruction("xml-stylesheet", Some(&data))?;
 		}
 		
-		let rssNamespace = Namespace
-		(
-			btreemap!
-			{
-				RssItem::DcNamespacePrefix.to_owned() => RssItem::DcNamespaceUrl.to_owned(), // also needed by Feedly
-				"content".to_owned() => "http://purl.org/rss/1.0/modules/content/".to_owned(), // seems to be needed by Feedly
-				Self::AtomNamespacePrefix.to_owned() => Self::AtomNamespaceUrl.to_owned(),
-				RssImage::MediaNamespacePrefix.to_owned() => RssImage::MediaNamespaceUrl.to_owned(),
-				FeedlyRssChannel::WebfeedsNamespacePrefix.to_owned() => FeedlyRssChannel::WebfeedsNamespaceUrl.to_owned(),
-				ITunesRssChannel::ITunesNamespacePrefix.to_owned() => ITunesRssChannel::ITunesNamespaceUrl.to_owned(),
-				GooglePlayRssChannel::GooglePlayNamespacePrefix.to_owned() => GooglePlayRssChannel::GooglePlayNamespaceUrl.to_owned(),
-			}
-		);
+		let rssNamespace = namespace!
+		{
+			Self::DcNamespacePrefix => Self::DcNamespaceUrl,
+			Self::ContentNamespacePrefix => Self::ContentNamespaceUrl,
+			Self::AtomNamespacePrefix => Self::AtomNamespaceUrl,
+			Self::MediaNamespacePrefix => Self::MediaNamespaceUrl,
+			FeedlyRssChannel::WebfeedsNamespacePrefix => FeedlyRssChannel::WebfeedsNamespaceUrl,
+			Self::ITunesNamespacePrefix => Self::ITunesNamespaceUrl,
+			Self::GooglePlayNamespacePrefix => Self::GooglePlayNamespaceUrl,
+		};
 		
 		eventWriter.writeWithinLocalElement("rss", &rssNamespace, &Self::rssVersionAttributes(), |eventWriter|
 		{
 			eventWriter.writeWithinLocalElement("channel", &rssNamespace, &emptyAttributes, |eventWriter|
 			{
-				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "title", title)?;
-				
-				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "link", languageData.baseUrl(false).unwrap().as_ref())?;
-				
-				if let Some(ref feedly) = self.feedly
+				let rssChannelLanguageSpecific = match self.details.get(&iso639Dash1Alpha2Language)
 				{
-					const FeedlyDescriptionLength: usize = 140;
-					if description.chars().count() > FeedlyDescriptionLength
-					{
-						return Err(CordialError::Configuration("RSS description exceeds Feedly's maximum of 140 characters".to_owned()))
-					}
-					
-					feedly.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
-				}
-				
-				if let Some(ref itunes) = self.itunes
-				{
-					const ITunesTitleLength: usize = 255;
-					if title.chars().count() > ITunesTitleLength
-					{
-						return Err(CordialError::Configuration(format!("RSS title exceeds iTunes's maximum of {} characters", ITunesTitleLength)))
-					}
-					
-					const ITunesDescriptionLength: usize = 4000;
-					if description.chars().count() > ITunesDescriptionLength
-					{
-						return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesDescriptionLength)))
-					}
-					
-					const ITunesCopyrightLength: usize = 255;
-					if copyright.chars().count() > ITunesCopyrightLength
-					{
-						return Err(CordialError::Configuration(format!("RSS description exceeds iTunes's maximum of {} characters", ITunesCopyrightLength)))
-					}
-					
-					itunes.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources)?;
-				}
+					None => return Err(CordialError::Configuration(format!("No RSS details for language '{}'", iso639Dash1Alpha2Language))),
+					Some(rssChannelLanguageSpecific) => rssChannelLanguageSpecific,
+				};
+				rssChannelLanguageSpecific.writeXml(eventWriter, &rssNamespace, &emptyAttributes, isUsingFeedly, isForPodcasting)?;
 				
 				let url = ResourceReference
 				{
 					resource: self.link.clone(),
 					tag: ResourceTag::default,
 				}.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
-				
 				eventWriter.writeUnprefixedTextElementUrl(&rssNamespace, &emptyAttributes, "link", &url)?;
+				
+				eventWriter.writeUnprefixedTextElementLanguageCode(&rssNamespace, &emptyAttributes, "language", iso639Dash1Alpha2Language)?;
+				
+				if let Some(ref feedly) = self.feedly
+				{
+					feedly.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, parentGoogleAnalyticsCode)?;
+				}
+				
+				if let Some(ref podcast) = self.podcast
+				{
+					podcast.writeXml(eventWriter, &rssNamespace, &emptyAttributes, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, resources, &self.artwork)?;
+				}
 				
 				// atom:link
 				let linkAttributes =
@@ -154,16 +136,6 @@ impl RssChannel
 					"href".xml_url_attribute(&unversionedCanonicalUrl),
 				];
 				eventWriter.writeEmptyElement(&rssNamespace, &linkAttributes, Self::AtomNamespacePrefix.prefixes_xml_name("link"))?;
-				
-				eventWriter.writeCDataElement(&rssNamespace, &emptyAttributes, "description".xml_local_name(), description)?;
-				
-				eventWriter.writeUnprefixedTextElementLanguageCode(&rssNamespace, &emptyAttributes, "language", iso639Dash1Alpha2Language)?;
-				
-				eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "copyright", copyright)?;
-				
-				eventWriter.writeUnprefixedTextElementEMailAddress(&rssNamespace, &emptyAttributes, "managingEditor", &self.managing_editor)?;
-				
-				eventWriter.writeUnprefixedTextElementEMailAddress(&rssNamespace, &emptyAttributes, "webMaster", &self.web_master)?;
 				
 				eventWriter.writeUnprefixedTextElementRfc2822(&rssNamespace, &emptyAttributes, "pubDate", deploymentDateTime)?;
 				
@@ -182,7 +154,12 @@ impl RssChannel
 				
 				eventWriter.writeWithinLocalElement("image", &rssNamespace, &emptyAttributes, |eventWriter|
 				{
-					let (urlData, resource) = self.image_url.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+					// RSS supports images with a maximum width of 144px and maximum height of 400px
+					let (urlData, resource) = ResourceReference
+					{
+						resource: self.artwork.clone(),
+						tag: ResourceTag::width_image(144),
+					}.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 					urlData.validateIsSuitableForRssImage()?;
 					
 					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "url", urlData.url_str())?;
@@ -194,6 +171,12 @@ impl RssChannel
 					eventWriter.writeUnprefixedTextElement(&rssNamespace, &emptyAttributes, "description", imageAbstract.title.as_str())?;
 					
 					let (imageWidth, imageHeight) = urlData.dimensions()?;
+					
+					// RSS supports images with a maximum width of 144px and maximum height of 400px
+					if imageHeight > 400
+					{
+						return Err(CordialError::Configuration("RSS channel artwork can not be higher than 400px".to_owned()));
+					}
 					
 					eventWriter.writeUnprefixedTextElementU32(&rssNamespace, &emptyAttributes, "width", imageWidth)?;
 					
@@ -234,31 +217,6 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn writeITunesDetails<'c, W: Write>(eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'c>], details: &RssChannelLanguageSpecific) -> Result<(), CordialError>
-	{
-		if let Some(ref summary) = details.itunes_summary
-		{
-			let summary = summary.trim();
-			
-			if summary.chars().count() > 4000
-			{
-				return Err(CordialError::Configuration("A podcast summary should not exceed 4,000 characters".to_owned()));
-			}
-			
-			eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, ITunesRssChannel::ITunesNamespacePrefix, "summary", summary)?;
-		}
-		
-		let subtitle = details.itunes_subtitle.trim();
-		
-		if subtitle.chars().count() > 255
-		{
-			return Err(CordialError::Configuration("A podcast subtitle should not exceed 255 characters".to_owned()));
-		}
-		
-		eventWriter.writePrefixedTextElement(namespace, &emptyAttributes, ITunesRssChannel::ITunesNamespacePrefix, "subtitle", &subtitle)
-	}
-	
-	#[inline(always)]
 	fn createEventWriter<'a>() -> EventWriter<Vec<u8>>
 	{
 		let configuration = EmitterConfig
@@ -284,9 +242,9 @@ impl RssChannel
 	}
 	
 	#[inline(always)]
-	fn image_url_default() -> ResourceReference
+	fn artwork_default() -> ResourceUrl
 	{
-		ResourceReference::new("/organization-logo.png", ResourceTag::default)
+		ResourceUrl::string("/organization-logo.png")
 	}
 	
 	#[inline(always)]

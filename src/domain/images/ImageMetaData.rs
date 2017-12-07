@@ -8,7 +8,7 @@ pub(crate) struct ImageMetaData
 {
 	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<ImageAbstract>>,
 	
-	#[serde(default)] pub(crate) license_url: ResourceReference,
+	#[serde(default)] pub(crate) license_url: ResourceUrl,
 	
 	#[serde(default)] pub(crate) credit: FullName,
 	
@@ -91,7 +91,11 @@ impl ImageMetaData
 	#[inline(always)]
 	pub(crate) fn licenseUrlAndAnchorTitleAttribute<'a>(&self, resources: &'a Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
-		self.license_url.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
+		ResourceReference
+		{
+			resource: self.license_url.clone(),
+			tag: ResourceTag::default
+		}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -159,22 +163,6 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn rssImage(&self, url: ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<RssImage, CordialError>
-	{
-		let imageAbstract = (*self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?).clone();
-		Ok
-		(
-			RssImage
-			{
-				url,
-				imageAbstract,
-				credit: self.credit.clone(),
-				iso639Dash1Alpha2Language,
-			}
-		)
-	}
-	
-	#[inline(always)]
 	pub(crate) fn siteMapWebPageImage(&self, url: ResourceReference, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<SiteMapWebPageImage, CordialError>
 	{
 		let imageAbstract = self.imageAbstractWithFallback(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
@@ -184,7 +172,11 @@ impl ImageMetaData
 			SiteMapWebPageImage
 			{
 				url,
-				licenseUrl: self.license_url.clone(),
+				licenseUrl: ResourceReference
+				{
+					resource: self.license_url.clone(),
+					tag: ResourceTag::default,
+				},
 				imageAbstract: imageAbstract.clone(),
 			}
 		)

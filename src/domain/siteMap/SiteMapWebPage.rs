@@ -17,6 +17,8 @@ impl SiteMapWebPage
 {
 	pub(crate) const XhtmlNamespacePrefix: &'static str = "xhtml";
 	
+	pub(crate) const XhtmlNamespaceUrl: &'static str = "http://www.w3.org/1999/xhtml";
+	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<bool, CordialError>

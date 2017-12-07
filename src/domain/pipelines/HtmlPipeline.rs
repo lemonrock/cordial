@@ -15,9 +15,8 @@ pub(crate) struct HtmlPipeline
 	#[serde(default)] site_map_priority: SiteMapPriority,
 	#[serde(default)] site_map_images: Vec<ResourceUrl>,
 	#[serde(default)] site_map_videos: Vec<ResourceUrl>,
-	#[serde(default)] rss_author: Rc<EMailAddress>,
-	#[serde(default)] rss_source: Option<ResourceUrl>,
-	#[serde(default)] rss_channels_to_categories: OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>,
+	#[serde(default)] rss: Option<Rc<HtmlDocumentItem>>,
+	#[serde(default, deserialize_with = "HtmlPipeline::rss_channels_deserialize_with")] rss_channels: OrderMap<Rc<RssChannelName>, ()>,
 	#[serde(default)] author: Option<ResourceUrl>,
 	// open graph, RSS, schema.org
 	#[serde(default)] publication_date: Option<DateTime<Utc>>,
@@ -63,9 +62,8 @@ impl Default for HtmlPipeline
 			site_map_priority: Default::default(),
 			site_map_images: Default::default(),
 			site_map_videos: Default::default(),
-			rss_channels_to_categories: Default::default(),
-			rss_author: Default::default(),
-			rss_source: None,
+			rss: None,
+			rss_channels: Default::default(),
 			author: None,
 			publication_date: None,
 			modifications: Default::default(),
@@ -186,7 +184,7 @@ impl Pipeline for HtmlPipeline
 				languageData,
 				localization: &configuration.localization,
 				resources,
-				rssChannelNames: self.rssChannelNames(),
+				rssChannelNames: &self.rss_channels,
 				canonicalShortlink: htmlAbstract.shortlink.clone(),
 				pingback: htmlAbstract.pingback.clone(),
 				previous: self.previous.clone(),
@@ -206,7 +204,7 @@ impl Pipeline for HtmlPipeline
 			windowsTilesBrowserConfig: self.windows_tiles_browser_config.as_ref(),
 		};
 		
-		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss_author, self.rss_source.as_ref(), &self.rss_channels_to_categories, inputContentFilePath, handlebars)?;
+		htmlDocumentData.addToRssChannels(resources, rssChannelsToRssItems, &self.rss, &self.rss_channels, inputContentFilePath, handlebars)?;
 		if self.site_map
 		{
 			htmlDocumentData.addToSiteMaps(resources, siteMapWebPages, self.site_map_change_frequency, self.site_map_priority)?;
@@ -241,17 +239,6 @@ impl HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn rssChannelNames(&self) -> OrderMap<Rc<RssChannelName>, ()>
-	{
-		let mut rssChannelNames = OrderMap::with_capacity(self.rss_channels_to_categories.len());
-		for rssChannelName in self.rss_channels_to_categories.keys()
-		{
-			rssChannelNames.insert(rssChannelName.clone(), ());
-		}
-		rssChannelNames
-	}
-	
-	#[inline(always)]
 	fn max_age_in_seconds_none_default() -> u32
 	{
 		0
@@ -279,5 +266,45 @@ impl HtmlPipeline
 	fn pjax_css_selector_default() -> String
 	{
 		"main".to_owned()
+	}
+	
+	#[inline(always)]
+	fn rss_channels_deserialize_with<'de, D: Deserializer<'de>>(deserializer: D) -> Result<OrderMap<Rc<RssChannelName>, ()>, D::Error>
+	{
+		struct RssChannelsVisitor;
+		
+		impl<'de> Visitor<'de> for RssChannelsVisitor
+		{
+			type Value = OrderMap<Rc<RssChannelName>, ()>;
+			
+			fn expecting(&self, formatter: &mut Formatter) -> fmt::Result
+			{
+				formatter.write_str("an ordered unique list of RSS channel names")
+			}
+			
+			fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Self::Value, A::Error>
+			{
+				let mut rssChannels = if let Some(capacity) = seq.size_hint()
+				{
+					OrderMap::with_capacity(capacity)
+				}
+				else
+				{
+					OrderMap::new()
+				};
+				
+				while let Some(rssChannelName) = seq.next_element()?
+				{
+					if !rssChannels.contains_key(&rssChannelName)
+					{
+						rssChannels.insert(rssChannelName, ());
+					}
+				}
+				
+				Ok(rssChannels)
+			}
+		}
+		
+		deserializer.deserialize_seq(RssChannelsVisitor)
 	}
 }

@@ -113,6 +113,12 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn isSuitableForGooglePlayArtwork(&self) -> bool
+	{
+		self.isSuitableForITunesArtwork()
+	}
+	
+	#[inline(always)]
 	pub(crate) fn isSuitableForITunesArtwork(&self) -> bool
 	{
 		match self.mimeType.type_()

@@ -5,70 +5,47 @@
 #[derive(Debug, Clone)]
 pub(crate) struct RssItem
 {
-	pub(crate) rssItemLanguageSpecific: RssItemLanguageSpecific,
+	pub(crate) canonicalLinkUrl: Rc<Url>,
 	pub(crate) lastModificationDate: Option<DateTime<Utc>>,
-	pub(crate) author: Rc<EMailAddress>,
-	pub(crate) categories: Rc<BTreeSet<String>>,
-	pub(crate) source: Option<ResourceUrl>,
+	
+	// These are all from the HtmlDocument
+	pub(crate) htmlDocumentItem: Rc<HtmlDocumentItem>,
 }
 
 impl RssItem
 {
-	pub(crate) const DcNamespacePrefix: &'static str = "dc";
-	
-	pub(crate) const DcNamespaceUrl: &'static str = "http://purl.org/dc/elements/1.1/";
-	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn writeXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(), CordialError>
 	{
-		let rssItemLanguageVariant = &self.rssItemLanguageSpecific;
+		let canonicalLinkUrl = &self.canonicalLinkUrl;
 		
 		eventWriter.writeWithinLocalElement("item", &namespace, &RssChannel::rssVersionAttributes(), |eventWriter|
 		{
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, "title".xml_local_name(), &rssItemLanguageVariant.webPageDescription)?;
-			
-			eventWriter.writeCDataElement(&namespace, &emptyAttributes, "description".xml_local_name(), unsafe { from_utf8_unchecked(&rssItemLanguageVariant.webPageUsefulContentHtml) })?;
-			
-			let languageSpecificUrl = &rssItemLanguageVariant.languageSpecificUrl;
-			
-			eventWriter.writeUnprefixedTextElementUrl(&namespace, &emptyAttributes, "link", languageSpecificUrl)?;
-			
-			if let Some(ref source) = self.source
+			self.htmlDocumentItem.titleDescriptionAndContentEncoded(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, |title, description, contentEncoded|
 			{
-				let (url, title) = ResourceReference
+				eventWriter.writeCDataElement(&namespace, &emptyAttributes, "title".xml_local_name(), title)?;
+				
+				eventWriter.writeCDataElement(&namespace, &emptyAttributes, "description".xml_local_name(), description)?;
+				
+				if let Some(ref contentEncoded) = contentEncoded
 				{
-					resource: source.clone(),
-					tag: ResourceTag::default,
-				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-				eventWriter.writeUnprefixedTextElement(&namespace, &["url".xml_url_attribute(&url)], "source", &title)?;
-			}
-			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", languageSpecificUrl)?;
+					eventWriter.writeCDataElement(&namespace, &emptyAttributes, RssChannel::ContentNamespacePrefix.prefixes_xml_name("encoded"), contentEncoded)?;
+				}
+				
+				Ok(())
+			})?;
 			
-			for category in self.categories.iter()
-			{
-				eventWriter.writeUnprefixedTextElement(&namespace, &emptyAttributes, "category", category)?;
-			}
+			eventWriter.writeUnprefixedTextElementUrl(&namespace, &emptyAttributes, "link", canonicalLinkUrl)?;
+			
+			eventWriter.writeUnprefixedTextElementUrl(&namespace, &[ "isPermaLink".xml_str_attribute("true") ], "guid", canonicalLinkUrl)?;
 			
 			if let Some(lastModificationDate) = self.lastModificationDate
 			{
 				eventWriter.writeUnprefixedTextElementRfc2822(&namespace, &emptyAttributes, "pubData", lastModificationDate)?;
 			}
 			
-			eventWriter.writeUnprefixedTextElementString(&namespace, &emptyAttributes, "author", self.author.to_string())?;
-			
-			eventWriter.writePrefixedTextElement(&namespace, &emptyAttributes, Self::DcNamespacePrefix, "creator", &self.author.full_name)?;
-			
-			if let Some(ref itunes) = self.rssItemLanguageSpecific.itunes
-			{
-				itunes.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-			}
-			else if let Some(ref primaryImage) = rssItemLanguageVariant.primaryImage
-			{
-				primaryImage.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
-			}
-			
-			Ok(())
+			self.htmlDocumentItem.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)
 		})
 	}
 }

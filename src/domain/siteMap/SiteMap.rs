@@ -26,19 +26,18 @@ impl Default for SiteMap
 
 impl SiteMap
 {
+	pub(crate) const SiteMapNamespaceUrl: &'static str = "http://www.sitemaps.org/schemas/sitemap/0.9";
+	
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
 	pub(crate) fn renderSiteMap<'a>(&'a self, languageData: &LanguageData, handlebars: &HandlebarsWrapper, configuration: &Configuration, resources: &Resources, newResponses: &mut Responses, oldResponses: &Arc<Responses>, robotsTxtConfiguration: &mut RobotsTxtConfiguration, webPages: &HashMap<Iso639Dash1Alpha2Language, Vec<SiteMapWebPage>>) -> Result<(), CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
-		let siteMapIndexNamespace = Namespace
-		(
-			btreemap!
-			{
-				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
-			}
-		);
+		let siteMapIndexNamespace = namespace!
+		{
+			NS_NO_PREFIX => Self::SiteMapNamespaceUrl,
+		};
 
 		let emptyAttributes = [];
 
@@ -125,17 +124,14 @@ impl SiteMap
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 
-		let siteMapNamespace = Namespace
-		(
-			btreemap!
-			{
-				NS_NO_PREFIX.to_owned() => "http://www.sitemaps.org/schemas/sitemap/0.9".to_owned(),
-				SiteMapWebPage::XhtmlNamespacePrefix.to_owned() => "http://www.w3.org/1999/xhtml".to_owned(),
-				SiteMapWebPageImage::ImageNamespacePrefix.to_owned() => "http://www.google.com/schemas/sitemap-image/1.1".to_owned(),
-				SiteMapWebPageVideo::VideoNamespacePrefix.to_owned() => "http://www.google.com/schemas/sitemap-video/1.1".to_owned(),
-			}
-		);
-
+		let siteMapNamespace = namespace!
+		{
+			NS_NO_PREFIX => Self::SiteMapNamespaceUrl,
+			SiteMapWebPage::XhtmlNamespacePrefix => SiteMapWebPage::XhtmlNamespaceUrl,
+			SiteMapWebPageImage::ImageNamespacePrefix => SiteMapWebPageImage::ImageNamespaceUrl,
+			SiteMapWebPageVideo::VideoNamespacePrefix => SiteMapWebPageVideo::VideoNamespaceUrl,
+		};
+		
 		let emptyAttributes = [];
 
 		let mut urlAndResponse = Vec::with_capacity(1);

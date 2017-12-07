@@ -222,6 +222,7 @@ The license for this project is AGPL-3.0.
 	* Use [Open Type Sanitizer](https://github.com/khaledhosny/ots) to strip unnecessary metadata to make files smaller. Requires a bunch of dependencies, so tedious to add to [cordial]
 	* Use Fontello's curl API to support Icon font creation
 Other
+	* Basic XSL stylesheet for podcast RSS feeds: <https://github.com/TheCraigHewitt/Seriously-Simple-Podcasting/blob/master/templates/feed-stylesheet.xsl>
 	* [Google Cloud Podcasts](https://www.gcppodcast.com/)
 	* Check <http://www.accessify.com/r/play.rust-lang.org> for page load speed analysis
 	* <https://www.freepik.com/>

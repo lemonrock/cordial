@@ -130,6 +130,9 @@ use ::url::percent_encoding::percent_decode;
 use ::url::Url;
 
 
+include!("namespace.rs");
+
+
 pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod html5;

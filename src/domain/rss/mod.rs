@@ -14,11 +14,16 @@ pub(crate) mod googleplay;
 pub(crate) mod itunes;
 
 
+include!("ArticleLanguageSpecificRssItemVariant.rs");
+include!("HtmlDocumentItem.rs");
+include!("HtmlDocumentItemVariant.rs");
+include!("NonZeroNumber.rs");
+include!("Podcast.rs");
+include!("PodcastLanguageSpecificRssItemVariant.rs");
+include!("PodcastRssChannel.rs");
 include!("RssCategoryName.rs");
 include!("RssChannel.rs");
 include!("RssChannelName.rs");
 include!("RssChannelLanguageSpecific.rs");
-include!("RssImage.rs");
 include!("RssItem.rs");
-include!("RssItemLanguageSpecific.rs");
 include!("StylesheetLink.rs");

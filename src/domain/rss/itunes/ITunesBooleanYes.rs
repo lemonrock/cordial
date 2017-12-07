@@ -2,13 +2,4 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
-pub(crate) struct RssItemLanguageSpecific
-{
-	pub(crate) webPageDescription: Rc<String>, // put into <title>
-	pub(crate) webPageUsefulContentHtml: Vec<u8>, // put into <description>
-	// <content:encoded> could be supported but isn't
-	pub(crate) languageSpecificUrl: Url,
-	pub(crate) primaryImage: Option<RssImage>,
-	pub(crate) itunes: Option<Rc<ITunesRssItemLanguageSpecific>>,
-}
+pub(crate) const ITunesBooleanYes: &'static str = "Yes";

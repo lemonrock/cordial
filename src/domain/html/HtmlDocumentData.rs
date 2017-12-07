@@ -206,53 +206,38 @@ impl<'a> HtmlDocumentData<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn addToRssChannels(&self, resources: &Resources, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, author: &Rc<EMailAddress>, source: Option<&ResourceUrl>, rssChannelsToCategories: &OrderMap<Rc<RssChannelName>, Rc<BTreeSet<RssCategoryName>>>, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<(), CordialError>
+	pub(crate) fn addToRssChannels(&self, resources: &Resources, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, rss: &Option<Rc<HtmlDocumentItem>>, rssChannels: &OrderMap<Rc<RssChannelName>, ()>, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<(), CordialError>
 	{
-		const RssImageResourceTag: ResourceTag = ResourceTag::largest_image;
-		
-		for (rssChannelName, categories) in rssChannelsToCategories.iter()
+		if let &Some(ref rss) = rss
 		{
-			match rssChannelsToRssItems.get_mut(rssChannelName)
+			let iso639Dash1Alpha2Language = self.htmlUrls.languageData.iso639Dash1Alpha2Language;
+			let canonicalLinkUrl = Rc::new(self.htmlUrls.linkHeaderCanonicalUrl()?);
+			let description = &self.htmlAbstract.description;
+			let lastModificationDate = self.lastModificationDateOrPublicationDate;
+			
+			for (rssChannelName, _) in rssChannels.iter()
 			{
-				None => return Err(CordialError::Configuration(format!("RSS channel '{}' does not have a configuration", rssChannelName))),
-				Some(mut rssItems) =>
+				match rssChannelsToRssItems.get_mut(rssChannelName)
 				{
-					const IsNotForAmp: bool = false;
-					let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, IsNotForAmp, IsNotForAmp, handlebars, rssChannelName)?;
-					rssItems.push
-					(
-						RssItem
-						{
-							rssItemLanguageSpecific: RssItemLanguageSpecific
+					None => return Err(CordialError::Configuration(format!("RSS channel '{}' does not have a configuration", rssChannelName))),
+					Some(mut rssItems) =>
+					{
+						const IsNotForAmp: bool = false;
+						let (_document, rssHtml) = self.renderHtmlDocument(resources, false, inputContentFilePath, IsNotForAmp, IsNotForAmp, IsNotForAmp, handlebars, rssChannelName)?;
+						rss.withRssHtml(description.clone(), rssHtml, iso639Dash1Alpha2Language)?;
+						rssItems.push
+						(
+							RssItem
 							{
-								webPageDescription: self.htmlAbstract.description.clone(),
-								webPageUsefulContentHtml: rssHtml,
-								languageSpecificUrl: self.htmlUrls.linkHeaderCanonicalUrl()?,
-								primaryImage: match self.articleImage
-								{
-									None => None,
-									Some((ref articleImageResourceUrl, ref articleImageMetaData)) =>
-									{
-										let rssImage = ResourceReference
-										{
-											resource: articleImageResourceUrl.clone(),
-											tag: RssImageResourceTag,
-										};
-										Some(articleImageMetaData.rssImage(rssImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
-									}
-								},
-								itunes: None,
-							},
-							lastModificationDate: self.lastModificationDateOrPublicationDate,
-							author: author.clone(),
-							categories: categories.clone(),
-							source: source.map(|resourceUrl| resourceUrl.clone()),
-						}
-					);
+								canonicalLinkUrl: canonicalLinkUrl.clone(),
+								lastModificationDate,
+								htmlDocumentItem: rss.clone(),
+							}
+						);
+					}
 				}
 			}
 		}
-		
 		Ok(())
 	}
 	

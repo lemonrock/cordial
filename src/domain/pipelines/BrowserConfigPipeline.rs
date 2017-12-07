@@ -92,12 +92,7 @@ impl BrowserConfigPipeline
 		
 		eventWriter.writeBasicXmlDocumentPreamble()?;
 		
-		let namespace = Namespace
-		(
-			btreemap!
-			{
-			}
-		);
+		let namespace = Namespace::empty();
 		
 		eventWriter.writeWithinLocalElement("browserconfig", &namespace, &emptyAttributes, |eventWriter|
 		{

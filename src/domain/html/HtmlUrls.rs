@@ -12,7 +12,7 @@ pub(crate) struct HtmlUrls<'a>
 	pub(crate) localization: &'a Localization,
 	pub(crate) resources: &'a Resources,
 	
-	pub(crate) rssChannelNames: OrderMap<Rc<RssChannelName>, ()>,
+	pub(crate) rssChannelNames: &'a OrderMap<Rc<RssChannelName>, ()>,
 	pub(crate) canonicalShortlink: Option<Rc<UrlSerde>>,
 	pub(crate) pingback: Option<Rc<UrlSerde>>,
 	pub(crate) previous: Option<ResourceUrl>,

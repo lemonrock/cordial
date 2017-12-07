@@ -2,9 +2,18 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-include!("ITunesBooleanYes.rs");
-include!("ITunesCategory.rs");
-include!("ITunesCategoryAndSubCategory.rs");
-include!("ITunesChannelType.rs");
-include!("ITunesEpisodeType.rs");
-include!("iTunesExplicitness.rs");
+#[derive(Debug, Clone)]
+pub(crate) struct ArticleLanguageSpecificRssItemVariant
+{
+	rssTitle: Rc<String>,
+	rssDescription: Vec<u8>,
+}
+
+impl ArticleLanguageSpecificRssItemVariant
+{
+	#[inline(always)]
+	pub(crate) fn titleDescriptionAndContentEncoded<R, User: FnMut(&str, &str, Option<&str>) -> Result<R, CordialError>>(&self, mut user: User) -> Result<R, CordialError>
+	{
+		user(&self.rssTitle, unsafe { from_utf8_unchecked(&self.rssDescription) }, None)
+	}
+}

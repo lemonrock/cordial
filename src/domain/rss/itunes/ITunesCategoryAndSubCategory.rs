@@ -5,7 +5,7 @@
 // From https://help.apple.com/itc/podcasts_connect/?lang=en#/itc9267a2f12
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ITunesRssChannelCategorisation
+pub(crate) enum ITunesCategoryAndSubCategory
 {
 	Arts,
 		Design,
@@ -91,16 +91,16 @@ pub(crate) enum ITunesRssChannelCategorisation
 	#[serde(rename = "TV & Film")] TV_and_Film,
 }
 
-impl Default for ITunesRssChannelCategorisation
+impl Default for ITunesCategoryAndSubCategory
 {
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ITunesRssChannelCategorisation::Technology
+		ITunesCategoryAndSubCategory::Technology
 	}
 }
 
-impl ITunesRssChannelCategorisation
+impl ITunesCategoryAndSubCategory
 {
 	#[inline(always)]
 	pub(crate) fn toCategoryStr(&self) -> &'static str
@@ -109,101 +109,101 @@ impl ITunesRssChannelCategorisation
 	}
 	
 	#[inline(always)]
-	pub(crate) fn toCategory(&self) -> ITunesRssChannelTopLevelCategory
+	pub(crate) fn toCategory(&self) -> ITunesCategory
 	{
-		use self::ITunesRssChannelCategorisation::*;
+		use self::ITunesCategoryAndSubCategory::*;
 		
 		match *self
 		{
-			Arts => ITunesRssChannelTopLevelCategory::Arts,
-				Design => ITunesRssChannelTopLevelCategory::Arts,
-				Fashion_and_Beauty => ITunesRssChannelTopLevelCategory::Arts,
-				Food => ITunesRssChannelTopLevelCategory::Arts,
-				Literature => ITunesRssChannelTopLevelCategory::Arts,
-				Performing_Arts => ITunesRssChannelTopLevelCategory::Arts,
-				Visual_Arts => ITunesRssChannelTopLevelCategory::Arts,
+			Arts => ITunesCategory::Arts,
+				Design => ITunesCategory::Arts,
+				Fashion_and_Beauty => ITunesCategory::Arts,
+				Food => ITunesCategory::Arts,
+				Literature => ITunesCategory::Arts,
+				Performing_Arts => ITunesCategory::Arts,
+				Visual_Arts => ITunesCategory::Arts,
 			
-			Business => ITunesRssChannelTopLevelCategory::Business,
-				Business_News => ITunesRssChannelTopLevelCategory::Business,
-				Careers => ITunesRssChannelTopLevelCategory::Business,
-				Investing => ITunesRssChannelTopLevelCategory::Business,
-				Management_and_Marketing => ITunesRssChannelTopLevelCategory::Business,
-				Shopping => ITunesRssChannelTopLevelCategory::Business,
+			Business => ITunesCategory::Business,
+				Business_News => ITunesCategory::Business,
+				Careers => ITunesCategory::Business,
+				Investing => ITunesCategory::Business,
+				Management_and_Marketing => ITunesCategory::Business,
+				Shopping => ITunesCategory::Business,
 			
-			Comedy => ITunesRssChannelTopLevelCategory::Comedy,
+			Comedy => ITunesCategory::Comedy,
 			
-			Education => ITunesRssChannelTopLevelCategory::Education,
-				Educational_Technology => ITunesRssChannelTopLevelCategory::Education,
-				Higher_Education => ITunesRssChannelTopLevelCategory::Education,
-				K_12 => ITunesRssChannelTopLevelCategory::Education,
-				Language_Courses => ITunesRssChannelTopLevelCategory::Education,
-				Training => ITunesRssChannelTopLevelCategory::Education,
+			Education => ITunesCategory::Education,
+				Educational_Technology => ITunesCategory::Education,
+				Higher_Education => ITunesCategory::Education,
+				K_12 => ITunesCategory::Education,
+				Language_Courses => ITunesCategory::Education,
+				Training => ITunesCategory::Education,
 			
-			Games_and_Hobbies => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
-				Automotive => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
-				Aviation => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
-				Hobbies => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
-				Other_Games => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
-				Video_Games => ITunesRssChannelTopLevelCategory::Games_and_Hobbies,
+			Games_and_Hobbies => ITunesCategory::Games_and_Hobbies,
+				Automotive => ITunesCategory::Games_and_Hobbies,
+				Aviation => ITunesCategory::Games_and_Hobbies,
+				Hobbies => ITunesCategory::Games_and_Hobbies,
+				Other_Games => ITunesCategory::Games_and_Hobbies,
+				Video_Games => ITunesCategory::Games_and_Hobbies,
 			
-			Government_and_Organizations => ITunesRssChannelTopLevelCategory::Government_and_Organizations,
-				Local => ITunesRssChannelTopLevelCategory::Government_and_Organizations,
-				National => ITunesRssChannelTopLevelCategory::Government_and_Organizations,
-				Non_Profit => ITunesRssChannelTopLevelCategory::Government_and_Organizations,
-				Regional => ITunesRssChannelTopLevelCategory::Government_and_Organizations,
+			Government_and_Organizations => ITunesCategory::Government_and_Organizations,
+				Local => ITunesCategory::Government_and_Organizations,
+				National => ITunesCategory::Government_and_Organizations,
+				Non_Profit => ITunesCategory::Government_and_Organizations,
+				Regional => ITunesCategory::Government_and_Organizations,
 			
-			Health => ITunesRssChannelTopLevelCategory::Health,
-				Alternative_Health => ITunesRssChannelTopLevelCategory::Health,
-				Fitness_and_Nutrition => ITunesRssChannelTopLevelCategory::Health,
-				Self_Help => ITunesRssChannelTopLevelCategory::Health,
-				Sexuality => ITunesRssChannelTopLevelCategory::Health,
+			Health => ITunesCategory::Health,
+				Alternative_Health => ITunesCategory::Health,
+				Fitness_and_Nutrition => ITunesCategory::Health,
+				Self_Help => ITunesCategory::Health,
+				Sexuality => ITunesCategory::Health,
 			
-			Kids_and_Family => ITunesRssChannelTopLevelCategory::Kids_and_Family,
+			Kids_and_Family => ITunesCategory::Kids_and_Family,
 			
-			Music => ITunesRssChannelTopLevelCategory::Music,
+			Music => ITunesCategory::Music,
 			
-			News_and_Politics => ITunesRssChannelTopLevelCategory::News_and_Politics,
+			News_and_Politics => ITunesCategory::News_and_Politics,
 			
-			Religion_and_Spirituality => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Buddhism => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Christianity => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Hinduism => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Islam => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Judaism => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Other => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
-				Spirituality => ITunesRssChannelTopLevelCategory::Religion_and_Spirituality,
+			Religion_and_Spirituality => ITunesCategory::Religion_and_Spirituality,
+				Buddhism => ITunesCategory::Religion_and_Spirituality,
+				Christianity => ITunesCategory::Religion_and_Spirituality,
+				Hinduism => ITunesCategory::Religion_and_Spirituality,
+				Islam => ITunesCategory::Religion_and_Spirituality,
+				Judaism => ITunesCategory::Religion_and_Spirituality,
+				Other => ITunesCategory::Religion_and_Spirituality,
+				Spirituality => ITunesCategory::Religion_and_Spirituality,
 			
-			Science_and_Medicine => ITunesRssChannelTopLevelCategory::Science_and_Medicine,
-				Medicine => ITunesRssChannelTopLevelCategory::Science_and_Medicine,
-				Natural_Sciences => ITunesRssChannelTopLevelCategory::Science_and_Medicine,
-				Social_Sciences => ITunesRssChannelTopLevelCategory::Science_and_Medicine,
+			Science_and_Medicine => ITunesCategory::Science_and_Medicine,
+				Medicine => ITunesCategory::Science_and_Medicine,
+				Natural_Sciences => ITunesCategory::Science_and_Medicine,
+				Social_Sciences => ITunesCategory::Science_and_Medicine,
 			
-			Society_and_Culture => ITunesRssChannelTopLevelCategory::Society_and_Culture,
-				History => ITunesRssChannelTopLevelCategory::Society_and_Culture,
-				Personal_Journals => ITunesRssChannelTopLevelCategory::Society_and_Culture,
-				Philosophy => ITunesRssChannelTopLevelCategory::Society_and_Culture,
-				Places_and_Travel => ITunesRssChannelTopLevelCategory::Society_and_Culture,
+			Society_and_Culture => ITunesCategory::Society_and_Culture,
+				History => ITunesCategory::Society_and_Culture,
+				Personal_Journals => ITunesCategory::Society_and_Culture,
+				Philosophy => ITunesCategory::Society_and_Culture,
+				Places_and_Travel => ITunesCategory::Society_and_Culture,
 			
-			Sports_and_Recreation => ITunesRssChannelTopLevelCategory::Sports_and_Recreation,
-				Amateur => ITunesRssChannelTopLevelCategory::Sports_and_Recreation,
-				College_and_High_School => ITunesRssChannelTopLevelCategory::Sports_and_Recreation,
-				Outdoor => ITunesRssChannelTopLevelCategory::Sports_and_Recreation,
-				Professional => ITunesRssChannelTopLevelCategory::Sports_and_Recreation,
+			Sports_and_Recreation => ITunesCategory::Sports_and_Recreation,
+				Amateur => ITunesCategory::Sports_and_Recreation,
+				College_and_High_School => ITunesCategory::Sports_and_Recreation,
+				Outdoor => ITunesCategory::Sports_and_Recreation,
+				Professional => ITunesCategory::Sports_and_Recreation,
 			
-			Technology => ITunesRssChannelTopLevelCategory::Technology,
-				Gadgets => ITunesRssChannelTopLevelCategory::Technology,
-				Tech_News => ITunesRssChannelTopLevelCategory::Technology,
-				Podcasting => ITunesRssChannelTopLevelCategory::Technology,
-				Software_How_To => ITunesRssChannelTopLevelCategory::Technology,
+			Technology => ITunesCategory::Technology,
+				Gadgets => ITunesCategory::Technology,
+				Tech_News => ITunesCategory::Technology,
+				Podcasting => ITunesCategory::Technology,
+				Software_How_To => ITunesCategory::Technology,
 			
-			TV_and_Film => ITunesRssChannelTopLevelCategory::TV_and_Film,
+			TV_and_Film => ITunesCategory::TV_and_Film,
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn toSubCategoryStr(&self) -> Option<&'static str>
 	{
-		use self::ITunesRssChannelCategorisation::*;
+		use self::ITunesCategoryAndSubCategory::*;
 		
 		match *self
 		{

@@ -46,6 +46,7 @@ use ::rustls::ServerSessionMemoryCache;
 use ::serde::de::Error as DeserializeError;
 use ::serde::de::Deserialize;
 use ::serde::de::Deserializer;
+use ::serde::de::SeqAccess;
 use ::serde::de::Visitor;
 use ::serde::ser::Serialize;
 use ::serde::ser::Serializer;
@@ -108,6 +109,7 @@ pub(crate) mod webAppManifest;
 
 
 include!("CountryRestrictionInclusion.rs");
+include!("ExternalUrlOrResourceUrl.rs");
 include!("HandlebarsTemplateRenderer.rs");
 include!("HandlebarsWrapper.rs");
 include!("HeaderGenerator.rs");

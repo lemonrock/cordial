@@ -2,36 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ITunesRssItemEpisodeType
+#[inline(always)]
+pub(crate) fn iTunesExplicitness(isExplicit: bool) -> &'static str
 {
-	full,
-	trailer,
-	bonus,
-}
-
-impl Default for ITunesRssItemEpisodeType
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		ITunesRssItemEpisodeType::full
-	}
-}
-
-impl ITunesRssItemEpisodeType
-{
-	#[inline(always)]
-	pub(crate) fn to_str(&self) -> &'static str
-	{
-		use self::ITunesRssItemEpisodeType::*;
-		
-		match *self
-		{
-			full => "full",
-			trailer => "trailer",
-			bonus => "bonus",
-		}
-	}
+	if isExplicit { "explicit" } else { "clean" }
 }

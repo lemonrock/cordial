@@ -96,6 +96,50 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn findGooglePlayRssArtwork(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
+	{
+		// Find the largest image that is acceptable
+		// Artwork must be an effective minimum size of 1200 x 1200 pixels (600 x 600 is minimum with warnings) and a maximum size of 7000 x 7000 pixels, in JPEG or PNG format
+		
+		let urlKey = self.urlKey(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language);
+		match self.urlData.get(&urlKey)
+		{
+			None => Err(CordialError::Configuration(format!("Could not find an image for Google Play Artwork for '{:?}' for language choice", self.name()))),
+			Some(resourceTagToUrlDataMap) =>
+			{
+				let mut idealImageWidth = 0;
+				let mut idealImageUrlData = None;
+				
+				for (resourceTag, urlData) in resourceTagToUrlDataMap.iter()
+				{
+					if urlData.isSuitableForGooglePlayArtwork()
+					{
+						match resourceTag
+						{
+							&ResourceTag::width_height_image(width, height) =>
+							{
+								if width > idealImageWidth && width >= 1200 && width <= 7000 && height >= 1200 && height <= 7000
+								{
+									idealImageWidth = width;
+									idealImageUrlData = Some(urlData);
+								}
+							}
+							
+							_ => (),
+						}
+					}
+				}
+				
+				match idealImageUrlData
+				{
+					Some(urlData) => Ok(urlData),
+					None => Err(CordialError::Configuration(format!("Could not find an ideal image for Google Play Artwork for '{:?}'", self.name()))),
+				}
+			}
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn findITunesRssArtwork(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<&Rc<UrlData>, CordialError>
 	{
 		// Find the largest image that is acceptable

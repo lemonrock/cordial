@@ -14,6 +14,8 @@ impl SiteMapWebPageImage
 {
 	pub(crate) const ImageNamespacePrefix: &'static str = "image";
 	
+	pub(crate) const ImageNamespaceUrl: &'static str = "http://www.google.com/schemas/sitemap-image/1.1";
+	
 	#[inline(always)]
 	fn writeXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{

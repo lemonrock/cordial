@@ -6,7 +6,7 @@
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct LongDescription
 {
-	resource: ResourceReference,
+	resource: ResourceUrl,
 	// Without leading '#'
 	#[serde(default)] id: Option<String>,
 }
@@ -17,7 +17,11 @@ impl LongDescription
 	#[inline(always)]
 	pub(crate) fn addToImgAttributes(&self, imgAttributes: &mut Vec<Attribute>, resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
-		let url = self.resource.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		let url = ResourceReference
+		{
+			resource: self.resource.clone(),
+			tag: ResourceTag::default,
+		}.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 		let url = url.as_str();
 		
 		let attribute = if let Some(ref id) = self.id

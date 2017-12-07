@@ -2,9 +2,34 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-include!("ITunesBooleanYes.rs");
-include!("ITunesCategory.rs");
-include!("ITunesCategoryAndSubCategory.rs");
-include!("ITunesChannelType.rs");
-include!("ITunesEpisodeType.rs");
-include!("iTunesExplicitness.rs");
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub(crate) enum ITunesChannelType
+{
+	episodic,
+	serial,
+}
+
+impl Default for ITunesChannelType
+{
+	#[inline(always)]
+	fn default() -> Self
+	{
+		ITunesChannelType::serial
+	}
+}
+
+impl ITunesChannelType
+{
+	#[inline(always)]
+	pub(crate) fn to_str(&self) -> &'static str
+	{
+		use self::ITunesChannelType::*;
+		
+		match *self
+		{
+			episodic => "episodic",
+			serial => "serial",
+		}
+	}
+}

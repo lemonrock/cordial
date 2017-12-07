@@ -55,6 +55,12 @@ impl UrlData
 	}
 	
 	#[inline(always)]
+	pub(crate) fn optionalVideoWidthHeight(&self) -> Option<(u16, u16)>
+	{
+		self.urlDataDetails.optionalVideoWidthHeight()
+	}
+	
+	#[inline(always)]
 	pub(crate) fn size(&self) -> u64
 	{
 		self.urlDataDetails.size()

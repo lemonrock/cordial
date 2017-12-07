@@ -14,6 +14,12 @@ pub(crate) trait XmlAttributeExt
 	}
 	
 	#[inline(always)]
+	fn xml_u16_attribute(&self, value: u16) -> OwnedAttribute
+	{
+		self.xml_string_attribute(format!("{}", value))
+	}
+	
+	#[inline(always)]
 	fn xml_u32_attribute(&self, value: u32) -> OwnedAttribute
 	{
 		self.xml_string_attribute(format!("{}", value))

@@ -26,7 +26,7 @@ impl Default for AudioVideoCountryRestriction
 impl AudioVideoCountryRestriction
 {
 	#[inline(always)]
-	pub(crate) fn writeXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
+	pub(crate) fn writeSiteMapXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
 	{
 		if self.countries.is_empty()
 		{
@@ -59,7 +59,48 @@ impl AudioVideoCountryRestriction
 					blacklist => "deny",
 				})
 			],
-			"video",
+			SiteMapWebPageAudioVideo::VideoNamespacePrefix,
+			"restriction",
+			&countries
+		)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn writeMRssXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
+	{
+		if self.countries.is_empty()
+		{
+			return Ok(());
+		}
+		
+		let mut afterFirst = false;
+		let mut countries = String::new();
+		for country in self.countries.iter()
+		{
+			if afterFirst
+			{
+				countries.push(' ');
+			}
+			else
+			{
+				afterFirst = true;
+			}
+			countries.push_str(country.to_iso_3166_1_alpha_2_language_code());
+		}
+		
+		use self::CountryRestrictionInclusion::*;
+		eventWriter.writePrefixedTextElement
+		(
+			namespace,
+			&[
+				"type".xml_str_attribute("country"),
+				"relationship".xml_str_attribute(match self.restriction
+				{
+					whitelist => "allow",
+					blacklist => "deny",
+				})
+			],
+			RssChannel::MediaNamespacePrefix,
 			"restriction",
 			&countries
 		)

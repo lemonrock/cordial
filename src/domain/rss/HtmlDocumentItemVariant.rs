@@ -218,7 +218,16 @@ impl HtmlDocumentItemVariant
 					tag: ResourceTag::default,
 				}.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 				
-				podcastResource.audioVideoMetaData()?.writePodcastRssXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &podcastUrlData)
+				podcastResource.audioVideoMetaData()?.writePodcastRssXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &podcastUrlData)?;
+				
+				
+				let iFrameUrl = ResourceReference
+				{
+					resource: podcast.clone(),
+					tag: ResourceTag::audio_video_iframe_player,
+				}.urlMandatory(resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+				
+				podcastResource.audioVideoMetaData()?.writeVideoMRssXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &podcastUrlData, &iFrameUrl)
 			},
 		}
 	}

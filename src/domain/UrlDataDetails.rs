@@ -71,6 +71,7 @@ impl UrlDataDetails
 		match *self
 		{
 			UrlDataDetails::Image { width, height, .. } => Ok((width, height)),
+			UrlDataDetails::Video { width, height, .. } => Ok((width as u32, height as u32)),
 			
 			_ => Err(CordialError::Configuration("Not an image".to_owned()))
 		}
@@ -110,6 +111,17 @@ impl UrlDataDetails
 			Image { size, .. } => size,
 			Video { size, .. } => size,
 			Audio { size, .. } => size,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn optionalVideoWidthHeight(&self) -> Option<(u16, u16)>
+	{
+		match *self
+		{
+			UrlDataDetails::Video { width, height, .. } => Some((width, height)),
+			
+			_ => None,
 		}
 	}
 }

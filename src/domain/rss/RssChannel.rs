@@ -49,6 +49,10 @@ impl RssChannel
 	
 	pub(crate) const DcNamespaceUrl: &'static str = "http://purl.org/dc/elements/1.1/";
 	
+	pub(crate) const DcTermsNamespacePrefix: &'static str = "dcterms";
+	
+	pub(crate) const DcTermsNamespaceUrl: &'static str = "http://purl.org/dc/terms/";
+	
 	pub(crate) const GooglePlayNamespacePrefix: &'static str = "googleplay";
 	
 	pub(crate) const GooglePlayNamespaceUrl: &'static str = "http://www.google.com/schemas/play-podcasts/1.0";
@@ -90,6 +94,7 @@ impl RssChannel
 		let rssNamespace = namespace!
 		{
 			Self::DcNamespacePrefix => Self::DcNamespaceUrl,
+			Self::DcTermsNamespacePrefix => Self::DcTermsNamespaceUrl,
 			Self::ContentNamespacePrefix => Self::ContentNamespaceUrl,
 			Self::AtomNamespacePrefix => Self::AtomNamespaceUrl,
 			Self::MediaNamespacePrefix => Self::MediaNamespaceUrl,

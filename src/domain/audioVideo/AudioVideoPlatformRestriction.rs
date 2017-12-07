@@ -26,7 +26,7 @@ impl Default for AudioVideoPlatformRestriction
 impl AudioVideoPlatformRestriction
 {
 	#[inline(always)]
-	pub(crate) fn writeXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
+	pub(crate) fn writeSiteMapXmlForRestriction<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace) -> Result<(), CordialError>
 	{
 		if self.platforms.is_empty()
 		{

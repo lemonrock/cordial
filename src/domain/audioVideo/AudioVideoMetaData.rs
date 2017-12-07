@@ -52,6 +52,9 @@ pub(crate) struct AudioVideoMetaData
 	#[serde(default)] pub(crate) itunes_artwork: Option<ResourceUrl>,
 	#[serde(default)] pub(crate) close_captioned: bool,
 	
+	// Used by mRSS
+	#[serde(default)] pub(crate) licence: Option<ResourceUrl>,
+	
 	#[serde(default, skip_deserializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
 }
 
@@ -687,7 +690,7 @@ impl AudioVideoMetaData
 		
 		self.writeXmlForCategory(eventWriter, namespace, emptyAttributes)?;
 		
-		self.country_restrictions.writeXmlForRestriction(eventWriter, namespace)?;
+		self.country_restrictions.writeSiteMapXmlForRestriction(eventWriter, namespace)?;
 		
 		if let Some(ref gallery) = self.gallery
 		{
@@ -730,7 +733,7 @@ impl AudioVideoMetaData
 			}
 		}
 		
-		self.platform_restrictions.writeXmlForRestriction(eventWriter, namespace)?;
+		self.platform_restrictions.writeSiteMapXmlForRestriction(eventWriter, namespace)?;
 		
 		eventWriter.writePrefixedTextElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix, "live", live)
 	}
@@ -884,6 +887,167 @@ impl AudioVideoMetaData
 		}
 		
 		eventWriter.writePrefixedTextElementU16(namespace, emptyAttributes, RssChannel::ITunesNamespacePrefix, "season", self.season_number.0)
+	}
+	
+	//noinspection SpellCheckingInspection
+	#[inline(always)]
+	pub(crate) fn writeVideoMRssXml<'a, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, podcastUrlData: &UrlData, iFrameUrl: &Url) -> Result<(), CordialError>
+	{
+		// Bing also uses xmlns:bing="http://bing.com/schema/media/" which is different... oh great. https://blogs.bing.com/webmaster/2012/04/24/video-killed-the-radio-star-but-we-still-want-your-videos/
+		
+		// Baidu: http://video.baidu.com/videoop.html
+		
+		// expression determines if the object is a sample or the full version of the object, or even if it is a continuous stream (sample | full | nonstop). Default value is "full". It is an optional attribute.
+		// mRSS <media:content>; used by MailChimp and Bing, for instance, and also used somewhat by Google: https://developers.google.com/webmasters/videosearch/markups
+		
+		const IsLiveVideoBecauseThereIsNoDuration: bool = false;
+		
+		// media:content
+		{
+			let optionalVideoWidthHeight = podcastUrlData.optionalVideoWidthHeight();
+			
+			let medium = if optionalVideoWidthHeight.is_some()
+			{
+				"video"
+			}
+			else
+			{
+				"image"
+			};
+			
+			let widthAndHeightAttribute = if let Some((width, height)) = optionalVideoWidthHeight
+			{
+				Some(("width".xml_u16_attribute(width), "height".xml_u16_attribute(height)))
+			}
+			else
+			{
+				None
+			};
+			
+			let fileSizeAttribute = "fileSize".xml_u64_attribute(podcastUrlData.size());
+			let durationAttribute = "duration".xml_u64_attribute(podcastUrlData.durationInSeconds()?);
+			let mut contentAttributes = vec!
+			[
+				"url".xml_url_from_UrlData_attribute(podcastUrlData),
+				"medium".xml_str_attribute(medium),
+				fileSizeAttribute.borrow(),
+				"type".xml_str_attribute(podcastUrlData.mimeType().as_ref()),
+				// need to know if underlying resource is language sensitive. Alternatively use 'x-default'.
+				//"lang".xml_str_attribute(iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code()),
+			];
+			
+			if IsLiveVideoBecauseThereIsNoDuration
+			{
+				contentAttributes.push("expresision".xml_str_attribute("nonstop"))
+			}
+			else
+			{
+				contentAttributes.push("expresision".xml_str_attribute(self.episode_type.toMediaRssStr()));
+				contentAttributes.push(durationAttribute.borrow());
+			}
+			
+			if let Some((ref widthAttribute, ref heightAttribute)) = widthAndHeightAttribute
+			{
+				contentAttributes.push(widthAttribute.borrow());
+				contentAttributes.push(heightAttribute.borrow());
+			}
+			
+			self.writeVideoMRssMediaContent(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, iFrameUrl, contentAttributes)?;
+		}
+		
+		self.country_restrictions.writeMRssXmlForRestriction(eventWriter, namespace)?;
+		
+		let validity = if let Some(publication_date) = self.publication_date
+		{
+			if let Some(expiration_date) = self.expiration_date
+			{
+				Some(format!("start={}; end={}; scheme=W3C-DTF", publication_date.to_rfc3339(), expiration_date.to_rfc3339()))
+			}
+			else
+			{
+				Some(format!("start={}; scheme=W3C-DTF", publication_date.to_rfc3339()))
+			}
+		}
+		else if let Some(expiration_date) = self.expiration_date
+		{
+			Some(format!("end={}; scheme=W3C-DTF", expiration_date.to_rfc3339()))
+		}
+		else
+		{
+			None
+		};
+		
+		if let Some(validity) = validity
+		{
+			eventWriter.writePrefixedTextElementString(namespace, emptyAttributes, RssChannel::DcTermsNamespacePrefix, "valid", validity)?;
+		}
+		
+		if IsLiveVideoBecauseThereIsNoDuration
+		{
+			eventWriter.writePrefixedTextElement(namespace, emptyAttributes, RssChannel::DcTermsNamespacePrefix, "type", "live-video")?;
+		}
+		
+		Ok(())
+	}
+	
+	#[inline(always)]
+	fn writeVideoMRssMediaContent<'a: 'b, 'b, W: Write>(&'a self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>], resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iFrameUrl: &Url, contentAttributes: Vec<XmlAttribute<'b>>) -> Result<(), CordialError>
+	{
+		let audioVideoAbstract = self.audioVideoAbstract(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+		
+		eventWriter.writeWithinElement(RssChannel::MediaNamespacePrefix.prefixes_xml_name("content"), &namespace, &contentAttributes, |eventWriter|
+		{
+			let thumbnailAttributes =
+			[
+				"url".xml_str_attribute(iFrameUrl.as_ref()),
+			];
+			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, RssChannel::MediaNamespacePrefix.prefixes_xml_name("player"))?;
+			
+			eventWriter.writeTextElement(namespace, &["type".xml_str_attribute("plain")], RssChannel::MediaNamespacePrefix.prefixes_xml_name("title"), &audioVideoAbstract.title)?;
+			
+			eventWriter.writeTextElement(namespace, &["type".xml_str_attribute("plain")], RssChannel::MediaNamespacePrefix.prefixes_xml_name("description"), &audioVideoAbstract.site_map_description)?;
+			
+			let thumbnailResource = self.placeholder.resourceMandatory(resources)?;
+			let thumbnailUrlData = thumbnailResource.findGoogleVideoSiteMapImageThumbnail(fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
+			let (width, height) = thumbnailUrlData.dimensions()?;
+			let widthAttribute = "width".xml_u32_attribute(width);
+			let heightAttribute = "height".xml_u32_attribute(height);
+			let thumbnailAttributes =
+			[
+				"url".xml_url_from_UrlData_attribute(thumbnailUrlData),
+				widthAttribute.borrow(),
+				heightAttribute.borrow(),
+			];
+			eventWriter.writeEmptyElement(namespace, &thumbnailAttributes, RssChannel::MediaNamespacePrefix.prefixes_xml_name("thumbnail"))?;
+			
+			// media:price is omitted except for requires_subscription
+			if self.requires_subscription
+			{
+				eventWriter.writeEmptyElement(namespace, &["type".xml_str_attribute("subscription")], RssChannel::MediaNamespacePrefix.prefixes_xml_name("price"))?;
+			}
+			
+			// Not part of Google mRSS
+			if let Some(ref uploader) = self.uploader
+			{
+				eventWriter.writeTextElement(namespace, &emptyAttributes, RssChannel::MediaNamespacePrefix.prefixes_xml_name("credit"), &uploader.full_name)?;
+			}
+			
+			// Not part of Google mRSS
+			if let Some(ref licence) = self.licence
+			{
+				let (licenseUrl, licenseTitle) = ResourceReference
+				{
+					resource: licence.clone(),
+					tag: ResourceTag::default,
+				}.urlAndAnchorTitleAttribute(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+				
+				let licenseUrl = licenseUrl.as_ref().as_str();
+				eventWriter.writeTextElement(namespace, &["url".xml_str_attribute(licenseUrl)], RssChannel::MediaNamespacePrefix.prefixes_xml_name("copyright"), &licenseTitle)?;
+				eventWriter.writeTextElement(namespace, &["type".xml_str_attribute("text/html"), "href".xml_str_attribute(licenseUrl)], RssChannel::MediaNamespacePrefix.prefixes_xml_name("license"), &licenseTitle)?;
+			}
+			
+			Ok(())
+		})
 	}
 	
 	#[inline(always)]

@@ -34,4 +34,17 @@ impl ITunesEpisodeType
 			bonus => "bonus",
 		}
 	}
+	
+	#[inline(always)]
+	pub(crate) fn toMediaRssStr(&self) -> &'static str
+	{
+		use self::ITunesEpisodeType::*;
+		
+		match *self
+		{
+			full => "full",
+			trailer => "sample",
+			bonus => "sample",
+		}
+	}
 }

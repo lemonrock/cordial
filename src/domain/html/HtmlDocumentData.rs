@@ -270,12 +270,12 @@ impl<'a> HtmlDocumentData<'a>
 			images.push(imageMetaData.siteMapWebPageImage(siteMapImage, self.fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language())?)
 		}
 		
-		let mut videos = vec![];
+		let mut audiosVideos = vec![];
 		for siteMapVideoResourceUrl in self.siteMapVideos.iter()
 		{
 			let resourceRef = siteMapVideoResourceUrl.resourceMandatory(resources)?;
 			let videoPipeline = resourceRef.videoPipeline()?;
-			videos.push(videoPipeline.siteMapWebPageVideo(siteMapVideoResourceUrl, self.htmlUrls.languageData, self.configuration)?);
+			audiosVideos.push(videoPipeline.siteMapWebPageVideo(siteMapVideoResourceUrl, self.htmlUrls.languageData, self.configuration)?);
 		}
 		
 		siteMapWebPages.push
@@ -287,7 +287,7 @@ impl<'a> HtmlDocumentData<'a>
 				priority,
 				urlsByIso639Dash1Alpha2Language: self.htmlUrls.linkHeaderAlternativeLanguageUrlsIncludingSelf()?,
 				images,
-				videos,
+				audiosVideos,
 			}
 		);
 		Ok(())

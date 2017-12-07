@@ -10,7 +10,7 @@ pub(crate) struct SiteMapWebPage
 	pub(crate) priority: SiteMapPriority,
 	pub(crate) urlsByIso639Dash1Alpha2Language: BTreeMap<Iso639Dash1Alpha2Language, Url>,
 	pub(crate) images: Vec<SiteMapWebPageImage>,
-	pub(crate) videos: Vec<SiteMapWebPageVideo>,
+	pub(crate) audiosVideos: Vec<SiteMapWebPageAudioVideo>,
 }
 
 impl SiteMapWebPage
@@ -49,9 +49,9 @@ impl SiteMapWebPage
 				image.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, Some(iso639Dash1Alpha2Language))?;
 			}
 			
-			for video in self.videos.iter()
+			for audioVideo in self.audiosVideos.iter()
 			{
-				video.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
+				audioVideo.writeXml(eventWriter, namespace, emptyAttributes, resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 			}
 			
 			Ok(())

@@ -13,19 +13,27 @@ pub(crate) struct AudioVideoAbstract
 impl AudioVideoAbstract
 {
 	#[inline(always)]
-	pub(crate) fn writeXmlForSiteMapTitle<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	pub(crate) fn writeSiteMapXml<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
 	{
-		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageVideo::VideoNamespacePrefix.prefixes_xml_name("title"), &self.title)
+		self.writeXmlForSiteMapTitle(eventWriter, namespace, emptyAttributes)?;
+		
+		self.writeXmlForSiteMapDescription(eventWriter, namespace, emptyAttributes)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn writeXmlForSiteMapDescription<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	fn writeXmlForSiteMapTitle<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
+	{
+		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix.prefixes_xml_name("title"), &self.title)
+	}
+	
+	#[inline(always)]
+	fn writeXmlForSiteMapDescription<'a, W: Write>(&self, eventWriter: &mut EventWriter<W>, namespace: &Namespace, emptyAttributes: &[XmlAttribute<'a>]) -> Result<(), CordialError>
 	{
 		if self.site_map_description.chars().count() > 2048
 		{
 			return Err(CordialError::Configuration("Video site map description can not exceed 2048 characters".to_owned()));
 		}
 		
-		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageVideo::VideoNamespacePrefix.prefixes_xml_name("description"), &self.site_map_description)
+		eventWriter.writeCDataElement(namespace, emptyAttributes, SiteMapWebPageAudioVideo::VideoNamespacePrefix.prefixes_xml_name("description"), &self.site_map_description)
 	}
 }

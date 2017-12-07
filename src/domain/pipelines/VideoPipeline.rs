@@ -22,28 +22,8 @@ pub(crate) struct VideoPipeline
 	#[serde(default = "VideoPipeline::show_controls_default")] pub(crate) show_controls: bool,
 	#[serde(default)] pub(crate) disabled_controls: BTreeSet<AudioVideoDisabledControl>,
 	
-	// Used by amp-video, Google Video Site Map, ?twitter player card? (if we decide to)
-	#[serde(default)] pub(crate) abstracts: HashMap<Iso639Dash1Alpha2Language, Rc<AudioVideoAbstract>>,
+	#[serde(default)] pub(crate) metadata: Rc<AudioVideoMetaData>,
 	
-	// Used by amp-video
-	#[serde(default)] pub(crate) artist: Option<String>,
-	#[serde(default)] pub(crate) album: Option<String>,
-	#[serde(default)] pub(crate) artwork: Option<ResourceUrl>,
-	
-	// Used by site map (and some by mRSS: https://developers.google.com/webmasters/videosearch/markups)
-	#[serde(default)] pub(crate) site_map_category: Option<Rc<String>>,
-	#[serde(default)] pub(crate) site_map_tags: Rc<ArrayVec<[String; 32]>>,
-	#[serde(default)] pub(crate) expiration_date: Option<DateTime<Utc>>,
-	#[serde(default)] pub(crate) publication_date: Option<DateTime<Utc>>,
-	#[serde(default)] pub(crate) rating: Option<AudioVideoStarRating>,
-	#[serde(default)] pub(crate) views: Option<u64>,
-	#[serde(default)] pub(crate) explicit: bool,
-	#[serde(default)] pub(crate) country_restrictions: Rc<AudioVideoCountryRestriction>,
-	#[serde(default)] pub(crate) platform_restrictions: Rc<AudioVideoPlatformRestriction>,
-	#[serde(default)] pub(crate) gallery: Option<ResourceUrl>,
-	#[serde(default)] pub(crate) requires_subscription: bool,
-	#[serde(default)] pub(crate) uploader: Option<Rc<Person>>,
-
 	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u16, u16)>,
 	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
 	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
@@ -59,7 +39,7 @@ impl Default for VideoPipeline
 		Self
 		{
 			max_age_in_seconds: max_age_in_seconds_long_default(),
-			is_versioned: Self::language_aware_default(),
+			is_versioned: is_versioned_true_default(),
 			input_format: None,
 			
 			load: Default::default(),
@@ -72,24 +52,8 @@ impl Default for VideoPipeline
 			tracks: Default::default(),
 			show_controls: Self::show_controls_default(),
 			disabled_controls: Default::default(),
-			abstracts: Default::default(),
 			
-			artist: None,
-			album: None,
-			artwork: None,
-			
-			site_map_category: None,
-			site_map_tags: Default::default(),
-			expiration_date: None,
-			publication_date: None,
-			rating: None,
-			views: None,
-			explicit: false,
-			country_restrictions: Default::default(),
-			platform_restrictions: Default::default(),
-			gallery: None,
-			requires_subscription: false,
-			uploader: None,
+			metadata: Default::default(),
 			
 			dimensions: Default::default(),
 			durationInSeconds: Default::default(),
@@ -117,7 +81,7 @@ impl Pipeline for VideoPipeline
 	#[inline(always)]
 	fn is<'a>(&self) -> (bool, bool)
 	{
-		(self.is_versioned, false)
+		(self.is_versioned, true)
 	}
 	
 	#[inline(always)]
@@ -171,33 +135,18 @@ impl Pipeline for VideoPipeline
 
 impl VideoPipeline
 {
-	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData, configuration: &Configuration) -> Result<SiteMapWebPageVideo, CordialError>
+	pub(crate) fn siteMapWebPageVideo(&self, resourceUrl: &ResourceUrl, languageData: &LanguageData, configuration: &Configuration) -> Result<SiteMapWebPageAudioVideo, CordialError>
 	{
-		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
-		
 		Ok
 		(
-			SiteMapWebPageVideo
+			SiteMapWebPageAudioVideo
 			{
 				placeHolderUrl: self.placeholder.clone(),
-				videoAbstract: self.videoAbstract(iso639Dash1Alpha2Language)?.clone(),
-				
-				mp4Url: self.mp4Url(resourceUrl, configuration)?,
+				durationInSeconds: Some(self.durationInSeconds.get()),
+				mediaUrl: self.mp4Url(resourceUrl, configuration)?,
 				iFrameUrl: self.iFramePlayerUrl(resourceUrl, languageData)?,
 				
-				category: self.site_map_category.clone(),
-				tags: self.site_map_tags.clone(),
-				durationInSeconds: Some(self.durationInSeconds.get()),
-				expirationDate: self.expiration_date,
-				videoStarRating: self.rating,
-				viewCount: self.views,
-				publicationDate: self.publication_date,
-				explicit: self.explicit,
-				countryRestrictions: self.country_restrictions.clone(),
-				gallery: self.gallery.clone(),
-				requiresSubscription: self.requires_subscription,
-				uploader: self.uploader.clone(),
-				platformRestrictions: self.platform_restrictions.clone(),
+				audioVideoMetaData: self.metadata.clone(),
 			}
 		)
 	}
@@ -339,13 +288,15 @@ impl VideoPipeline
 	}
 
 	#[inline(always)]
-	fn videoAbstract(&self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&Rc<AudioVideoAbstract>, CordialError>
+	fn audioVideoAbstract(&self, configuration: &Configuration, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&AudioVideoAbstract, CordialError>
 	{
-		match self.abstracts.get(&iso639Dash1Alpha2Language)
-		{
-			None => return Err(CordialError::Configuration(format!("There is no abstract in {:?} for this video", iso639Dash1Alpha2Language))),
-			Some(videoAbstract) => Ok(videoAbstract),
-		}
+		self.metadata.audioVideoAbstract(configuration.fallbackIso639Dash1Alpha2Language(), iso639Dash1Alpha2Language)
+	}
+	
+	#[inline(always)]
+	fn title(&self, configuration: &Configuration, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&str, CordialError>
+	{
+		Ok(&self.audioVideoAbstract(configuration, iso639Dash1Alpha2Language)?.title)
 	}
 	
 	#[inline(always)]
@@ -375,7 +326,7 @@ impl VideoPipeline
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
-		let title = &self.videoAbstract(iso639Dash1Alpha2Language)?.title;
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
 		
 		let placeHolderUrlData = ResourceReference
 		{
@@ -426,17 +377,17 @@ impl VideoPipeline
 			ampVideoNode = ampVideoNode.with_empty_attribute("disableremoteplayback");
 		}
 		
-		if let Some(ref artist) = self.artist
+		if let Some(ref artist) = self.metadata.artist
 		{
 			ampVideoNode = ampVideoNode.with_attribute("artist".str_attribute(artist));
 		}
 		
-		if let Some(ref album) = self.album
+		if let Some(ref album) = self.metadata.album
 		{
 			ampVideoNode = ampVideoNode.with_attribute("album".str_attribute(album));
 		}
 		
-		if let Some(ref artwork) = self.artwork
+		if let Some(ref artwork) = self.metadata.artwork
 		{
 			// 256x256 or 512x512? Whilst artwork is an array, it's not clear if amp-video supports it.
 			const ArtworkWidth: u32 = 512;
@@ -474,7 +425,7 @@ impl VideoPipeline
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		
-		let title = &self.videoAbstract(iso639Dash1Alpha2Language)?.title;
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
 		
 		let placeHolderUrlData = ResourceReference
 		{
@@ -617,12 +568,6 @@ impl VideoPipeline
 		{
 			true
 		}
-	}
-	
-	#[inline(always)]
-	fn language_aware_default() -> bool
-	{
-		true
 	}
 	
 	#[inline(always)]

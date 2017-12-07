@@ -129,7 +129,7 @@ impl SiteMap
 			NS_NO_PREFIX => Self::SiteMapNamespaceUrl,
 			SiteMapWebPage::XhtmlNamespacePrefix => SiteMapWebPage::XhtmlNamespaceUrl,
 			SiteMapWebPageImage::ImageNamespacePrefix => SiteMapWebPageImage::ImageNamespaceUrl,
-			SiteMapWebPageVideo::VideoNamespacePrefix => SiteMapWebPageVideo::VideoNamespaceUrl,
+			SiteMapWebPageAudioVideo::VideoNamespacePrefix => SiteMapWebPageAudioVideo::VideoNamespaceUrl,
 		};
 		
 		let emptyAttributes = [];

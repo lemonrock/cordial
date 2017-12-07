@@ -14,5 +14,5 @@ include!("SiteMap.rs");
 include!("SiteMapChangeFrequency.rs");
 include!("SiteMapPriority.rs");
 include!("SiteMapWebPage.rs");
+include!("SiteMapWebPageAudioVideo.rs");
 include!("SiteMapWebPageImage.rs");
-include!("SiteMapWebPageVideo.rs");

@@ -9,6 +9,7 @@ include!("AudioVideoAbstract.rs");
 include!("AudioVideoCountryRestriction.rs");
 include!("AudioVideoDisabledControl.rs");
 include!("AudioVideoLoad.rs");
+include!("AudioVideoMetaData.rs");
 include!("AudioVideoPlatform.rs");
 include!("AudioVideoPlatformRestriction.rs");
 include!("AudioVideoStarRating.rs");

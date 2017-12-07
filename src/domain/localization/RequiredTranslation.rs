@@ -7,7 +7,9 @@
 pub(crate) enum RequiredTranslation
 {
 	missing_image_fallback,
+	missing_audio_fallback,
 	missing_video_fallback,
+	your_browser_does_not_support_audio,
 	your_browser_does_not_support_video,
 }
 

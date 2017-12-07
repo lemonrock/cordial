@@ -32,7 +32,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 			.with_attributes(self.imgLikeAttributes(true, false)?)
 			.with_attribute(AmpLayout::responsive.toAttribute())
 			.with_attribute("attribution".str_attribute(self.credit()))
-			.with_child_element(self.ampImgNode(true, None, displayAmpLoadingIndicator)?);
+			.with_child_element(self.ampImgNode(true, None, displayAmpLoadingIndicator, AmpLayout::fill)?);
 		
 		let node = if !displayAmpLoadingIndicator
 		{
@@ -47,7 +47,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub(crate) fn ampImgNode(&self, isForAnimationPlaceholder: bool, lightboxId: Option<String>, displayAmpLoadingIndicator: bool) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn ampImgNode(&self, isForPlaceholder: bool, lightboxId: Option<String>, displayAmpLoadingIndicator: bool, ampLayout: AmpLayout) -> Result<UnattachedNode, CordialError>
 	{
 		/*
 			<figure>
@@ -66,8 +66,8 @@ impl<'a> ImageMarkdownPluginData<'a>
 		*/
 		
 		let node = "amp-img"
-			.with_attributes(self.imgLikeAttributes(true, isForAnimationPlaceholder)?)
-			.with_attribute(AmpLayout::responsive.toAttribute())
+			.with_attributes(self.imgLikeAttributes(true, isForPlaceholder)?)
+			.with_attribute(ampLayout.toAttribute())
 			.with_attribute("attribution".str_attribute(self.credit()))
 			.with_child_element
 			(
@@ -81,7 +81,7 @@ impl<'a> ImageMarkdownPluginData<'a>
 					.with_child_text(self.markdownPluginData.requiredTranslation(RequiredTranslation::missing_image_fallback)?.as_str())
 			);
 		
-		let node = if isForAnimationPlaceholder
+		let node = if isForPlaceholder
 		{
 			node.with_attribute("placeholder".empty_attribute())
 		}

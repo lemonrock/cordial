@@ -18,3 +18,4 @@ include!("AudioVideoPlatformRestriction.rs");
 include!("AudioVideoStarRating.rs");
 include!("AudioVideoTrack.rs");
 include!("AudioVideoTrackKind.rs");
+include!("AudioVolume.rs");

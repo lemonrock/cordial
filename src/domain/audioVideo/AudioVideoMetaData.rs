@@ -170,16 +170,176 @@ impl AudioVideoMetaData
 		Ok(())
 	}
 	
+	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn createAmpAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn createAmpAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64, volume: AudioVolume, placeHolderWidth: u16, placeHolderHeight: u16) -> Result<UnattachedNode, CordialError>
 	{
-		unimplemented!();
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
+		
+		let mut ampAudioNode =
+			"amp-audio"
+			.with_attributes
+			(
+				vec!
+				[
+					"title".str_attribute(title),
+					AmpLayout::fixed_height.toAttribute(),
+				]
+			)
+		;
+		
+		ampAudioNode = self.load.addToAudioOrVideoNode(ampAudioNode, durationInSeconds);
+		
+		if self.initially_muted || self.load == AudioVideoLoad::auto_play
+		{
+			ampAudioNode = ampAudioNode.with_empty_attribute("muted");
+		}
+		
+		if self.loops
+		{
+			ampAudioNode = ampAudioNode.with_empty_attribute("loop");
+		}
+		
+		if self.show_controls
+		{
+			ampAudioNode = ampAudioNode.with_empty_attribute("controls");
+			
+			if !self.disabled_controls.is_empty()
+			{
+				ampAudioNode = ampAudioNode.with_attribute("controlslist".space_separated_attribute(self.disabled_controls.iter().map(|disabled_control| disabled_control.deref())));
+			}
+		}
+		
+		if self.disabled_controls.contains(&AudioVideoDisabledControl::noremoteplayback)
+		{
+			ampAudioNode = ampAudioNode.with_empty_attribute("disableremoteplayback");
+		}
+		
+		if let Some(ref artist) = self.artist
+		{
+			ampAudioNode = ampAudioNode.with_attribute("artist".str_attribute(artist));
+		}
+		
+		if let Some(ref album) = self.album
+		{
+			ampAudioNode = ampAudioNode.with_attribute("album".str_attribute(album));
+		}
+		
+		if let Some(ref artwork) = self.artwork
+		{
+			// 256x256 or 512x512? Whilst artwork is an array, it's not clear if amp-audio supports it.
+			const ArtworkWidth: u32 = 512;
+			const ArtworkHeight: u32 = 512;
+			
+			let artworkUrlData = ResourceReference
+			{
+				resource: artwork.clone(),
+				tag: ResourceTag::width_height_image(ArtworkWidth, ArtworkHeight)
+			}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+			artworkUrlData.validateIsPng()?;
+			
+			ampAudioNode = ampAudioNode.with_attribute("artwork".str_attribute(artworkUrlData.url_str()));
+		}
+		
+		let placeHolderUrlData = self.placeHolderUrlData(resources, configuration, iso639Dash1Alpha2Language, placeHolderWidth, placeHolderHeight)?;
+		
+		ampAudioNode = ampAudioNode
+		.with_child_element
+		(
+			"noscript"
+			.with_child_element(self.createAudioNode(configuration, languageData, mp4Url, durationInSeconds, volume)?)
+		)
+		.with_child_element(self.createAmpImgPlaceHolderUrlData(placeHolderUrlData.as_ref(), resources)?)
+		.with_child_element
+		(
+			"div"
+			.with_empty_attribute("fallback")
+			.with_child_text(languageData.requiredTranslation(RequiredTranslation::missing_audio_fallback)?.as_str())
+		);
+		
+		self.addSources(ampAudioNode, mp4Url, None, Self::AudioMp4TwitterMimeType)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createAudioNode(&self, resources: &Resources, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64) -> Result<UnattachedNode, CordialError>
+	pub(crate) fn createAudioNode(&self, configuration: &Configuration, languageData: &LanguageData, mp4Url: &Url, durationInSeconds: u64, volume: AudioVolume) -> Result<UnattachedNode, CordialError>
 	{
-		unimplemented!();
+		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
+		
+		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
+		
+		let mut audioNode =
+			"audio"
+			.with_attributes
+			(
+				vec!
+				[
+					"title".str_attribute(title),
+				]
+			)
+		;
+		
+		audioNode = volume.writeToAudioNode(audioNode);
+		
+		audioNode = self.load.addToAudioOrVideoNode(audioNode, durationInSeconds);
+		
+		if self.initially_muted || self.load == AudioVideoLoad::auto_play
+		{
+			audioNode = audioNode.with_empty_attribute("muted");
+		}
+		
+		if self.loops
+		{
+			audioNode = audioNode.with_empty_attribute("loop");
+		}
+		
+		if self.show_controls
+		{
+			audioNode = audioNode.with_empty_attribute("controls");
+			
+			if !self.disabled_controls.is_empty()
+			{
+				audioNode = audioNode.with_attribute("controlsList".space_separated_attribute(self.disabled_controls.iter().map(|disabled_control| disabled_control.deref())));
+			}
+		}
+		
+		audioNode = self.addSources(audioNode, mp4Url, None, Self::AudioMp4TwitterMimeType)?;
+		
+		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_audio)?;
+		audioNode = audioNode.with_child_text(translation.deref().as_str());
+		
+		Ok(audioNode)
+	}
+	
+	#[inline(always)]
+	fn createAmpImgPlaceHolderUrlData(&self, placeHolderUrlData: &UrlData, resources: &Resources) -> Result<UnattachedNode, CordialError>
+	{
+		let mut attributes = vec!
+		[
+			"placeholder".empty_attribute(),
+			"src".str_attribute(placeHolderUrlData.url_str()),
+			AmpLayout::fill.toAttribute(),
+		];
+		
+		// Add "srcset" attribute
+		let resource = self.placeholder.resourceMandatory(resources)?;
+		let processedImageSourceSet = resource.processedImageSourceSet()?;
+		ProcessedImageSourceSet::addToImgAttributes(processedImageSourceSet, &mut attributes)?;
+		
+		Ok("amp-img".with_attributes(attributes))
+	}
+	
+	#[inline(always)]
+	fn placeHolderUrlData(&self, resources: &Resources, configuration: &Configuration, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, width: u16, height: u16) -> Result<Rc<UrlData>, CordialError>
+	{
+		let placeHolderUrlData = ResourceReference
+		{
+			resource: self.placeholder.clone(),
+			tag: ResourceTag::width_height_image(width as u32, height as u32)
+		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
+		placeHolderUrlData.validateIsPng()?;
+		Ok(placeHolderUrlData)
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -190,12 +350,7 @@ impl AudioVideoMetaData
 		
 		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
 		
-		let placeHolderUrlData = ResourceReference
-		{
-			resource: self.placeholder.clone(),
-			tag: ResourceTag::width_height_image(width as u32, height as u32)
-		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
-		placeHolderUrlData.validateIsPng()?;
+		let placeHolderUrlData = self.placeHolderUrlData(resources, configuration, iso639Dash1Alpha2Language, width, height)?;
 		
 		let mut ampVideoNode =
 			"amp-video"
@@ -207,17 +362,12 @@ impl AudioVideoMetaData
 					"height".string_attribute(format!("{}", height)),
 					"title".str_attribute(title),
 					"poster".str_attribute(placeHolderUrlData.url_str()),
-					"layout".str_attribute("responsive"),
+					AmpLayout::responsive.toAttribute(),
 				]
 			)
 		;
 		
-		ampVideoNode = self.load.addToVideoNode(ampVideoNode, durationInSeconds);
-		
-		if self.load == AudioVideoLoad::auto_play
-		{
-			ampVideoNode = ampVideoNode.with_empty_attribute("autoplay");
-		}
+		ampVideoNode = self.load.addToAudioOrVideoNode(ampVideoNode, durationInSeconds);
 		
 		if self.loops
 		{
@@ -271,6 +421,7 @@ impl AudioVideoMetaData
 				"noscript"
 				.with_child_element(self.createVideoNode(resources, configuration, languageData, width, height, mp4Url, webmUrl, durationInSeconds, plays_inline)?)
 			)
+			.with_child_element(self.createAmpImgPlaceHolderUrlData(&placeHolderUrlData, resources)?)
 			.with_child_element
 			(
 				"div"
@@ -278,7 +429,7 @@ impl AudioVideoMetaData
 				.with_child_text(languageData.requiredTranslation(RequiredTranslation::missing_video_fallback)?.as_str())
 			);
 		
-		self.addSourcesAndTracks(ampVideoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)
+		self.addVideoSourcesAndTracks(ampVideoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -289,12 +440,7 @@ impl AudioVideoMetaData
 		
 		let title = self.title(configuration, iso639Dash1Alpha2Language)?;
 		
-		let placeHolderUrlData = ResourceReference
-		{
-			resource: self.placeholder.clone(),
-			tag: ResourceTag::width_height_image(width as u32, height as u32)
-		}.urlDataMandatory(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(iso639Dash1Alpha2Language))?;
-		placeHolderUrlData.validateIsPng()?;
+		let placeHolderUrlData = self.placeHolderUrlData(resources, configuration, iso639Dash1Alpha2Language, width, height)?;
 		
 		let mut videoNode =
 			"video"
@@ -310,7 +456,7 @@ impl AudioVideoMetaData
 			)
 		;
 		
-		videoNode = self.load.addToVideoNode(videoNode, durationInSeconds);
+		videoNode = self.load.addToAudioOrVideoNode(videoNode, durationInSeconds);
 		
 		// Twitter Player Card Rules: Default to ‘sound off’ for videos that automatically play content
 		if self.initially_muted || self.load == AudioVideoLoad::auto_play
@@ -338,7 +484,7 @@ impl AudioVideoMetaData
 			}
 		}
 		
-		videoNode = self.addSourcesAndTracks(videoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)?;
+		videoNode = self.addVideoSourcesAndTracks(videoNode, mp4Url, webmUrl, iso639Dash1Alpha2Language, configuration)?;
 		
 		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_video)?;
 		videoNode = videoNode.with_child_text(translation.deref().as_str());
@@ -346,7 +492,13 @@ impl AudioVideoMetaData
 		Ok(videoNode)
 	}
 	
-	fn addSourcesAndTracks(&self, mut videoNode: UnattachedNode, mp4Url: &Url, webmUrl: &Url, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
+	fn addVideoSourcesAndTracks(&self, videoNode: UnattachedNode, mp4Url: &Url, webmUrl: &Url, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
+	{
+		let videoNode = self.addSources(videoNode, mp4Url, Some(webmUrl), Self::VideoMp4TwitterMimeType)?;
+		self.addTracks(videoNode, iso639Dash1Alpha2Language, configuration)
+	}
+	
+	fn addSources(&self, mut videoNode: UnattachedNode, mp4Url: &Url, webmUrl: Option<&Url>, mp4Type: &str) -> Result<UnattachedNode, CordialError>
 	{
 		let mediaTimeFragment = match self.ends_at_seconds_exclusive
 		{
@@ -375,20 +527,28 @@ impl AudioVideoMetaData
 			},
 		};
 		
+		if let Some(webmUrl) = webmUrl
+		{
+			videoNode = videoNode.with_child_element
+			(
+				"source"
+				.with_type_attribute(Self::WebMVp8MimeType)
+				.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
+			);
+		}
+		
 		videoNode = videoNode.with_child_element
 		(
 			"source"
-			.with_type_attribute(Self::WebMVp8MimeType)
-			.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
-		)
-		.with_child_element
-		(
-			"source"
-			.with_type_attribute(Self::VideoMp4TwitterMimeType)
+			.with_type_attribute(mp4Type)
 			.with_attribute("src".string_attribute(format!("{}{}", mp4Url.as_ref(), &mediaTimeFragment)))
-		)
-		;
+		);
 		
+		Ok(videoNode)
+	}
+	
+	fn addTracks(&self, videoNode: UnattachedNode, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
+	{
 		let mut isDefaultTrackAndVideoNode = self.addTracksForLanguage((true, videoNode), iso639Dash1Alpha2Language)?;
 		for (iso639Dash1Alpha2Language, _language) in configuration.otherLanguages(iso639Dash1Alpha2Language).iter()
 		{

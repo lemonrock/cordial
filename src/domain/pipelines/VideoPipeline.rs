@@ -2,7 +2,6 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-// See https://www.w3.org/TR/appmanifest/#webappmanifest-dictionary
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct VideoPipeline

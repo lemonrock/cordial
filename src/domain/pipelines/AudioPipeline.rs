@@ -2,7 +2,6 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-// See https://www.w3.org/TR/appmanifest/#webappmanifest-dictionary
 #[serde(deny_unknown_fields)]
 #[derive(Deserialize, Debug, Clone)]
 pub(crate) struct AudioPipeline
@@ -13,6 +12,8 @@ pub(crate) struct AudioPipeline
 	
 	#[serde(default)] pub(crate) metadata: Rc<AudioVideoMetaData>,
 	#[serde(default = "AudioPipeline::width_default")] pub(crate) width: u16,
+	#[serde(default = "AudioPipeline::height_default")] pub(crate) height: u16,
+	#[serde(default)] pub(crate) volume: AudioVolume,
 	
 	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
 	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
@@ -31,6 +32,8 @@ impl Default for AudioPipeline
 			
 			metadata: Default::default(),
 			width: Self::width_default(),
+			height: Self::height_default(),
+			volume: Default::default(),
 			
 			durationInSeconds: Default::default(),
 			mp4Url: Default::default(),
@@ -59,7 +62,7 @@ impl Pipeline for AudioPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
 	{
 		let isPrimaryLanguage = configuration.fallbackIso639Dash1Alpha2Language() == languageData.iso639Dash1Alpha2Language;
 		
@@ -88,7 +91,7 @@ impl Pipeline for AudioPipeline
 		let audioNode =
 		{
 			let mp4UrlBorrow = self.mp4Url.borrow();
-			self.metadata.createAudioNode(resources, configuration, languageData, mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)?
+			self.metadata.createAudioNode(configuration, languageData, mp4UrlBorrow.as_ref().unwrap(), durationInSeconds, self.volume)?
 		};
 		
 		AudioVideoMetaData::createIFramePlayer(resourceUrl, audioNode, self.width, languageData, headerGenerator, &mut result, self.max_age_in_seconds)?;
@@ -118,7 +121,7 @@ impl AudioPipeline
 	#[inline(always)]
 	pub(crate) fn dimensions(&self) -> (u16, u16)
 	{
-		(self.width, 60)
+		(self.width, self.height)
 	}
 	
 	#[inline(always)]
@@ -148,11 +151,11 @@ impl AudioPipeline
 		
 		if isForAmp
 		{
-			self.metadata.createAmpAudioNode(resources, configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)
+			self.metadata.createAmpAudioNode(resources, configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds, self.volume, self.width, self.height)
 		}
 		else
 		{
-			self.metadata.createAudioNode(resources, configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds)
+			self.metadata.createAudioNode(configuration, languageData, &mp4UrlBorrow.as_ref().unwrap(), durationInSeconds, self.volume)
 		}
 	}
 	
@@ -160,5 +163,11 @@ impl AudioPipeline
 	fn width_default() -> u16
 	{
 		400
+	}
+	
+	#[inline(always)]
+	fn height_default() -> u16
+	{
+		60
 	}
 }

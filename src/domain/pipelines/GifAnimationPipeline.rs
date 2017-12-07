@@ -18,7 +18,7 @@ pub(crate) struct GifAnimationPipeline
 	#[serde(default)] quantizer: EngiffenQuantizer,
 	#[serde(default)] loops: EngiffenLoops,
 
-	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
+	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
 }
 
 impl Default for GifAnimationPipeline

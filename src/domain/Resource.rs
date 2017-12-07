@@ -626,6 +626,18 @@ impl Resource
 	}
 	
 	#[inline(always)]
+	pub(crate) fn processedImageSourceSet(&self) -> Result<&RefCell<ProcessedImageSourceSet>, CordialError>
+	{
+		use self::ResourcePipeline::*;
+		match self.pipeline
+		{
+			gif_animation => Ok(&self.gif_animation.processedImageSourceSet),
+			raster_image => Ok(&self.raster_image.processedImageSourceSet),
+			_ => Err(CordialError::Configuration("resource is not a gif_animation or raster_image".to_owned())),
+		}
+	}
+	
+	#[inline(always)]
 	pub(crate) fn anchorTitleAttribute(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<Option<Rc<String>>, CordialError>
 	{
 		use self::ResourcePipeline::*;

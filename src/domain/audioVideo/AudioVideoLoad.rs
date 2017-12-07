@@ -26,7 +26,7 @@ impl AudioVideoLoad
 {
 	//noinspection SpellCheckingInspection
 	#[inline(always)]
-	pub(crate) fn addToVideoNode(&self, videoNode: UnattachedNode, durationInSeconds: u64) -> UnattachedNode
+	pub(crate) fn addToAudioOrVideoNode(&self, audioOrVideoNode: UnattachedNode, durationInSeconds: u64) -> UnattachedNode
 	{
 		use self::AudioVideoLoad::*;
 		
@@ -35,16 +35,16 @@ impl AudioVideoLoad
 			// Twitter Player Card: Content greater than 10 seconds in length must not automatically play; we 'downgrade' to preload=auto
 			auto_play => if durationInSeconds > 10
 			{
-				videoNode.with_empty_attribute("preload")
+				audioOrVideoNode.with_empty_attribute("preload")
 			}
 			else
 			{
-				videoNode.with_empty_attribute("autoplay")
+				audioOrVideoNode.with_empty_attribute("autoplay")
 			},
-			auto => videoNode.with_empty_attribute("preload"),
-			metadata => videoNode.with_attribute("preload".str_attribute("metadata")),
-			none => videoNode.with_attribute("preload".str_attribute("none")),
-			browser_default => videoNode,
+			auto => audioOrVideoNode.with_empty_attribute("preload"),
+			metadata => audioOrVideoNode.with_attribute("preload".str_attribute("metadata")),
+			none => audioOrVideoNode.with_attribute("preload".str_attribute("none")),
+			browser_default => audioOrVideoNode,
 		}
 	}
 }

@@ -143,7 +143,7 @@ impl MarkdownInlinePlugin
 					nodesForOtherPlacesInHtml.ampScript("amp-image-lightbox", "https://cdn.ampproject.org/v0/amp-image-lightbox-0.1.js");
 					nodesForOtherPlacesInHtml.hiddenBody(format!("amp-image-lightbox-{}", &lightboxId), "amp-image-lightbox".with_id_attribute(lightboxId).with_attribute(AmpLayout::nodisplay.toAttribute()) )
 				}
-				image.ampImgNode(image.isAnimated(), lightboxId, displayAmpLoadingIndicator)?
+				image.ampImgNode(image.isAnimated(), lightboxId, displayAmpLoadingIndicator, AmpLayout::responsive)?
 			}
 		}
 		else

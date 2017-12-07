@@ -20,7 +20,7 @@ pub(crate) struct RasterImagePipeline
 	#[serde(default)] transformations: Vec<ImageTransformation>,
 
 	#[serde(default, skip_deserializing)] primaryImageDimensions: Cell<(u32, u32)>,
-	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
+	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
 }
 
 impl Default for RasterImagePipeline

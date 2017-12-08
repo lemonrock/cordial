@@ -8,14 +8,14 @@ pub(crate) struct StaticResponse
 {
 	#[serde(with = "::serde_with::StatusCodeSerde")] statusCode: StatusCode,
 	#[serde(with = "::serde_with::ContentTypeSerde")] contentType: ContentType,
-	headers: Vec<(String, String)>,
-	uncompressedBody: Vec<u8>,
-	gzipAndBrotliCompressedBodies: Option<(Vec<u8>, Vec<u8>)>,
+	headers: ResponseHeaders,
+	uncompressedBody: ResponseBody,
+	gzipAndBrotliCompressedBodies: Option<(BinaryBody, BinaryBody)>,
 }
 
 impl StaticResponse
 {
-	pub(crate) fn new(statusCode: StatusCode, contentType: ContentType, headers: Vec<(String, String)>, uncompressedBody: Vec<u8>, gzipAndBrotliCompressedBodies: Option<(Vec<u8>, Vec<u8>)>) -> Self
+	pub(crate) fn new(statusCode: StatusCode, contentType: ContentType, headers: ResponseHeaders, uncompressedBody: ResponseBody, gzipAndBrotliCompressedBodies: Option<(BinaryBody, BinaryBody)>) -> Self
 	{
 		Self
 		{
@@ -51,7 +51,7 @@ impl StaticResponse
 	}
 	
 	#[inline(always)]
-	fn respondAssumingResourceIs200Ok(&self, isHead: bool, preferredEncoding: PreferredEncoding, entityTag: &str, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
+	fn respondAssumingResourceIs200Ok(&self, isHead: bool, preferredEncoding: PreferredCompression, entityTag: &str, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response
 	{
 		// Order of evaluation: https://tools.ietf.org/html/rfc7232#section-6
 		
@@ -208,18 +208,18 @@ impl StaticResponse
 		}
 		else
 		{
-			response.set_body(self.uncompressedBody.to_owned());
+			response.set_body(self.uncompressedBody.deref().to_owned());
 		}
 		
 		response
 	}
 	
 	#[inline(always)]
-	fn body<'a>(&'a self, preferredEncoding: PreferredEncoding, headers: &mut Headers) -> &'a [u8]
+	fn body<'a>(&'a self, preferredEncoding: PreferredCompression, headers: &mut Headers) -> &'a [u8]
 	{
 		match preferredEncoding
 		{
-			PreferredEncoding::brotli => match self.gzipAndBrotliCompressedBodies
+			PreferredCompression::brotli => match self.gzipAndBrotliCompressedBodies
 			{
 				None => &self.uncompressedBody,
 				Some((ref _gzip, ref brotli)) =>
@@ -228,7 +228,7 @@ impl StaticResponse
 					brotli
 				},
 			}
-			PreferredEncoding::gzip => match self.gzipAndBrotliCompressedBodies
+			PreferredCompression::gzip => match self.gzipAndBrotliCompressedBodies
 			{
 				None => &self.uncompressedBody,
 				Some((ref gzip, ref _brotli)) =>
@@ -237,7 +237,7 @@ impl StaticResponse
 					gzip
 				}
 			}
-			PreferredEncoding::uncompressed => &self.uncompressedBody,
+			PreferredCompression::uncompressed => &self.uncompressedBody,
 		}
 	}
 	

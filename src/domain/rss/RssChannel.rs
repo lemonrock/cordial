@@ -213,8 +213,7 @@ impl RssChannel
 		bodyUncompressed.shrink_to_fit();
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
 		
-		let xmlMimeType = "text/xml; charset=utf-8".parse().unwrap();
-		let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, bodyUncompressed, Some(bodyCompressed));
+		let staticResponse = StaticResponse::new(StatusCode::Ok, content_type_text_xml_utf8(), headers, ResponseBody::utf8(bodyUncompressed), Some(bodyCompressed));
 		
 		newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
 		

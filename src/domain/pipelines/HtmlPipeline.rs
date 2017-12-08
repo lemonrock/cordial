@@ -130,7 +130,7 @@ impl Pipeline for HtmlPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let iso639Dash1Alpha2Language = languageData.iso639Dash1Alpha2Language;
 		let htmlAbstract = match self.abstracts.get(&iso639Dash1Alpha2Language)

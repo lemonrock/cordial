@@ -91,7 +91,7 @@ impl Pipeline for SvgPipeline
 	}
 
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let url = resourceUrl.replaceFileNameExtension(".svg").url(languageData)?;
 
@@ -134,8 +134,8 @@ impl Pipeline for SvgPipeline
 			height_image(height) => urlDataDetails.clone(),
 			width_height_image(width, height) => urlDataDetails.clone(),
 		};
-
-		Ok(vec![(url, tags, StatusCode::Ok, ContentType(mimeType("image/svg+xml")), headers, body, None, CanBeCompressed)])
+		
+		Ok(vec![(url, tags, StatusCode::Ok, content_type_image_svg_xml_utf8(), headers, ResponseBody::utf8(body), None, CanBeCompressed)])
 	}
 }
 

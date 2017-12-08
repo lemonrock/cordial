@@ -61,7 +61,7 @@ impl Pipeline for CssPipeline
 	}
 
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let url = resourceUrl.replaceFileNameExtension(".css").url(languageData)?;
 		
@@ -78,7 +78,7 @@ impl Pipeline for CssPipeline
 		};
 		let body = CssInputFormat::toCss(self.input_format, inputContentFilePath, self.precision, configuration, templateData, self.maximum_release_age_from_can_i_use_database_last_updated_in_weeks, self.minimum_usage_threshold, &self.regional_usages[..])?;
 
-		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(TEXT_CSS), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, content_type_text_css_utf8(), headers, ResponseBody::utf8(body), None, CanBeCompressed)])
 	}
 }
 

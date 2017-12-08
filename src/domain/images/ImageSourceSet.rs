@@ -95,11 +95,11 @@ impl<'a> ImageSourceSet<'a>
 	{
 		if self.jpegQuality.is_some()
 		{
-			(ContentType::jpeg(), ".jpg")
+			(content_type_image_jpeg(), ".jpg")
 		}
 		else
 		{
-			(ContentType::png(), ".png")
+			(content_type_image_png(), ".png")
 		}
 	}
 	
@@ -142,7 +142,7 @@ impl<'a> ImageSourceSet<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<PipelineResource>, CordialError>
+	pub(crate) fn urls<F: FnMut(&Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: F) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let (contentType, fileExtension) = self.contentTypeAndFileExtension();
 		
@@ -196,7 +196,7 @@ impl<'a> ImageSourceSet<'a>
 			{
 				resourceTags.insert(largest_image, urlDataDetails.clone());
 			}
-			urls.push((url, resourceTags, StatusCode::Ok, contentType.clone(), headers, body, None, false));
+			urls.push((url, resourceTags, StatusCode::Ok, contentType.clone(), headers, ResponseBody::binary(body), None, false));
 			index += 1;
 		}
 		Ok(urls)

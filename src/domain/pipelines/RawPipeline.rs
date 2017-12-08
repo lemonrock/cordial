@@ -12,7 +12,7 @@ pub(crate) struct RawPipeline
 	#[serde(default)] language_aware: bool,
 
 	#[serde(default)] can_be_compressed: Option<bool>, // default is to use filename
-	#[serde(default)] mime_type: Option<MimeNewType>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
+	#[serde(default)] mime_type: Option<MimeSerde>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
 	#[serde(default)] anchor_title: HashMap<Iso639Dash1Alpha2Language, Rc<String>>,
 	#[serde(default = "RawPipeline::status_code_default", deserialize_with = "RawPipeline::status_code_deserialize")] status_code: StatusCode, // default is 200 OK
 }
@@ -65,7 +65,7 @@ impl Pipeline for RawPipeline
 	}
 
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, _configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, _configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let inputCanonicalUrl = resourceUrl.url(languageData)?;
 
@@ -86,7 +86,7 @@ impl Pipeline for RawPipeline
 
 		let headers = headerGenerator.generateHeadersForAsset(canBeCompressed, self.max_age_in_seconds, self.is_downloadable, &inputCanonicalUrl)?;
 		let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
+		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, self.status_code, ContentType(mimeType), headers, ResponseBody::binary(body), None, canBeCompressed)])
 	}
 }
 

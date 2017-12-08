@@ -23,7 +23,7 @@ impl Default for Brotli
 
 impl Brotli
 {
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<BinaryBody, CordialError>
 	{
 		let mut compressionParameters = ::brotli2::CompressParams::new();
 		compressionParameters.mode(self.compression_mode.asBrotliCompressMode()).quality(11).lgwin(24).lgblock(24);
@@ -44,6 +44,6 @@ impl Brotli
 		}
 		writer.shrink_to_fit();
 		
-		Ok(writer)
+		Ok(BinaryBody(writer))
 	}
 }

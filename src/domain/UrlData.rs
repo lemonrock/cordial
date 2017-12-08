@@ -69,13 +69,14 @@ impl UrlData
 	#[inline(always)]
 	pub(crate) fn isSuitableForFacebookOpenGraphImage(&self) -> bool
 	{
-		match self.mimeType.type_()
+		match (self.mimeType.type_(), self.mimeType.subtype())
 		{
-			mime::IMAGE => match self.mimeType.subtype()
-			{
-				mime::GIF | mime::JPEG | mime::PNG => true,
-				_ => false,
-			}
+			(IMAGE, GIF) => true,
+			
+			(IMAGE, JPEG) => true,
+			
+			(IMAGE, PNG) => true,
+			
 			_ => false,
 		}
 	}
@@ -83,18 +84,15 @@ impl UrlData
 	#[inline(always)]
 	pub(crate) fn isSuitableForTwitterCardsImage(&self) -> bool
 	{
-		match self.mimeType.type_()
+		match (self.mimeType.type_(), self.mimeType.subtype().as_str())
 		{
-			mime::IMAGE => match self.mimeType.subtype()
-			{
-				mime::GIF => true,
-				
-				mime::JPEG => true,
-				
-				mime::PNG => true,
-				
-				_ => self.mimeType == "image/webp".parse::<Mime>().unwrap(),
-			}
+			(IMAGE, "gif") => true,
+			
+			(IMAGE, "jpeg") => true,
+			
+			(IMAGE, "png") => true,
+			
+			(IMAGE, "webp") => true,
 			
 			_ => false,
 		}
@@ -103,16 +101,13 @@ impl UrlData
 	#[inline(always)]
 	pub(crate) fn isSuitableForGoogleVideoSiteMapThumbnailImage(&self) -> bool
 	{
-		match self.mimeType.type_()
+		match (self.mimeType.type_(), self.mimeType.subtype().as_str())
 		{
-			mime::IMAGE => match self.mimeType.subtype()
-			{
-				mime::JPEG => true,
-				
-				mime::PNG => true,
-				
-				_ => self.mimeType == "image/webp".parse::<Mime>().unwrap(),
-			}
+			(IMAGE, "jpeg") => true,
+			
+			(IMAGE, "png") => true,
+			
+			(IMAGE, "webp") => true,
 			
 			_ => false,
 		}
@@ -121,22 +116,24 @@ impl UrlData
 	#[inline(always)]
 	pub(crate) fn isSuitableForGooglePlayArtwork(&self) -> bool
 	{
-		self.isSuitableForITunesArtwork()
+		match (self.mimeType.type_(), self.mimeType.subtype())
+		{
+			(IMAGE, JPEG) => true,
+			
+			(IMAGE, PNG) => true,
+			
+			_ => false,
+		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn isSuitableForITunesArtwork(&self) -> bool
 	{
-		match self.mimeType.type_()
+		match (self.mimeType.type_(), self.mimeType.subtype())
 		{
-			mime::IMAGE => match self.mimeType.subtype()
-			{
-				mime::JPEG => true,
-				
-				mime::PNG => true,
-				
-				_ => false,
-			}
+			(IMAGE, JPEG) => true,
+			
+			(IMAGE, PNG) => true,
 			
 			_ => false,
 		}
@@ -147,7 +144,7 @@ impl UrlData
 	{
 		match (self.mimeType.type_(), self.mimeType.subtype())
 		{
-			(mime::IMAGE, mime::PNG) => Ok(()),
+			(IMAGE, PNG) => Ok(()),
 			
 			_ => Err(CordialError::Configuration("Resource should be a PNG".to_owned())),
 		}
@@ -169,29 +166,41 @@ impl UrlData
 	#[inline(always)]
 	pub(crate) fn validateIsSuitableForWebAppManifestIcon(&self) -> Result<(), CordialError>
 	{
-		match self.mimeType.as_ref()
+		match (self.mimeType.type_(), self.mimeType.subtype().as_str(), self.mimeType.suffix())
 		{
-			"image/png" | "image/webp" | "image/svg+xml" => Ok(()),
-			_ => Err(CordialError::Configuration("Resource should be a PNG, WebP or SVG".to_owned()))
+			(IMAGE, "png", None) => Ok(()),
+			
+			(IMAGE, "webp", None) => Ok(()),
+			
+			(IMAGE, "svg", Some(XML)) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Not suitable for a web app manifest icon".to_owned())),
 		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn validateIsSuitableForWebAppManifestScreenshot(&self) -> Result<(), CordialError>
 	{
-		self.validateIsSuitableForWebAppManifestIcon()
+		match (self.mimeType.type_(), self.mimeType.subtype().as_str(), self.mimeType.suffix())
+		{
+			(IMAGE, "png", None) => Ok(()),
+			
+			(IMAGE, "webp", None) => Ok(()),
+			
+			(IMAGE, "svg", Some(XML)) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Not suitable for a web app manifest screenshot".to_owned())),
+		}
 	}
 	
 	#[inline(always)]
 	pub(crate) fn validateIsSvg(&self) -> Result<(), CordialError>
 	{
-		if self.mimeType == mimeType("image/svg+xml")
+		match (self.mimeType.type_(), self.mimeType.subtype().as_str(), self.mimeType.suffix())
 		{
-			Ok(())
-		}
-		else
-		{
-			Err(CordialError::Configuration("Resource should be a SVG".to_owned()))
+			(IMAGE, "svg", Some(XML)) => Ok(()),
+			
+			_ => Err(CordialError::Configuration("Resource should be a SVG".to_owned())),
 		}
 	}
 	
@@ -200,7 +209,7 @@ impl UrlData
 	{
 		match (self.mimeType.type_(), self.mimeType.subtype())
 		{
-			(mime::TEXT, mime::HTML) => Ok(()),
+			(TEXT, HTML) => Ok(()),
 			
 			_ => Err(CordialError::Configuration("Resource should be HTML".to_owned())),
 		}
@@ -211,22 +220,23 @@ impl UrlData
 	{
 		match (self.mimeType.type_(), self.mimeType.subtype())
 		{
-			(mime::TEXT, mime::XML) => Ok(()),
+			(TEXT, XML) => Ok(()),
 			
 			_ => Err(CordialError::Configuration("Resource should be XML".to_owned())),
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn validateHasMimeType(&self, hasMimeType: &Mime) -> Result<(), CordialError>
+	pub(crate) fn validateIsExcludingParameters(&self, mimeType: &Mime) -> Result<(), CordialError>
 	{
-		if &self.mimeType == hasMimeType
+		let ours = &self.mimeType;
+		if ours.type_() == mimeType.type_() && ours.subtype() == mimeType.subtype() && ours.suffix() == mimeType.suffix()
 		{
 			Ok(())
 		}
 		else
 		{
-			Err(CordialError::Configuration(format!("Resource should have mime type '{:?}'", hasMimeType)))
+			Err(CordialError::Configuration(format!("Resource should have mime type '{:?}'", mimeType)))
 		}
 	}
 }

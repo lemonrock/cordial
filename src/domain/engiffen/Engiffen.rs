@@ -70,7 +70,7 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	pub(crate) fn process<HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: HeaderGenerator) -> Result<Vec<PipelineResource>, CordialError>
+	pub(crate) fn process<HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, mut headerGenerator: HeaderGenerator) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let sourceImages = self.sourceImages()?;
 		
@@ -117,7 +117,7 @@ impl<'a> Engiffen<'a>
 	}
 	
 	#[inline(always)]
-	fn createGifResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool), CordialError>
+	fn createGifResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, ResponseHeaders, ResponseBody, Option<(ResponseHeaders, Utf8Body)>, bool), CordialError>
 	{
 		use self::ResourceTag::*;
 		
@@ -157,11 +157,11 @@ impl<'a> Engiffen<'a>
 		};
 		
 		let headers = headerGenerator(&url)?;
-		Ok((url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false))
+		Ok((url, resourceTags, StatusCode::Ok, content_type_image_gif(), headers, ResponseBody::binary(body), None, false))
 	}
 	
 	#[inline(always)]
-	fn createPlaceholderResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool), CordialError>
+	fn createPlaceholderResource<'b, HeaderGenerator: for<'r> FnMut(&'r Url) -> Result<Vec<(String, String)>, CordialError>>(&self, sourceSets: &SourceSets<'b>, frameWidthBySourceSet: &HashMap<usize, u16>, frameHeightBySourceSet: &HashMap<usize, u16>, headerGenerator: &mut HeaderGenerator, sourceSetIndex: usize) -> Result<(Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, ResponseHeaders, ResponseBody, Option<(ResponseHeaders, Utf8Body)>, bool), CordialError>
 	{
 		let &(ref engiffenImages, ref engiffenFrames) = sourceSets.get(sourceSetIndex).unwrap();
 		
@@ -194,7 +194,7 @@ impl<'a> Engiffen<'a>
 		};
 		
 		let headers = headerGenerator(&url)?;
-		Ok((url, resourceTags, StatusCode::Ok, ContentType(Self::GifMimeType), headers, body, None, false))
+		Ok((url, resourceTags, StatusCode::Ok, content_type_image_gif(), headers, ResponseBody::binary(body), None, false))
 	}
 	
 	#[inline(always)]
@@ -212,8 +212,6 @@ impl<'a> Engiffen<'a>
 		placeholderRelativeUrlWithoutFileNameExtension.push_str(Suffix);
 		placeholderRelativeUrlWithoutFileNameExtension
 	}
-	
-	const GifMimeType: Mime = mime::IMAGE_GIF;
 	
 	const GifFileExtension: &'static str = ".gif";
 	

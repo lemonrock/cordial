@@ -50,7 +50,7 @@ impl RobotsTxt
 		}.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, CanBeDownloaded, &robotsTxtUrl)?;
 		
 		let bodyCompressed = self.compression.compress(&bodyUncompressed)?;
-		let response = StaticResponse::new(StatusCode::Ok, ContentType::plaintext(), headers, bodyUncompressed, Some(bodyCompressed));
+		let response = StaticResponse::new(StatusCode::Ok, content_type_text_plain_utf8(), headers, ResponseBody::utf8(bodyUncompressed), Some(bodyCompressed));
 		newResponses.addResponse(robotsTxtUrl, RegularAndPjaxStaticResponse::regular(response), oldResponses.clone());
 		
 		Ok(())

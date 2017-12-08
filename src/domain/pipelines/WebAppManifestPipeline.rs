@@ -81,7 +81,7 @@ impl Pipeline for WebAppManifestPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, _inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, resources: &Resources, _inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let url = resourceUrl.replaceFileNameExtension(".json").url(languageData)?;
 		
@@ -95,7 +95,7 @@ impl Pipeline for WebAppManifestPipeline
 			webAppManifestPipeline: self,
 		}.to_json_bytes(resources, configuration.fallbackIso639Dash1Alpha2Language())?;
 		
-		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(mimeType("application/manifest+json")), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, content_type_application_manifest_json_utf8(), headers, ResponseBody::utf8(body), None, CanBeCompressed)])
 	}
 }
 

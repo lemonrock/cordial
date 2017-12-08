@@ -531,7 +531,10 @@ impl Resource
 							None
 						};
 						
-						RegularAndPjaxStaticResponse::both(StaticResponse::new(statusCode, contentType.clone(), regularHeaders, regularBody, regularCompressed), Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody, pjaxCompressed)))
+						let regular = StaticResponse::new(statusCode, contentType.clone(), regularHeaders, regularBody, regularCompressed);
+						let pjax = Some(StaticResponse::new(StatusCode::Ok, contentType, pjaxHeaders, pjaxBody.toResponseBody(), pjaxCompressed));
+						
+						RegularAndPjaxStaticResponse::both(regular, pjax)
 					}
 					else
 					{
@@ -758,7 +761,7 @@ impl Resource
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		use self::ResourcePipeline::*;
 		match self.pipeline

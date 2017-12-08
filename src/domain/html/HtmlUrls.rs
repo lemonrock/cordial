@@ -138,42 +138,42 @@ impl<'a> HtmlUrls<'a>
 	#[inline(always)]
 	fn linkHeaderPreviousUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.previous, &mime::TEXT_HTML_UTF_8)
+		self.optionalUrl(&self.previous, &content_type_text_html_utf8().0)
 	}
 	
 	// link rel="next"
 	#[inline(always)]
 	fn linkHeaderNextUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.next, &mime::TEXT_HTML_UTF_8)
+		self.optionalUrl(&self.next, &content_type_text_html_utf8().0)
 	}
 	
 	// link rel="help"
 	#[inline(always)]
 	fn linkHeaderHelpUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.help, &mime::TEXT_HTML_UTF_8)
+		self.optionalUrl(&self.help, &content_type_text_html_utf8().0)
 	}
 	
 	// link rel="author"
 	#[inline(always)]
 	fn linkHeaderAuthorUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.author, &mime::TEXT_HTML_UTF_8)
+		self.optionalUrl(&self.author, &content_type_text_html_utf8().0)
 	}
 	
 	// link rel="license"
 	#[inline(always)]
 	fn linkHeaderLicenseUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.license, &mime::TEXT_HTML_UTF_8)
+		self.optionalUrl(&self.license, &content_type_text_html_utf8().0)
 	}
 	
 	// link rel="manifest"
 	#[inline(always)]
 	fn linkHeaderManifestUrl(&self) -> Result<Option<Url>, CordialError>
 	{
-		self.optionalUrl(&self.manifest, &mimeType("application/manifest+json"))
+		self.optionalUrl(&self.manifest, &content_type_application_manifest_json_utf8().0)
 	}
 	
 	#[inline(always)]
@@ -184,7 +184,7 @@ impl<'a> HtmlUrls<'a>
 			&None => Ok(None),
 			&Some(ref resourceUrl) =>
 			{
-				resourceUrl.validateResourceExists(self.resources, hasMimeType, self.localization.fallbackIso639Dash1Alpha2Language(), Some(self.languageData.iso639Dash1Alpha2Language))?;
+				resourceUrl.validateResourceExistsWithMimeTypeExcludingParameters(self.resources, hasMimeType, self.localization.fallbackIso639Dash1Alpha2Language(), Some(self.languageData.iso639Dash1Alpha2Language))?;
 				Ok(Some(resourceUrl.url(self.languageData)?))
 			}
 		}

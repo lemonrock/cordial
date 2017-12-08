@@ -3,48 +3,48 @@
 
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-enum PreferredEncoding
+enum PreferredCompression
 {
 	uncompressed,
 	gzip,
 	brotli,
 }
 
-impl PreferredEncoding
+impl PreferredCompression
 {
 	/// NOTE: This algorithm completely ignores quality parameter weights, q=0 and forms such as `*;q=0`
 	#[inline(always)]
 	pub(crate) fn preferredEncoding(acceptEncoding: Option<&AcceptEncoding>) -> Self
 	{
-		use self::PreferredEncoding::*;
+		use self::PreferredCompression::*;
 		
 		match acceptEncoding
 		{
 			None => uncompressed,
 			Some(acceptEncoding) =>
+			{
+				//NOTE: This implementation ignores quality weights, including q=0 and also '*' types
+				let mut supportsGzip = false;
+				for qualityItem in acceptEncoding.0.iter()
 				{
-					//NOTE: This implementation ignores quality weights, including q=0 and also '*' types
-					let mut supportsGzip = false;
-					for qualityItem in acceptEncoding.0.iter()
+					use ::hyper::header::Encoding::*;
+					match qualityItem.item
 					{
-						use ::hyper::header::Encoding::*;
-						match qualityItem.item
-						{
-							Brotli => return brotli,
-							Gzip => supportsGzip = true,
-							_ => (),
-						}
-					}
-					
-					if supportsGzip
-					{
-						gzip
-					}
-					else
-					{
-						uncompressed
+						Brotli => return brotli,
+						Gzip => supportsGzip = true,
+						_ => (),
 					}
 				}
+				
+				if supportsGzip
+				{
+					gzip
+				}
+				else
+				{
+					uncompressed
+				}
+			}
 		}
 	}
 }

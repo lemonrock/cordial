@@ -164,7 +164,7 @@ impl TwitterCardType
 					let mp4UrlBorrow = audioPipeline.mp4Url.borrow();
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", mp4UrlBorrow.as_ref().unwrap().as_str())));
 					
-					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", audioPipeline.twitterContentType()));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", audioPipeline.twitterContentType().0.as_ref()));
 				}
 			}
 			
@@ -201,7 +201,7 @@ impl TwitterCardType
 					let mp4UrlBorrow = videoPipeline.mp4Url.borrow();
 					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream", &format!("{}", mp4UrlBorrow.as_ref().unwrap().as_str())));
 					
-					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.twitterContentType()));
+					endHeadNodes.push(meta_with_name_and_content("twitter:player:stream:content_type", videoPipeline.twitterContentType().0.as_ref()));
 				}
 			}
 		}

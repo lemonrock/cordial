@@ -203,7 +203,6 @@ impl PathExt for Path
 	
 	fn guessMimeTypeWithCharacterSet(&self) -> Result<Mime, CordialError>
 	{
-		// ::mime::APPLICATION_OCTET_STREAM
 		let mimeWithoutCharacterSetString = match self.extension()
 		{
 			None => "text/html",

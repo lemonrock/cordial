@@ -26,7 +26,7 @@ impl Default for Compression
 impl Compression
 {
 	#[inline(always)]
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(Vec<u8>, Vec<u8>), CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<(BinaryBody, BinaryBody), CordialError>
 	{
 		let gzipCompressed = self.gzip.compress(&inputData)?;
 		let brotliCompressed = self.brotli.compress(&inputData)?;

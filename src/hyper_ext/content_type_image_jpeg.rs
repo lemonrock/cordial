@@ -2,4 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) type PipelineResource = (Url, HashMap<ResourceTag, Rc<UrlDataDetails>>, StatusCode, ContentType, Vec<(String, String)>, Vec<u8>, Option<(Vec<(String, String)>, Vec<u8>)>, bool);
+#[inline(always)]
+pub(crate) fn content_type_image_jpeg() -> ContentType
+{
+	ContentType(mime::IMAGE_JPEG)
+}

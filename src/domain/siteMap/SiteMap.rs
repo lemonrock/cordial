@@ -106,8 +106,7 @@ impl SiteMap
 			siteMapIndexBodyUncompressed.shrink_to_fit();
 			let siteMapIndexBodyCompressed = self.compression.compress(&siteMapIndexBodyUncompressed)?;
 
-			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
-			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapIndexBodyUncompressed, Some(siteMapIndexBodyCompressed));
+			let staticResponse = StaticResponse::new(StatusCode::Ok, content_type_application_xml_utf8(), headers, ResponseBody::utf8(siteMapIndexBodyUncompressed), Some(siteMapIndexBodyCompressed));
 
 			robotsTxtConfiguration.addSiteMapIndexUrl(&unversionedCanonicalUrl);
 			newResponses.addResponse(unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse), oldResponses.clone());
@@ -191,8 +190,7 @@ impl SiteMap
 			siteMapBodyUncompressed.shrink_to_fit();
 			let siteMapBodyCompressed = self.compression.compress(&siteMapBodyUncompressed)?;
 
-			let xmlMimeType = "application/xml; charset=utf-8".parse().unwrap();
-			let staticResponse = StaticResponse::new(StatusCode::Ok, ContentType(xmlMimeType), headers, siteMapBodyUncompressed, Some(siteMapBodyCompressed));
+			let staticResponse = StaticResponse::new(StatusCode::Ok, content_type_application_xml_utf8(), headers, ResponseBody::utf8(siteMapBodyUncompressed), Some(siteMapBodyCompressed));
 
 			urlAndResponse.push((unversionedCanonicalUrl, RegularAndPjaxStaticResponse::regular(staticResponse)));
 		}

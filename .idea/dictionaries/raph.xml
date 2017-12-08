@@ -39,6 +39,7 @@
       <w>chunksize</w>
       <w>cloexec</w>
       <w>codabar</w>
+      <w>codecs</w>
       <w>comrak</w>
       <w>cpus</w>
       <w>cvlan</w>
@@ -251,6 +252,7 @@
       <w>viewbox</w>
       <w>volapuk</w>
       <w>volapük</w>
+      <w>vorbis</w>
       <w>webfeeds</w>
       <w>webserver</w>
       <w>werror</w>

@@ -3,9 +3,9 @@
 
 
 #[derive(Debug, Clone)]
-struct MimeNewType(pub Mime);
+pub(crate) struct MimeSerde(pub Mime);
 
-impl Deref for MimeNewType
+impl Deref for MimeSerde
 {
 	type Target = Mime;
 	
@@ -15,7 +15,7 @@ impl Deref for MimeNewType
 	}
 }
 
-impl DerefMut for MimeNewType
+impl DerefMut for MimeSerde
 {
 	fn deref_mut(&mut self) -> &mut Mime
 	{
@@ -23,7 +23,7 @@ impl DerefMut for MimeNewType
 	}
 }
 
-impl<'de> Deserialize<'de> for MimeNewType
+impl<'de> Deserialize<'de> for MimeSerde
 {
 	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
 	{
@@ -66,6 +66,6 @@ impl<'de> Deserialize<'de> for MimeNewType
 			}
 		}
 		
-		deserializer.deserialize_any(MimeVisitor).map(|mime| MimeNewType(mime))
+		deserializer.deserialize_any(MimeVisitor).map(|mime| MimeSerde(mime))
 	}
 }

@@ -3,7 +3,7 @@
 
 
 #[inline(always)]
-pub(crate) fn mimeType(string: &str) -> Mime
+pub(crate) fn content_type_font_woff2() -> ContentType
 {
-	string.parse().unwrap()
+	ContentType(mimeType("font/woff2"))
 }

@@ -38,7 +38,7 @@ impl Gzip
 	}
 	
 	//noinspection SpellCheckingInspection
-	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn compress(&self, inputData: &[u8]) -> Result<BinaryBody, CordialError>
 	{
 		warn!("The zopfli library currently does not support options");
 		
@@ -68,6 +68,6 @@ impl Gzip
 		
 		writer.shrink_to_fit();
 		
-		Ok(writer)
+		Ok(BinaryBody(writer))
 	}
 }

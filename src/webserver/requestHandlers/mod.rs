@@ -37,19 +37,25 @@ use ::radix_trie::Trie;
 use ::radix_trie::TrieCommon;
 use ::ring::digest::Context;
 use ::ring::digest::SHA256;
+use ::std::convert::AsRef;
 use ::std::collections::BTreeMap;
 use ::std::collections::HashMap;
 use ::std::fmt::Debug;
 use ::std::time::SystemTime;
+use ::std::ops::Deref;
 use ::url::Url;
 use ::zero85::ToZ85;
 
 
+include!("BinaryBody.rs");
 include!("HttpRedirectToHttpsRequestHandler.rs");
 include!("HttpsStaticRequestHandler.rs");
-include!("PreferredEncoding.rs");
-include!("RequestHandler.rs");
+include!("PreferredCompression.rs");
 include!("RegularAndPjaxStaticResponse.rs");
+include!("RequestHandler.rs");
+include!("ResponseBody.rs");
+include!("ResponseHeaders.rs");
 include!("Responses.rs");
 include!("StaticResponse.rs");
 include!("StaticResponseVersions.rs");
+include!("Utf8Body.rs");

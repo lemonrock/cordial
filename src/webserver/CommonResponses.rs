@@ -125,13 +125,13 @@ impl CommonResponses for Response
 	#[inline(always)]
 	fn static_txt_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self
 	{
-		Self::static_response(isHead, statusCode, ContentType::plaintext(), body)
+		Self::static_response(isHead, statusCode, content_type_text_plain_utf8(), body)
 	}
 	
 	#[inline(always)]
 	fn static_html_response<I: Into<Cow<'static, str>>>(isHead: bool, statusCode: StatusCode, body: I) -> Self
 	{
-		Self::static_response(isHead, statusCode, ContentType::html(), body)
+		Self::static_response(isHead, statusCode, content_type_text_html_utf8(), body)
 	}
 	
 	#[inline(always)]

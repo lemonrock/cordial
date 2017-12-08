@@ -61,7 +61,7 @@ pub(crate) struct AudioVideoMetaData
 impl AudioVideoMetaData
 {
 	#[inline(always)]
-	pub(crate) fn createAudioMp4(&self, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	pub(crate) fn createAudioMp4(&self, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResponse>, max_age_in_seconds: u32) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
@@ -72,12 +72,12 @@ impl AudioVideoMetaData
 			ResourceTag::audio_mp4 => urlDataDetails.clone(),
 			ResourceTag::default => urlDataDetails,
 		};
-		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::AudioMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
+		result.push((mp4Url, mp4Tags, StatusCode::Ok, audioMp4TwitterContentType(), mp4Headers, ResponseBody::binary(mp4Body), None, Incompressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createVideoMp4(&self, width: u16, height: u16, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	pub(crate) fn createVideoMp4(&self, width: u16, height: u16, durationInSeconds: u64, mp4Url: Url, headerGenerator: &mut HeaderGenerator, mp4Body: Vec<u8>, result: &mut Vec<PipelineResponse>, max_age_in_seconds: u32) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
@@ -88,28 +88,29 @@ impl AudioVideoMetaData
 			ResourceTag::video_mp4 => urlDataDetails.clone(),
 			ResourceTag::default => urlDataDetails,
 		};
-		result.push((mp4Url, mp4Tags, StatusCode::Ok, ContentType(mimeType(Self::VideoMp4TwitterMimeType)), mp4Headers, mp4Body, None, Incompressible));
+		
+		result.push((mp4Url, mp4Tags, StatusCode::Ok, videoMp4TwitterContentType(), mp4Headers, ResponseBody::binary(mp4Body), None, Incompressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createWebm(&self, width: u16, height: u16, durationInSeconds: u64, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	pub(crate) fn createWebm(&self, width: u16, height: u16, durationInSeconds: u64, webmUrl: Url, headerGenerator: &mut HeaderGenerator, inputContentFilePath: &Path, result: &mut Vec<PipelineResponse>, max_age_in_seconds: u32) -> Result<(), CordialError>
 	{
 		const Incompressible: bool = false;
 		
 		let webmInputContentFilePath = inputContentFilePath.with_extension("webm");
-		let webmBody = webmInputContentFilePath.fileContentsAsBytes().context(webmInputContentFilePath)?;
+		let webmBody = ResponseBody::binary(webmInputContentFilePath.fileContentsAsBytes().context(webmInputContentFilePath)?);
 		let webmHeaders = headerGenerator.generateHeadersForAsset(Incompressible, max_age_in_seconds, self.isDownloadable(), &webmUrl)?;
 		let webmTags = hashmap!
 		{
 			ResourceTag::video_webm => Rc::new(UrlDataDetails::video(&webmBody, width, height, durationInSeconds))
 		};
-		result.push((webmUrl, webmTags, StatusCode::Ok, ContentType(mimeType(Self::WebMVp8MimeType)), webmHeaders, webmBody, None, Incompressible));
+		result.push((webmUrl, webmTags, StatusCode::Ok, webm8ContentType(), webmHeaders, webmBody, None, Incompressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createIFramePlayer(resourceUrl: &ResourceUrl, audioOrVideoNode: UnattachedNode, width: u16, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	pub(crate) fn createIFramePlayer(resourceUrl: &ResourceUrl, audioOrVideoNode: UnattachedNode, width: u16, languageData: &LanguageData, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResponse>, max_age_in_seconds: u32) -> Result<(), CordialError>
 	{
 		#[inline(always)]
 		fn iFramePlayerHtmlBody(audioVideoNode: UnattachedNode, width: u16) -> Vec<u8>
@@ -140,18 +141,18 @@ impl AudioVideoMetaData
 		const Compressible: bool = true;
 		
 		let iFramePlayerUrl = Self::iFramePlayerUrl(resourceUrl, languageData)?;
-		let iFramePlayerBody = iFramePlayerHtmlBody(audioOrVideoNode, width);
+		let iFramePlayerBody = ResponseBody::utf8(iFramePlayerHtmlBody(audioOrVideoNode, width));
 		let iFramePlayerHeaders = headerGenerator.generateHeadersForAsset(Compressible, max_age_in_seconds, false, &iFramePlayerUrl)?;
 		let iFramePlayerTags = hashmap!
 		{
 			ResourceTag::audio_video_iframe_player => Rc::new(UrlDataDetails::generic(&iFramePlayerBody))
 		};
-		result.push((iFramePlayerUrl, iFramePlayerTags, StatusCode::Ok, ContentType::html(), iFramePlayerHeaders, iFramePlayerBody, None, Compressible));
+		result.push((iFramePlayerUrl, iFramePlayerTags, StatusCode::Ok, content_type_text_html_utf8(), iFramePlayerHeaders, iFramePlayerBody, None, Compressible));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	pub(crate) fn createWebVttTracks(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResource>, max_age_in_seconds: u32) -> Result<(), CordialError>
+	pub(crate) fn createWebVttTracks(&self, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, configuration: &Configuration, headerGenerator: &mut HeaderGenerator, result: &mut Vec<PipelineResponse>, max_age_in_seconds: u32) -> Result<(), CordialError>
 	{
 		for track in self.tracks.iter()
 		{
@@ -164,7 +165,7 @@ impl AudioVideoMetaData
 					self.orderedMapOfWebVttUrls.borrow_mut().insert((track.kind, languageData.iso639Dash1Alpha2Language), webVttUrl.clone());
 					
 					let webVttHeaders = headerGenerator.generateHeadersForAsset(CanBeCompressed, max_age_in_seconds, self.isDownloadable(), &webVttUrl)?;
-					result.push((webVttUrl, hashmap! { ResourceTag::audio_video_track(track.kind, languageData.iso639Dash1Alpha2Language) => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, ContentType(mimeType("text/vtt")), webVttHeaders, webVttBody, None, CanBeCompressed));
+					result.push((webVttUrl, hashmap! { ResourceTag::audio_video_track(track.kind, languageData.iso639Dash1Alpha2Language) => Rc::new(UrlDataDetails::generic(&webVttBody)) }, StatusCode::Ok, content_type_text_vtt_utf8(), webVttHeaders, ResponseBody::utf8(webVttBody), None, CanBeCompressed));
 				}
 				
 				Ok(())
@@ -262,7 +263,7 @@ impl AudioVideoMetaData
 			.with_child_text(languageData.requiredTranslation(RequiredTranslation::missing_audio_fallback)?.as_str())
 		);
 		
-		self.addSources(ampAudioNode, mp4Url, None, Self::AudioMp4TwitterMimeType)
+		self.addSources(ampAudioNode, mp4Url, None, audioMp4TwitterContentType())
 	}
 	
 	#[inline(always)]
@@ -307,7 +308,7 @@ impl AudioVideoMetaData
 			}
 		}
 		
-		audioNode = self.addSources(audioNode, mp4Url, None, Self::AudioMp4TwitterMimeType)?;
+		audioNode = self.addSources(audioNode, mp4Url, None, audioMp4TwitterContentType())?;
 		
 		let translation = languageData.requiredTranslation(RequiredTranslation::your_browser_does_not_support_audio)?;
 		audioNode = audioNode.with_child_text(translation.deref().as_str());
@@ -497,11 +498,11 @@ impl AudioVideoMetaData
 	
 	fn addVideoSourcesAndTracks(&self, videoNode: UnattachedNode, mp4Url: &Url, webmUrl: &Url, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
 	{
-		let videoNode = self.addSources(videoNode, mp4Url, Some(webmUrl), Self::VideoMp4TwitterMimeType)?;
+		let videoNode = self.addSources(videoNode, mp4Url, Some(webmUrl), videoMp4TwitterContentType())?;
 		self.addTracks(videoNode, iso639Dash1Alpha2Language, configuration)
 	}
 	
-	fn addSources(&self, mut videoNode: UnattachedNode, mp4Url: &Url, webmUrl: Option<&Url>, mp4Type: &str) -> Result<UnattachedNode, CordialError>
+	fn addSources(&self, mut audioVideoNode: UnattachedNode, mp4Url: &Url, webmUrl: Option<&Url>, mp4Type: ContentType) -> Result<UnattachedNode, CordialError>
 	{
 		let mediaTimeFragment = match self.ends_at_seconds_exclusive
 		{
@@ -532,22 +533,22 @@ impl AudioVideoMetaData
 		
 		if let Some(webmUrl) = webmUrl
 		{
-			videoNode = videoNode.with_child_element
+			audioVideoNode = audioVideoNode.with_child_element
 			(
 				"source"
-				.with_type_attribute(Self::WebMVp8MimeType)
+				.with_type_attribute(webm8ContentType().0.as_ref())
 				.with_attribute("src".string_attribute(format!("{}{}", webmUrl.as_ref(), &mediaTimeFragment)))
 			);
 		}
 		
-		videoNode = videoNode.with_child_element
+		audioVideoNode = audioVideoNode.with_child_element
 		(
 			"source"
-			.with_type_attribute(mp4Type)
+			.with_type_attribute(mp4Type.0.as_ref())
 			.with_attribute("src".string_attribute(format!("{}{}", mp4Url.as_ref(), &mediaTimeFragment)))
 		);
 		
-		Ok(videoNode)
+		Ok(audioVideoNode)
 	}
 	
 	fn addTracks(&self, videoNode: UnattachedNode, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, configuration: &Configuration) -> Result<UnattachedNode, CordialError>
@@ -607,17 +608,6 @@ impl AudioVideoMetaData
 	{
 		resourceUrl.replaceFileNameExtension(".iframe-player.html").url(languageData)
 	}
-	
-	// See http://www.leanbackplayer.com/test/h5mt.html for most variants
-	
-	//noinspection SpellCheckingInspection
-	pub(crate) const AudioMp4TwitterMimeType: &'static str = "audio/mp4;codecs=\"mp4a.40.2\"";
-	
-	//noinspection SpellCheckingInspection
-	pub(crate) const VideoMp4TwitterMimeType: &'static str = "video/mp4;codecs=\"avc1.42E01E,mp4a.40.2\"";
-	
-	//noinspection SpellCheckingInspection
-	const WebMVp8MimeType: &'static str = "video/webm;codecs=\"vp8,vorbis\"";
 	
 	#[inline(always)]
 	pub(crate) fn audioVideoAbstract(&self, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<&AudioVideoAbstract, CordialError>

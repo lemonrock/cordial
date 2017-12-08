@@ -21,7 +21,7 @@ include!("is_downloadable_false_default.rs");
 include!("is_versioned_true_default.rs");
 include!("max_age_in_seconds_long_default.rs");
 include!("Pipeline.rs");
-include!("PipelineResource.rs");
+include!("PipelineResponse.rs");
 include!("RasterImagePipeline.rs");
 include!("RawPipeline.rs");
 include!("SvgPipeline.rs");

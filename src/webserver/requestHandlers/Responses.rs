@@ -213,7 +213,7 @@ impl Responses
 					};
 					
 					let isPjax = requestHeaders.get_raw("X-PJAX").is_some();
-					let preferredEncoding = PreferredEncoding::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
+					let preferredEncoding = PreferredCompression::preferredEncoding(requestHeaders.get::<AcceptEncoding>());
 					
 					let response = staticResponseVersions.staticResponse(isHead, isPjax, preferredEncoding, query, requestHeaders.get::<IfMatch>(), requestHeaders.get::<IfUnmodifiedSince>(), requestHeaders.get::<IfNoneMatch>(), requestHeaders.get::<IfModifiedSince>(), requestHeaders.get::<IfRange>(), requestHeaders.get::<Range>());
 					

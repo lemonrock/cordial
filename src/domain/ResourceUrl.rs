@@ -94,11 +94,11 @@ impl ResourceUrl
 	}
 	
 	#[inline(always)]
-	pub(crate) fn validateResourceExists<'resources>(&self, resources: &'resources Resources, hasMimeType: &Mime, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
+	pub(crate) fn validateResourceExistsWithMimeTypeExcludingParameters<'resources>(&self, resources: &'resources Resources, hasMimeType: &Mime, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Option<Iso639Dash1Alpha2Language>) -> Result<(), CordialError>
 	{
 		let resource = self.resourceMandatory(resources)?;
 		let urlData = resource.urlDataMandatory(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language, &ResourceTag::default)?;
-		urlData.validateHasMimeType(hasMimeType)
+		urlData.validateIsExcludingParameters(hasMimeType)
 	}
 	
 	#[inline(always)]

@@ -67,7 +67,7 @@ impl Pipeline for BrowserConfigPipeline
 	}
 	
 	#[inline(always)]
-	fn execute(&self, resources: &Resources, _inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResource>, CordialError>
+	fn execute(&self, resources: &Resources, _inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let url = resourceUrl.replaceFileNameExtension(".xml").url(languageData)?;
 		
@@ -76,7 +76,7 @@ impl Pipeline for BrowserConfigPipeline
 		
 		let body = self.body(resources, configuration.fallbackIso639Dash1Alpha2Language(), Some(languageData.iso639Dash1Alpha2Language))?;
 		
-		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, ContentType(mime::TEXT_XML), headers, body, None, CanBeCompressed)])
+		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, content_type_application_xml_utf8(), headers, ResponseBody::utf8(body), None, CanBeCompressed)])
 	}
 }
 

@@ -46,7 +46,7 @@ impl InputFormat for FontInputFormat
 impl FontInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<PipelineResource>, CordialError>
+	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let format = match option
 		{
@@ -68,7 +68,7 @@ impl FontInputFormat
 	}
 	
 	#[inline(always)]
-	fn process(&self, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, includeTrueTypeFont: bool) -> Result<Vec<PipelineResource>, CordialError>
+	fn process(&self, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, includeTrueTypeFont: bool) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		const CanNotBeCompressed: bool = false;
@@ -88,7 +88,7 @@ impl FontInputFormat
 			let woffHeaders = headerGenerator.generateHeadersForAsset(CanNotBeCompressed, maximumAgeInSeconds, isDownloadable, &woffUrl)?;
 			let woffBody = encodeWoff(&ttfBytes, woffNumberOfIterations, DefaultFontMajorVersion, DefaultFontMinorVersion, utf8_xml_metadata, woff1_private_data).context(inputContentFilePath)?.as_ref().to_vec();
 			let NoPjax = None;
-			urls.push((woffUrl, Self::defaultHashMap(&woffBody), StatusCode::Ok, ContentType(mimeType("font/woff")), woffHeaders, woffBody, NoPjax, CanNotBeCompressed));
+			urls.push((woffUrl, Self::defaultHashMap(&woffBody), StatusCode::Ok, content_type_font_woff(), woffHeaders, ResponseBody::binary(woffBody), NoPjax, CanNotBeCompressed));
 		}
 		
 		// woff2
@@ -107,7 +107,7 @@ impl FontInputFormat
 				Ok(body) => body,
 			};
 			let NoPjax = None;
-			urls.push((woff2Url, Self::defaultHashMap(&woff2Body), StatusCode::Ok, ContentType(mimeType("font/woff2")), woff2Headers, woff2Body, NoPjax, CanNotBeCompressed));
+			urls.push((woff2Url, Self::defaultHashMap(&woff2Body), StatusCode::Ok, content_type_font_woff2(), woff2Headers, ResponseBody::binary(woff2Body), NoPjax, CanNotBeCompressed));
 		}
 		
 		if includeTrueTypeFont
@@ -115,7 +115,7 @@ impl FontInputFormat
 			let ttfUrl = resourceUrl.url(languageData)?;
 			let ttfHeaders =  headerGenerator.generateHeadersForAsset(CanBeCompressed, maximumAgeInSeconds, isDownloadable, &ttfUrl)?;
 			let NoPjax = None;
-			urls.push((ttfUrl, Self::defaultHashMap(&ttfBytes), StatusCode::Ok, ContentType(mimeType("application/font-sfnt")), ttfHeaders, ttfBytes, NoPjax, CanBeCompressed));
+			urls.push((ttfUrl, Self::defaultHashMap(&ttfBytes), StatusCode::Ok, content_type_application_font_sfnt(), ttfHeaders, ResponseBody::binary(ttfBytes), NoPjax, CanBeCompressed));
 		}
 		
 		Ok(urls)

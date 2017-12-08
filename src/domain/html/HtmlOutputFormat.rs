@@ -47,7 +47,7 @@ impl HtmlOutputFormat
 	const IsNotDownloadable: bool = true;
 	
 	#[inline(always)]
-	pub(crate) fn renderHtmlDocumentsAndRedirects<'a>(&self, resources: &Resources, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator<'a>, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<Vec<PipelineResource>, CordialError>
+	pub(crate) fn renderHtmlDocumentsAndRedirects<'a>(&self, resources: &Resources, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator<'a>, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let mut result = Vec::new();
 		
@@ -118,7 +118,7 @@ impl HtmlOutputFormat
 	}
 	
 	#[inline(always)]
-	fn redirectToDocument(redirectFromUrl: Option<Url>, canonicalUrl: &Url, result: &mut Vec<PipelineResource>) -> Result<(), CordialError>
+	fn redirectToDocument(redirectFromUrl: Option<Url>, canonicalUrl: &Url, result: &mut Vec<PipelineResponse>) -> Result<(), CordialError>
 	{
 		// Redirect to Canonical HTML document
 		if let Some(redirectUrl) = redirectFromUrl
@@ -128,13 +128,13 @@ impl HtmlOutputFormat
 			let urlTags = hashmap! { redirect => Rc::new(UrlDataDetails::generic(&redirectToCanonicalUrlBody)) };
 			
 			const RedirectsCanNotBeCompressed: bool = false;
-			result.push((redirectUrl, urlTags, StatusCode::MovedPermanently, ContentType::plaintext(), redirectToCanonicalUrlHeaders, redirectToCanonicalUrlBody, None, RedirectsCanNotBeCompressed));
+			result.push((redirectUrl, urlTags, StatusCode::MovedPermanently, content_type_text_plain_utf8(), redirectToCanonicalUrlHeaders, ResponseBody::utf8(redirectToCanonicalUrlBody), None, RedirectsCanNotBeCompressed));
 		}
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn regularHtmlDocument(resources: &Resources, htmlUrl: Url, pjaxCssSelector: &Option<String>, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
+	fn regularHtmlDocument(resources: &Resources, htmlUrl: Url, pjaxCssSelector: &Option<String>, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResponse>, addAmpLink: bool, ampLinkIsCanonical: bool) -> Result<(), CordialError>
 	{
 		// Canonical HTML document
 		let htmlHeaders = headerGenerator.generateHeaders(Self::IsNotPjax, Self::CanBeCompressed, maximumAge, Self::IsNotDownloadable, &htmlUrl)?;
@@ -145,7 +145,7 @@ impl HtmlOutputFormat
 		{
 			const IsPjax: bool = true;
 			let pjaxHeaders = headerGenerator.generateHeaders(IsPjax, Self::CanBeCompressed, maximumAge, Self::IsNotDownloadable, &htmlUrl)?;
-			let pjaxBody = Self::extractNodes(pjaxCssSelector, &htmlDocument, "pjax_css_selector")?;
+			let pjaxBody = Utf8Body(Self::extractNodes(pjaxCssSelector, &htmlDocument, "pjax_css_selector")?);
 			Some((pjaxHeaders, pjaxBody))
 		}
 		else
@@ -155,12 +155,12 @@ impl HtmlOutputFormat
 		
 		let urlTags = hashmap! { default => Rc::new(UrlDataDetails::generic(&htmlBody)) };
 		
-		result.push((htmlUrl, urlTags, StatusCode::Ok, ContentType::html(), htmlHeaders, htmlBody, pjax, Self::CanBeCompressed));
+		result.push((htmlUrl, urlTags, StatusCode::Ok, content_type_text_html_utf8(), htmlHeaders, ResponseBody::utf8(htmlBody), pjax, Self::CanBeCompressed));
 		Ok(())
 	}
 	
 	#[inline(always)]
-	fn ampDocument(resources: &Resources, ampUrl: Url, isAlsoCanonical: bool, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResource>, ampLinkIsCanonical: bool) -> Result<(), CordialError>
+	fn ampDocument(resources: &Resources, ampUrl: Url, isAlsoCanonical: bool, template: &str, htmlDocumentData: &HtmlDocumentData, headerGenerator: &mut HeaderGenerator, maximumAge: u32, inputContentFilePath: &Path, handlebars: &HandlebarsWrapper, result: &mut Vec<PipelineResponse>, ampLinkIsCanonical: bool) -> Result<(), CordialError>
 	{
 		// Canonical HTML document
 		let htmlHeaders = headerGenerator.generateHeaders(Self::IsNotPjax, Self::CanBeCompressed, maximumAge, Self::IsNotDownloadable, &ampUrl)?;
@@ -179,7 +179,7 @@ impl HtmlOutputFormat
 			urlTags.insert(default, urlDataDetails);
 		}
 		
-		result.push((ampUrl, urlTags, StatusCode::Ok, ContentType::html(), htmlHeaders, htmlBody, pjax, Self::CanBeCompressed));
+		result.push((ampUrl, urlTags, StatusCode::Ok, content_type_text_html_utf8(), htmlHeaders, ResponseBody::utf8(htmlBody), pjax, Self::CanBeCompressed));
 		Ok(())
 	}
 	

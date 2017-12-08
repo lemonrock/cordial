@@ -2,41 +2,42 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub(crate) enum StaticResponseVersions
 {
 	Unversioned
 	{
-		url: Url,
+		#[serde(with = "url_serde")] url: Url,
 		currentResponse: RegularAndPjaxStaticResponse,
-		currentLastModified: HttpDate,
+		#[serde(with = "::serde_with::HttpDateSerde")] currentLastModified: HttpDate,
 	},
 	
 	SingleVersion
 	{
-		versionedUrl: Url,
+		#[serde(with = "url_serde")] versionedUrl: Url,
 		currentResponse: RegularAndPjaxStaticResponse,
 		currentVersionAsQuery: String,
-		currentLastModified: HttpDate,
+		#[serde(with = "::serde_with::HttpDateSerde")] currentLastModified: HttpDate,
 	},
 	
 	HasPrevisionVersion
 	{
-		versionedUrl: Url,
+		#[serde(with = "url_serde")] versionedUrl: Url,
 		currentResponse: RegularAndPjaxStaticResponse,
 		currentVersionAsQuery: String,
-		currentLastModified: HttpDate,
+		#[serde(with = "::serde_with::HttpDateSerde")] currentLastModified: HttpDate,
 		previousResponse: RegularAndPjaxStaticResponse,
 		previousVersionAsQuery: String,
-		previousLastModified: HttpDate,
+		#[serde(with = "::serde_with::HttpDateSerde")] previousLastModified: HttpDate,
 	},
 	
 	Discontinued
 	{
-		previousUrlOrVersionedUrl: Url,
+		#[serde(with = "url_serde")] previousUrlOrVersionedUrl: Url,
 		previousResponse: RegularAndPjaxStaticResponse,
 		previousVersionAsQuery: Option<String>,
-		previousLastModified: HttpDate,
+		#[serde(with = "::serde_with::HttpDateSerde")] previousLastModified: HttpDate,
 	}
 }
 

@@ -2,11 +2,12 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub(crate) struct StaticResponse
 {
-	statusCode: StatusCode,
-	contentType: ContentType,
+	#[serde(with = "::serde_with::StatusCodeSerde")] statusCode: StatusCode,
+	#[serde(with = "::serde_with::ContentTypeSerde")] contentType: ContentType,
 	headers: Vec<(String, String)>,
 	uncompressedBody: Vec<u8>,
 	gzipAndBrotliCompressedBodies: Option<(Vec<u8>, Vec<u8>)>,

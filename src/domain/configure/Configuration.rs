@@ -53,24 +53,15 @@ impl Default for Configuration
 impl Configuration
 {
 	#[inline(always)]
-	pub(crate) fn resourceTemplate(&self) -> HjsonValue
+	pub(crate) fn languageData<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<LanguageData<'a>, CordialError>
 	{
-		self.resource_template.as_ref().unwrap().clone()
+		self.localization.languageData(iso639Dash1Alpha2Language)
 	}
 	
 	#[inline(always)]
-	pub(crate) fn daemonizeAndBindSockets(&self, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
+	pub(crate) fn primaryLanguageData<'a>(&'a self) -> Result<LanguageData<'a>, CordialError>
 	{
-		self.daemon.daemonizeAndBindSockets(&self.outputFolderPath, isDaemon)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
-	{
-		Self::validateInputFiles(inputFolderPath)?;
-		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
-		
-		configuration.finishReconfigure(oldResponses)
+		self.localization.languageData(self.localization.fallbackIso639Dash1Alpha2Language())
 	}
 	
 	#[inline(always)]
@@ -113,6 +104,27 @@ impl Configuration
 		}
 		
 		Ok(importPaths)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn resourceTemplate(&self) -> HjsonValue
+	{
+		self.resource_template.as_ref().unwrap().clone()
+	}
+	
+	#[inline(always)]
+	pub(crate) fn daemonizeAndBindSockets(&self, isDaemon: bool) -> Result<(::std::net::TcpListener, ::std::net::TcpListener), CordialError>
+	{
+		self.daemon.daemonizeAndBindSockets(&self.outputFolderPath, isDaemon)
+	}
+	
+	#[inline(always)]
+	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
+	{
+		Self::validateInputFiles(inputFolderPath)?;
+		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
+		
+		configuration.finishReconfigure(oldResponses)
 	}
 	
 	#[inline(always)]
@@ -423,18 +435,6 @@ impl Configuration
 		{
 			errors.push(format!("{:?} is unknown (?Solaris Door?)", path));
 		}
-	}
-	
-	#[inline(always)]
-	pub(crate) fn languageData<'a>(&'a self, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<LanguageData<'a>, CordialError>
-	{
-		self.localization.languageData(iso639Dash1Alpha2Language)
-	}
-	
-	#[inline(always)]
-	pub(crate) fn primaryLanguageData<'a>(&'a self) -> Result<LanguageData<'a>, CordialError>
-	{
-		self.localization.languageData(self.localization.fallbackIso639Dash1Alpha2Language())
 	}
 	
 	#[inline(always)]

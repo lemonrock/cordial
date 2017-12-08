@@ -2,11 +2,12 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug)]
+#[serde(deny_unknown_fields)]
+#[derive(Deserialize, Serialize, Debug)]
 pub(crate) struct Responses
 {
 	resourcesByHostNameAndPathAndQueryString: HashMap<String, Trie<String, StaticResponseVersions>>,
-	deploymentDate: HttpDate,
+	#[serde(with = "::serde_with::HttpDateSerde")] deploymentDate: HttpDate,
 }
 
 impl Responses

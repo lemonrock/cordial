@@ -2,7 +2,8 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct Configuration
 {
 	#[serde(default)] daemon: Daemon,
@@ -10,7 +11,7 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::http_keep_alive_default")] http_keep_alive: bool,
 	#[serde(default)] enable_hsts_preloading_for_production: bool,
 	#[serde(default)] allow_search_engine_indexing_for_production: bool,
-	#[serde(default, skip_deserializing)] resource_template: Option<HjsonValue>,
+	#[serde(default, skip_serializing, skip_deserializing)] resource_template: Option<HjsonValue>,
 	#[serde(default)] pub(crate) localization: Localization,
 	#[serde(default)] robots: RobotsTxt,
 	#[serde(default)] site_map: SiteMap,
@@ -187,6 +188,11 @@ impl Configuration
 	#[inline(always)]
 	fn render(&self, resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &HandlebarsWrapper) -> Result<Responses, CordialError>
 	{
+		// TODO: Load cache of Responses
+		// However, need to check that Responses hash is valid
+		// TODO: Multi-thread creation of Responses
+		
+		
 		let mut newResponses = Responses::new(self.deploymentDate, ourHostNames);
 		
 		{

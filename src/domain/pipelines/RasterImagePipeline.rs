@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct RasterImagePipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -19,8 +19,8 @@ pub(crate) struct RasterImagePipeline
 	#[serde(default)] jpeg_speed_over_compression: bool,
 	#[serde(default)] transformations: Vec<ImageTransformation>,
 
-	#[serde(default, skip_deserializing)] primaryImageDimensions: Cell<(u32, u32)>,
-	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
+	#[serde(default, skip_deserializing, skip_serializing)] primaryImageDimensions: Cell<(u32, u32)>,
+	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing, skip_serializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
 }
 
 impl Default for RasterImagePipeline

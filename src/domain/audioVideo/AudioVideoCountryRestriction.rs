@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct AudioVideoCountryRestriction
 {
 	#[serde(default)] pub(crate) restriction: CountryRestrictionInclusion,

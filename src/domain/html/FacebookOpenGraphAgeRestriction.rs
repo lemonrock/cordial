@@ -3,15 +3,15 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum FacebookOpenGraphAgeRestriction
 {
-	ThirteenPlus,
-	SixteenPlus,
-	SeventeenPlus,
-	EighteenPlus,
-	NineteenPlus,
-	TwentyOnePlus,
+	#[serde(rename = "13+")] ThirteenPlus,
+	#[serde(rename = "16+")] SixteenPlus,
+	#[serde(rename = "17+")] SeventeenPlus,
+	#[serde(rename = "18+")] EighteenPlus,
+	#[serde(rename = "19+")] NineteenPlus,
+	#[serde(rename = "21+")] TwentyOnePlus,
 }
 
 impl Default for FacebookOpenGraphAgeRestriction

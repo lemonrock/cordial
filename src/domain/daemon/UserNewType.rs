@@ -31,6 +31,19 @@ impl<'de> Deserialize<'de> for UserNewType
 	}
 }
 
+impl Serialize for UserNewType
+{
+	#[inline(always)]
+	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	{
+		match self.0
+		{
+			User::Name(ref string) => serializer.serialize_str(string.as_str()),
+			User::Id(id) => serializer.serialize_u32(id),
+		}
+	}
+}
+
 impl FromStringOrNumber for UserNewType
 {
 	#[inline(always)]

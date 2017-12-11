@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub(crate) struct HtmlDocumentItem
 {
 	#[serde(default)] pub(crate) categories: BTreeSet<String>,

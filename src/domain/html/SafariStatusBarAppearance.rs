@@ -4,7 +4,7 @@
 
 // Sourced from https://developers.google.com/web/fundamentals/design-and-ux/browser-customization/#change_the_status_bar_appearance
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum SafariStatusBarAppearance
 {
 	default,

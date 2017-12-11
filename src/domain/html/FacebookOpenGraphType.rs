@@ -4,7 +4,7 @@
 
 //noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) enum FacebookOpenGraphType
 {
 	music_song
@@ -410,7 +410,7 @@ impl FacebookOpenGraphType
 }
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FacebookOpenGraphBusiness
 {
 	street_address: String,

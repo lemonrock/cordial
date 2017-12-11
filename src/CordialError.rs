@@ -90,6 +90,13 @@ quick_error!
 			from()
 		}
 		
+		CouldNotExecuteLuaCode(error: ::hlua::LuaError)
+		{
+			description("Could not execute Lua code")
+			display("Could not execute Lua code because '{:?}'", error)
+			from()
+		}
+		
 		HjsonDeserialization(path: PathBuf, cause: ::serde_hjson::error::Error)
 		{
 			cause(cause)

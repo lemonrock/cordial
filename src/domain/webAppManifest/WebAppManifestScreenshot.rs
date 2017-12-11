@@ -15,30 +15,42 @@ impl Serialize for WebAppManifestScreenshot
 	#[inline(always)]
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	{
-		let mut fieldCount = 3;
-		
-		if self.platform.is_some()
+		if WebAppManifestSerializationState::isStateless()
 		{
-			fieldCount += 1;
-		}
-		
-		let mut state = serializer.serialize_struct("WebAppManifestIcon", fieldCount)?;
-		{
-			let screenshotUrlData = WebAppManifestSerializationState::urlData::<S>(&self.screenshot)?;
-			screenshotUrlData.validateIsSuitableForWebAppManifestScreenshot().map_err(|cordialError| S::Error::custom(cordialError))?;
-			
-			state.serialize_field("src", screenshotUrlData.url().as_str())?;
-			
-			state.serialize_field("type", screenshotUrlData.mimeType().as_ref())?;
-			
-			let (width, height) = screenshotUrlData.dimensions().map_err(|cordialError| S::Error::custom(cordialError))?;
-			state.serialize_field("sizes", &format!("{}x{}", width, height))?;
-			
-			if let Some(ref platform) = self.platform
+			let mut state = serializer.serialize_struct("WebAppManifestScreenshot", 2)?;
 			{
-				state.serialize_field("platform", platform)?;
+				state.serialize_field("screenshot", &self.screenshot)?;
+				state.serialize_field("platform", &self.platform)?;
 			}
+			state.end()
 		}
-		state.end()
+		else
+		{
+			let mut fieldCount = 3;
+			
+			if self.platform.is_some()
+			{
+				fieldCount += 1;
+			}
+			
+			let mut state = serializer.serialize_struct("WebAppManifestIcon", fieldCount)?;
+			{
+				let screenshotUrlData = WebAppManifestSerializationState::urlData::<S>(&self.screenshot)?;
+				screenshotUrlData.validateIsSuitableForWebAppManifestScreenshot().map_err(|cordialError| S::Error::custom(cordialError))?;
+				
+				state.serialize_field("src", screenshotUrlData.url().as_str())?;
+				
+				state.serialize_field("type", screenshotUrlData.mimeType().as_ref())?;
+				
+				let (width, height) = screenshotUrlData.dimensions().map_err(|cordialError| S::Error::custom(cordialError))?;
+				state.serialize_field("sizes", &format!("{}x{}", width, height))?;
+				
+				if let Some(ref platform) = self.platform
+				{
+					state.serialize_field("platform", platform)?;
+				}
+			}
+			state.end()
+		}
 	}
 }

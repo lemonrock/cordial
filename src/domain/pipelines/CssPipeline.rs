@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct CssPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -15,8 +15,8 @@ pub(crate) struct CssPipeline
 	#[serde(default = "CssPipeline::precision_default")] precision: u8,
 	#[serde(default)] template_parameters: Option<JsonMap<String, JsonValue>>,
 	#[serde(default = "CssPipeline::maximum_release_age_from_can_i_use_database_last_updated_in_weeks_default")] maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16,
-	#[serde(default = "CssPipeline::minimum_usage_threshold_default")] minimum_usage_threshold: UsagePercentage,
-	#[serde(default = "CssPipeline::regional_usages_default")] regional_usages: Vec<RegionalUsages>,
+	#[serde(default = "CssPipeline::minimum_usage_threshold_default", skip_serializing)] minimum_usage_threshold: UsagePercentage,
+	#[serde(default = "CssPipeline::regional_usages_default", skip_serializing)] regional_usages: Vec<RegionalUsages>,
 }
 
 impl Default for CssPipeline
@@ -68,15 +68,16 @@ impl Pipeline for CssPipeline
 		const CanBeCompressed: bool = true;
 		let headers = headerGenerator.generateHeadersForAsset(CanBeCompressed, self.max_age_in_seconds, self.is_downloadable, &url)?;
 		
-		let templateData = if let Some(ref templateParameters) = self.template_parameters
+		let handlebarsTemplate = HandlebarsTemplate
 		{
-			Some((handlebars, templateParameters, languageData))
-		}
-		else
-		{
-			None
+			handlebars,
+			configuration,
+			iso639Dash1Alpha2Language: Some(languageData.iso639Dash1Alpha2Language),
+			canBeCompressed: CanBeCompressed,
+			templateParameters: self.template_parameters.as_ref(),
 		};
-		let body = CssInputFormat::toCss(self.input_format, inputContentFilePath, self.precision, configuration, templateData, self.maximum_release_age_from_can_i_use_database_last_updated_in_weeks, self.minimum_usage_threshold, &self.regional_usages[..])?;
+		
+		let body = CssInputFormat::toCss(self.input_format, inputContentFilePath, self.precision, &handlebarsTemplate, self.maximum_release_age_from_can_i_use_database_last_updated_in_weeks, self.minimum_usage_threshold, &self.regional_usages[..])?;
 
 		Ok(vec![(url, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, StatusCode::Ok, content_type_text_css_utf8(), headers, ResponseBody::utf8(body), None, CanBeCompressed)])
 	}

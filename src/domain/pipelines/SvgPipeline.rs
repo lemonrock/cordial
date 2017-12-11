@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct SvgPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -20,7 +20,7 @@ pub(crate) struct SvgPipeline
 	// SVG can be an 'icon-stack' (ie multiple images in one file), typically with less complexity for smaller sizes
 	// Or individual image files, with width/height pre-set
 
-	#[serde(default, skip_deserializing)] primaryImageDimensions: Cell<(u32, u32)>,
+	#[serde(default, skip_deserializing, skip_serializing)] primaryImageDimensions: Cell<(u32, u32)>,
 }
 
 impl Default for SvgPipeline

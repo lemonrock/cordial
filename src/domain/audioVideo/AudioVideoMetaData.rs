@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Default, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub(crate) struct AudioVideoMetaData
 {
 	#[serde(default)] pub(crate) load: AudioVideoLoad,
@@ -55,7 +55,7 @@ pub(crate) struct AudioVideoMetaData
 	// Used by mRSS
 	#[serde(default)] pub(crate) licence: Option<ResourceUrl>,
 	
-	#[serde(default, skip_deserializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) orderedMapOfWebVttUrls: RefCell<OrderMap<(AudioVideoTrackKind, Iso639Dash1Alpha2Language), Url>>,
 }
 
 impl AudioVideoMetaData

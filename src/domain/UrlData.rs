@@ -2,11 +2,11 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub(crate) struct UrlData
 {
-	url: Rc<Url>,
-	mimeType: Mime,
+	#[serde(serialize_with = "UrlData::url_serialize_with")] url: Rc<Url>,
+	#[serde(serialize_with = "UrlData::mimeType_serialize_with")] mimeType: Mime,
 	urlDataDetails: Rc<UrlDataDetails>,
 }
 
@@ -238,5 +238,17 @@ impl UrlData
 		{
 			Err(CordialError::Configuration(format!("Resource should have mime type '{:?}'", mimeType)))
 		}
+	}
+	
+	#[inline(always)]
+	fn url_serialize_with<S: Serializer>(url: &Url, serializer: S) -> Result<S::Ok, S::Error>
+	{
+		serializer.serialize_str(url.as_ref())
+	}
+	
+	#[inline(always)]
+	fn mimeType_serialize_with<S: Serializer>(mimeType: &Mime, serializer: S) -> Result<S::Ok, S::Error>
+	{
+		serializer.serialize_str(mimeType.as_ref())
 	}
 }

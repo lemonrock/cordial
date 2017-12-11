@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct AudioPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -15,8 +15,8 @@ pub(crate) struct AudioPipeline
 	#[serde(default = "AudioPipeline::height_default")] pub(crate) height: u16,
 	#[serde(default)] pub(crate) volume: AudioVolume,
 	
-	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
-	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) durationInSeconds: Cell<u64>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
 }
 
 impl Default for AudioPipeline

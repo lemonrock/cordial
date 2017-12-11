@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct FeedlyRssChannel
 {
 	#[serde(default = "FeedlyRssChannel::png_cover_image_default")] png_cover_image: ResourceUrl,

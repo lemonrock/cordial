@@ -4,7 +4,7 @@
 
 //noinspection SpellCheckingInspection
 #[serde(deny_unknown_fields, default)]
-#[derive(Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) struct CleaningSettings
 {
 	remove_unused_defs: bool,

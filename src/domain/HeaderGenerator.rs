@@ -21,7 +21,6 @@ impl<'a> HeaderGenerator<'a>
 	#[inline(always)]
 	pub(crate) fn generateHeaders(&mut self, isPjax: bool, canBeCompressed: bool, maximumAgeInSeconds: u32, isDownloadable: bool, url: &Url) -> Result<Vec<(String, String)>, CordialError>
 	{
-		let localization = &self.configuration.localization;
 		let deploymentVersion = &self.configuration.deploymentVersion;
 		
 		let mut headers = Vec::with_capacity(self.headerTemplates.len() * 2);
@@ -32,7 +31,7 @@ impl<'a> HeaderGenerator<'a>
 			
 			if canBeCompressed
 			{
-				Some("content-encoding, x-pjax")
+				Some("content-encoding,x-pjax")
 			}
 			else
 			{
@@ -61,7 +60,7 @@ impl<'a> HeaderGenerator<'a>
 		}
 		else
 		{
-			headers.push(("Cache-Control".to_owned(), format!("max-age={}; no-transform; immutable", maximumAgeInSeconds)))
+			headers.push(("Cache-Control".to_owned(), format!("max-age={};no-transform;immutable", maximumAgeInSeconds)))
 		}
 		
 		let fileNameUtf8 = url.fileNameOrIndexNamePercentDecodedUntrusted(".html").to_owned();
@@ -73,19 +72,15 @@ impl<'a> HeaderGenerator<'a>
 		{
 			"inline"
 		};
-		headers.push(("Content-Disposition".to_owned(), format!("{}; filename*=utf-8''{}", variant, utf8_percent_encode(&fileNameUtf8, USERINFO_ENCODE_SET))));
+		headers.push(("Content-Disposition".to_owned(), format!("{};filename*=utf-8''{}", variant, utf8_percent_encode(&fileNameUtf8, USERINFO_ENCODE_SET))));
 		
-		let (ourLanguage, otherLanguages) = match self.ifLanguageAwareLanguageData
+		let iso639Dash1Alpha2Language = match self.ifLanguageAwareLanguageData
 		{
-			None => (None, None),
-			Some(&LanguageData { iso639Dash1Alpha2Language, language }) =>
+			None => None,
+			Some(&LanguageData { iso639Dash1Alpha2Language, .. }) =>
 			{
 				headers.push(("Content-Language".to_owned(), iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code().to_owned()));
-				
-				let mut ourLanguage = HashMap::with_capacity(2);
-				ourLanguage.insert("iso639Dash1Alpha2Language", iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
-				ourLanguage.insert("iso_3166_1_alpha_2_country_code", language.iso3166Dash1Alpha2CountryCode().to_iso_3166_1_alpha_2_language_code());
-				(Some(ourLanguage), Some(localization.otherLanguages(iso639Dash1Alpha2Language)))
+				Some(iso639Dash1Alpha2Language)
 			}
 		};
 		
@@ -93,30 +88,17 @@ impl<'a> HeaderGenerator<'a>
 		{
 			for (headerName, headerTemplate) in self.headerTemplates.iter()
 			{
-				if !headerName.is_ascii()
-				{
-					return Err(CordialError::Configuration(format!("Non-ASCII header name '{}' for {}", headerName, url)))
-				}
+				let mut templateParameters = JsonMap::with_capacity(1);
+				templateParameters.insert("headers".to_owned(), json!(&headers));
 				
-				let json = &json!
-				({
-					"environment": &self.configuration.environment,
-					"our_language": ourLanguage,
-					"localization": localization,
-					"other_languages": otherLanguages,
-					"can_be_compressed": canBeCompressed,
-					"deployment_date": self.configuration.deploymentDate,
-					"deployment_version": deploymentVersion,
-					"current_headers": &headers,
-					
-					"header": headerName,
-				});
-				
-				let headerValue = templateRenderer.template_render(headerTemplate, &json)?;
-				if !headerValue.is_ascii()
+				let headerValue = HandlebarsTemplate
 				{
-					return Err(CordialError::Configuration(format!("Non-ASCII header value '{}' for header name '{}' for {}", headerValue, headerName, url)))
-				}
+					handlebars: self.handlebars,
+					configuration: self.configuration,
+					iso639Dash1Alpha2Language,
+					canBeCompressed,
+					templateParameters: Some(&templateParameters),
+				}.processHttpTemplate(&templateRenderer, headerName, headerTemplate)?;
 				
 				headers.push((headerName.to_owned(), headerValue));
 			}

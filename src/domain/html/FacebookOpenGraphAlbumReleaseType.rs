@@ -3,11 +3,11 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum FacebookOpenGraphAlbumReleaseType
 {
-	original_release,
-	re_release,
+	#[serde(rename = "original release")] original_release,
+	#[serde(rename = "re-release")] re_release,
 	anthology,
 }
 

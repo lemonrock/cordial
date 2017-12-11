@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct VideoPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -13,10 +13,10 @@ pub(crate) struct VideoPipeline
 	#[serde(default)] pub(crate) metadata: Rc<AudioVideoMetaData>,
 	#[serde(default)] pub(crate) plays_inline: bool,
 	
-	#[serde(default, skip_deserializing)] pub(crate) dimensions: Cell<(u16, u16)>,
-	#[serde(default, skip_deserializing)] pub(crate) durationInSeconds: Cell<u64>,
-	#[serde(default, skip_deserializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
-	#[serde(default, skip_deserializing)] pub(crate) webmUrl: RefCell<Option<Url>>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) dimensions: Cell<(u16, u16)>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) durationInSeconds: Cell<u64>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) mp4Url: RefCell<Option<Url>>,
+	#[serde(default, skip_deserializing, skip_serializing)] pub(crate) webmUrl: RefCell<Option<Url>>,
 }
 
 impl Default for VideoPipeline

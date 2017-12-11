@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum CssInputFormat
 {
 	sass,
@@ -49,7 +49,7 @@ impl InputFormat for CssInputFormat
 impl CssInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, templateData: Option<(&HandlebarsWrapper, &JsonMap<String, JsonValue>, &LanguageData)>, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn toCss(option: Option<Self>, inputContentFilePath: &Path, precision: u8, handlebarsTemplate: &HandlebarsTemplate, maximum_release_age_from_can_i_use_database_last_updated_in_weeks: u16, minimum_usage_threshold: UsagePercentage, regional_usages: &[RegionalUsages]) -> Result<Vec<u8>, CordialError>
 	{
 		let format = match option
 		{
@@ -67,41 +67,14 @@ impl CssInputFormat
 				}
 			}
 		};
+		
 		let raw = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
-		let input = Self::preProcessWithHandlebars(raw, configuration, templateData)?;
-		let cssString = format.processCss(inputContentFilePath, precision, configuration, input)?;
+		
+		let input = handlebarsTemplate.processNonHtmlTemplate(raw)?;
+		
+		let cssString = format.processCss(inputContentFilePath, precision, handlebarsTemplate.configuration, input)?;
+		
 		Self::validateCssAndAutoprefix(inputContentFilePath, &cssString, maximum_release_age_from_can_i_use_database_last_updated_in_weeks, minimum_usage_threshold, regional_usages)
-	}
-	
-	#[inline(always)]
-	fn preProcessWithHandlebars(raw: String, configuration: &Configuration, templateData: Option<(&HandlebarsWrapper, &JsonMap<String, JsonValue>, &LanguageData)>) -> Result<String, CordialError>
-	{
-		if let Some((handlebars, templateParameters, languageData)) = templateData
-		{
-			let localization = &configuration.localization;
-			let deploymentVersion = &configuration.deploymentVersion;
-			
-			let mut ourLanguage = HashMap::with_capacity(2);
-			ourLanguage.insert("iso639Dash1Alpha2Language", languageData.iso639Dash1Alpha2Language.to_iso_639_1_alpha_2_language_code());
-			ourLanguage.insert("iso_3166_1_alpha_2_country_code", languageData.language.iso3166Dash1Alpha2CountryCode().to_iso_3166_1_alpha_2_language_code());
-			
-			let json = &json!
-			({
-				"environment": &configuration.environment,
-				"our_language": ourLanguage,
-				"localization": localization,
-				"can_be_compressed": true,
-				"deployment_date": configuration.deploymentDate,
-				"deployment_version": deploymentVersion,
-				"template_parameters": templateParameters,
-			});
-			
-			handlebars.renderWithEscapeFunction(::handlebars::no_escape, |templateRenderer| templateRenderer.template_render(&raw, json))
-		}
-		else
-		{
-			Ok(raw)
-		}
 	}
 	
 	#[inline(always)]

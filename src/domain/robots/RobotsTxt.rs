@@ -3,7 +3,8 @@
 
 
 // See: https://developers.google.com/search/reference/robots_txt
-#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct RobotsTxt
 {
 	#[serde(default)] headers: HashMap<String, String>,

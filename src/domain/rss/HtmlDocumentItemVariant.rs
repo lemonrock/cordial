@@ -3,19 +3,19 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) enum HtmlDocumentItemVariant
 {
 	Article
 	{
-		#[serde(default, skip_deserializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant>>,
-		#[serde(default, skip_deserializing)] lastModifiedDate: Cell<Option<DateTime<Utc>>>,
+		#[serde(default, skip_deserializing, skip_serializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant>>,
+		#[serde(default, skip_deserializing, skip_serializing)] lastModifiedDate: Cell<Option<DateTime<Utc>>>,
 		#[serde(default)] image: Option<ResourceUrl>,
 	},
 	
 	Podcast
 	{
-		#[serde(default, skip_deserializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant>>,
+		#[serde(default, skip_deserializing, skip_serializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant>>,
 		#[serde(default)] podcast: ResourceUrl,
 	},
 }

@@ -9,7 +9,6 @@ use super::svg::Meme;
 use super::svg::MonArtist;
 use super::svg::PlotSettings;
 use super::svg::QrCodeData;
-use ::serde_json::Map as JsonMap;
 use ::woff2_sys::convertTtfToWoff2;
 
 

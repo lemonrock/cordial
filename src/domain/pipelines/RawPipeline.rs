@@ -3,18 +3,19 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct RawPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
 	#[serde(default = "is_versioned_true_default")] is_versioned: bool,
 	#[serde(default)] language_aware: bool,
-
+	
+	#[serde(default)] template_parameters: Option<JsonMap<String, JsonValue>>,
 	#[serde(default)] can_be_compressed: Option<bool>, // default is to use filename
 	#[serde(default)] mime_type: Option<MimeSerde>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
 	#[serde(default)] anchor_title: HashMap<Iso639Dash1Alpha2Language, Rc<String>>,
-	#[serde(default = "RawPipeline::status_code_default", deserialize_with = "RawPipeline::status_code_deserialize")] status_code: StatusCode, // default is 200 OK
+	#[serde(default = "RawPipeline::status_code_default", with = "::serde_with::StatusCodeSerde")] status_code: StatusCode,
 }
 
 impl Default for RawPipeline
@@ -28,6 +29,7 @@ impl Default for RawPipeline
 			is_downloadable: is_downloadable_false_default(),
 			is_versioned: is_versioned_true_default(),
 			language_aware: false,
+			template_parameters: None,
 			can_be_compressed: None,
 			mime_type: None,
 			anchor_title: Default::default(),
@@ -65,7 +67,7 @@ impl Pipeline for RawPipeline
 	}
 
 	#[inline(always)]
-	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, _handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, _configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
+	fn execute(&self, _resources: &Resources, inputContentFilePath: &Path, resourceUrl: &ResourceUrl, handlebars: &HandlebarsWrapper, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, configuration: &Configuration, _rssChannelsToRssItems: &mut HashMap<Rc<RssChannelName>, Vec<RssItem>>, _siteMapWebPages: &mut Vec<SiteMapWebPage>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let inputCanonicalUrl = resourceUrl.url(languageData)?;
 
@@ -83,10 +85,38 @@ impl Pipeline for RawPipeline
 			None => inputContentFilePath.guessMimeTypeWithCharacterSet()?,
 			Some(ref mimeNewType) => mimeNewType.deref().clone(),
 		};
-
+		
 		let headers = headerGenerator.generateHeadersForAsset(canBeCompressed, self.max_age_in_seconds, self.is_downloadable, &inputCanonicalUrl)?;
-		let body = inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?;
-		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, self.status_code, ContentType(mimeType), headers, ResponseBody::binary(body), None, canBeCompressed)])
+		
+		let body = match mimeType.get_param(CHARSET)
+		{
+			Some(UTF_8) =>
+			{
+				let template = inputContentFilePath.fileContentsAsString().context(inputContentFilePath)?;
+				
+				let body = HandlebarsTemplate
+				{
+					handlebars,
+					configuration,
+					iso639Dash1Alpha2Language: Some(languageData.iso639Dash1Alpha2Language),
+					canBeCompressed,
+					templateParameters: self.template_parameters.as_ref(),
+				}.processNonHtmlTemplate(template)?;
+				
+				ResponseBody::utf8(body.into_bytes())
+			}
+			
+			_ =>
+			{
+				if self.template_parameters.is_some()
+				{
+					return Err(CordialError::Configuration("Template parameters are only usable for textual resources which are UTF-8 encoded".to_owned()));
+				}
+				ResponseBody::binary(inputContentFilePath.fileContentsAsBytes().context(inputContentFilePath)?)
+			}
+		};
+		
+		Ok(vec![(inputCanonicalUrl, hashmap! { default => Rc::new(UrlDataDetails::generic(&body)) }, self.status_code, ContentType(mimeType), headers, body, None, canBeCompressed)])
 	}
 }
 
@@ -96,57 +126,5 @@ impl RawPipeline
 	fn status_code_default() -> StatusCode
 	{
 		StatusCode::Ok
-	}
-
-	#[inline(always)]
-	fn status_code_deserialize<'de, D: Deserializer<'de>>(deserializer: D) -> Result<StatusCode, D::Error>
-	{
-		struct StatusCodeVisitor;
-
-		impl<'de> Visitor<'de> for StatusCodeVisitor
-		{
-			type Value = StatusCode;
-
-			fn expecting(&self, formatter: &mut Formatter) -> fmt::Result
-			{
-				formatter.write_str("an unsigned integer between 100 and 599")
-			}
-
-			fn visit_u8<E: de::Error>(self, value: u8) -> Result<StatusCode, E>
-			{
-				StatusCode::try_from(value as u16).map_err(|_| E::custom("out of range between 100 and 599 inclusive"))
-			}
-
-			fn visit_u16<E: de::Error>(self, value: u16) -> Result<StatusCode, E>
-			{
-				StatusCode::try_from(value).map_err(|_| E::custom("out of range between 100 and 599 inclusive"))
-			}
-
-			fn visit_u32<E: de::Error>(self, value: u32) -> Result<StatusCode, E>
-			{
-				if value > 2^16 - 1
-				{
-					return Err(E::custom("out of range between 100 and 599 inclusive"))
-				}
-				else
-				{
-					StatusCode::try_from(value as u16).map_err(|_| E::custom("out of range between 100 and 599 inclusive"))
-				}
-			}
-
-			fn visit_u64<E: de::Error>(self, value: u64) -> Result<StatusCode, E>
-			{
-				if value > 2^16 - 1
-				{
-					return Err(E::custom("out of range between 100 and 599 inclusive"))
-				}
-				else
-				{
-					StatusCode::try_from(value as u16).map_err(|_| E::custom("out of range between 100 and 599 inclusive"))
-				}
-			}
-		}
-
-		deserializer.deserialize_u16(StatusCodeVisitor)
 	}
 }

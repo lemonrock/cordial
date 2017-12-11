@@ -2,34 +2,9 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum WebAppManifestIconPurpose
-{
-	badge,
-	any,
-}
+use super::*;
 
-impl Default for WebAppManifestIconPurpose
-{
-	#[inline(always)]
-	fn default() -> Self
-	{
-		WebAppManifestIconPurpose::any
-	}
-}
 
-impl WebAppManifestIconPurpose
-{
-	#[inline(always)]
-	pub(crate) fn to_str(&self) -> &'static str
-	{
-		use self::WebAppManifestIconPurpose::*;
-		
-		match *self
-		{
-			badge => "badge",
-			any => "any",
-		}
-	}
-}
+include!("HandlebarsTemplate.rs");
+include!("HandlebarsTemplateRenderer.rs");
+include!("HandlebarsWrapper.rs");

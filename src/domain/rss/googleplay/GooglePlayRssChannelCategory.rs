@@ -5,7 +5,7 @@
 // From https://support.google.com/googleplay/podcasts/answer/6260341?hl=en&ref_topic=6249881
 // As of 6th December 2017, category lists are identical to iTunes top-level category.
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum GooglePlayCategory
 {
 	Arts,

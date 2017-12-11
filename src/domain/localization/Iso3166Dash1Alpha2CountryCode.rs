@@ -7,6 +7,7 @@
 // - XK (Kosovo)
 // - QO (Outlying Oceania)
 // - EU (Europe)
+#[serde(deny_unknown_fields)]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum Iso3166Dash1Alpha2CountryCode
 {

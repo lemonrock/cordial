@@ -4,7 +4,7 @@
 
 // From https://help.apple.com/itc/podcasts_connect/?lang=en#/itc9267a2f12
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub(crate) enum ITunesCategoryAndSubCategory
 {
 	Arts,

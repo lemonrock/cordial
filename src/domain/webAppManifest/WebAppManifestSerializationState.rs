@@ -13,6 +13,14 @@ pub(crate) struct WebAppManifestSerializationState
 
 impl WebAppManifestSerializationState
 {
+	pub(crate) fn isStateless() -> bool
+	{
+		WebAppManifestSerializationStateThreadLocal.with(|state|
+		{
+			state.borrow().is_none()
+		})
+	}
+	
 	// Never inlined, so can not transform function and remove hackToKeepReferenceToResourcesAlive
 	#[inline(never)]
 	pub(crate) fn with<Callback: FnOnce() -> Result<R, CordialError>, R>(resources: &Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, callback: Callback) -> Result<(R, usize), CordialError>
@@ -34,7 +42,7 @@ impl WebAppManifestSerializationState
 	{
 		WebAppManifestSerializationStateThreadLocal.with(|state|
 		{
-			assert!(state.borrow().is_none());
+			debug_assert!(state.borrow().is_none());
 			
 			*state.borrow_mut() = Some
 			(
@@ -74,6 +82,11 @@ impl WebAppManifestSerializationState
 	#[inline(always)]
 	fn after()
 	{
-		WebAppManifestSerializationStateThreadLocal.with(|state| *state.borrow_mut() = None);
+		WebAppManifestSerializationStateThreadLocal.with(|state|
+		{
+			debug_assert!(state.borrow().is_some());
+			
+			*state.borrow_mut() = None
+		});
 	}
 }

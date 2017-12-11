@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Clone)]
-struct GroupNewType(pub Group);
+struct GroupNewType(Group);
 
 impl Deref for GroupNewType
 {
@@ -28,6 +28,19 @@ impl<'de> Deserialize<'de> for GroupNewType
 	fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error>
 	{
 		deserializer.deserialize_any(StringOrNumberVisitor(PhantomData))
+	}
+}
+
+impl Serialize for GroupNewType
+{
+	#[inline(always)]
+	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	{
+		match self.0
+		{
+			Group::Name(ref string) => serializer.serialize_str(string.as_str()),
+			Group::Id(id) => serializer.serialize_u32(id),
+		}
 	}
 }
 

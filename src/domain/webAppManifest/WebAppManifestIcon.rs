@@ -16,58 +16,71 @@ impl Serialize for WebAppManifestIcon
 	#[inline(always)]
 	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
 	{
-		let mut fieldCount = 3;
-		
-		if !self.purposes.is_empty()
+		if WebAppManifestSerializationState::isStateless()
 		{
-			fieldCount += 1;
-		}
-		
-		if self.platform.is_some()
-		{
-			fieldCount += 1;
-		}
-		
-		let mut state = serializer.serialize_struct("WebAppManifestIcon", fieldCount)?;
-		{
-			let iconUrlData = WebAppManifestSerializationState::urlData::<S>(&self.icon)?;
-			iconUrlData.validateIsSuitableForWebAppManifestIcon().map_err(|cordialError| S::Error::custom(cordialError))?;
-			
-			state.serialize_field("src", iconUrlData.url().as_str())?;
-			
-			state.serialize_field("type", iconUrlData.mimeType().as_ref())?;
-			
-			let (width, height) = iconUrlData.dimensions().map_err(|cordialError| S::Error::custom(cordialError))?;
-			if width != height
+			let mut state = serializer.serialize_struct("WebAppManifestIcon", 3)?;
 			{
-				return Err(S::Error::custom("width and height must be square for a web app manifest icon"));
+				state.serialize_field("icon", &self.icon)?;
+				state.serialize_field("purposes", &self.purposes)?;
+				state.serialize_field("platform", &self.platform)?;
 			}
-			state.serialize_field("sizes", &format!("{}x{}", width, height))?;
+			state.end()
+		}
+		else
+		{
+			let mut fieldCount = 3;
 			
 			if !self.purposes.is_empty()
 			{
-				let mut concatenated = String::new();
-				let mut afterFirst = false;
-				for purpose in self.purposes.iter()
-				{
-					if afterFirst
-					{
-						concatenated.push(' ');
-					}
-					else
-					{
-						afterFirst = true;
-					}
-					concatenated.push_str(purpose.to_str())
-				}
-				state.serialize_field("purpose", &concatenated)?;
+				fieldCount += 1;
 			}
 			
-			if let Some(ref platform) = self.platform
+			if self.platform.is_some()
 			{
-				state.serialize_field("platform", platform)?;
+				fieldCount += 1;
 			}
+			
+			let mut state = serializer.serialize_struct("WebAppManifestIcon", fieldCount)?;
+			{
+				let iconUrlData = WebAppManifestSerializationState::urlData::<S>(&self.icon)?;
+				iconUrlData.validateIsSuitableForWebAppManifestIcon().map_err(|cordialError| S::Error::custom(cordialError))?;
+				
+				state.serialize_field("src", iconUrlData.url().as_str())?;
+				
+				state.serialize_field("type", iconUrlData.mimeType().as_ref())?;
+				
+				let (width, height) = iconUrlData.dimensions().map_err(|cordialError| S::Error::custom(cordialError))?;
+				if width != height
+				{
+					return Err(S::Error::custom("width and height must be square for a web app manifest icon"));
+				}
+				state.serialize_field("sizes", &format!("{}x{}", width, height))?;
+				
+				if !self.purposes.is_empty()
+				{
+					let mut concatenated = String::new();
+					let mut afterFirst = false;
+					for purpose in self.purposes.iter()
+					{
+						if afterFirst
+						{
+							concatenated.push(' ');
+						}
+						else
+						{
+							afterFirst = true;
+						}
+						concatenated.push_str(purpose.to_str())
+					}
+					state.serialize_field("purpose", &concatenated)?;
+				}
+				
+				if let Some(ref platform) = self.platform
+				{
+					state.serialize_field("platform", platform)?;
+				}
+			}
+			state.end()
 		}
-		state.end()
 	}
 }

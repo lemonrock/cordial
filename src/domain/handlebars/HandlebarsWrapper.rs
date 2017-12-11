@@ -9,6 +9,7 @@ pub(crate) struct HandlebarsWrapper
 
 impl HandlebarsWrapper
 {
+	#[inline(always)]
 	pub(crate) fn new(handlebarsTemplatesFolderPath: &Path) -> Result<HandlebarsWrapper, CordialError>
 	{
 		let mut handlebars = Handlebars::new();

@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct GifAnimationPipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
@@ -18,7 +18,7 @@ pub(crate) struct GifAnimationPipeline
 	#[serde(default)] quantizer: EngiffenQuantizer,
 	#[serde(default)] loops: EngiffenLoops,
 
-	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
+	#[serde(default = "ProcessedImageSourceSet::processedImageSourceSet_default", skip_deserializing, skip_serializing)] pub(crate) processedImageSourceSet: RefCell<ProcessedImageSourceSet>,
 }
 
 impl Default for GifAnimationPipeline

@@ -7,6 +7,7 @@ use ::serde::de::Deserialize;
 use ::serde::de::Deserializer;
 use ::serde::de::Error as DeserializeError;
 use ::serde::de::Visitor;
+use ::serde::ser::Serialize;
 use ::serde::ser::Serializer;
 use ::std::fmt;
 use ::std::fmt::Formatter;

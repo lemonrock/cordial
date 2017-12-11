@@ -52,6 +52,9 @@ pub(crate) trait PathExt
 	
 	fn fileContentsAsPemRsaPrivateKey(&self) -> Result<PrivateKey, CordialError>;
 	
+	fn executeFileContentsAsLua<'a, 'lua, T>(&self, lua: &'a mut Lua<'lua>) -> Result<T, CordialError>
+	where T: for<'g> LuaRead<PushGuard<&'g mut PushGuard<&'a mut Lua<'lua>>>>;
+	
 	fn createFileWithByteContents(&self, bytes: &[u8]) -> io::Result<()>;
 	
 	fn createFileWithStringContents(&self, string: &str) -> io::Result<()>;
@@ -418,6 +421,15 @@ impl PathExt for Path
 		
 		let x = rsaPrivateKeys.drain(..).next().unwrap();
 		Ok(x)
+	}
+	
+	fn executeFileContentsAsLua<'a, 'lua, T>(&self, lua: &'a mut Lua<'lua>) -> Result<T, CordialError>
+	where T: for<'g> LuaRead<PushGuard<&'g mut PushGuard<&'a mut Lua<'lua>>>>
+	{
+		let reader = self.fileContentsAsBufReader(4096).context(self)?;
+		
+		let result = lua.execute_from_reader(reader)?;
+		Ok(result)
 	}
 	
 	fn createParentFolderForFilePath(&self) -> io::Result<()>

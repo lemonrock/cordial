@@ -3,7 +3,7 @@
 
 
 #[derive(Debug, Clone)]
-pub(crate) struct MimeSerde(pub Mime);
+pub(crate) struct MimeSerde(pub(crate) Mime);
 
 impl Deref for MimeSerde
 {
@@ -67,5 +67,14 @@ impl<'de> Deserialize<'de> for MimeSerde
 		}
 		
 		deserializer.deserialize_any(MimeVisitor).map(|mime| MimeSerde(mime))
+	}
+}
+
+impl Serialize for MimeSerde
+{
+	#[inline(always)]
+	fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	{
+		serializer.serialize_str(self.0.as_ref())
 	}
 }

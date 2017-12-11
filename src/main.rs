@@ -8,7 +8,7 @@
 #![feature(plugin)]
 #![feature(unboxed_closures)]
 #![plugin(phf_macros)]
-#![recursion_limit="128"]
+#![recursion_limit="256"]
 
 
 extern crate arrayvec;
@@ -30,6 +30,7 @@ extern crate futures;
 extern crate gif;
 extern crate guetzli_sys;
 extern crate handlebars;
+extern crate hlua;
 extern crate hyper;
 extern crate image;
 extern crate libc;
@@ -95,6 +96,9 @@ use ::clap::Arg;
 use ::clap::ArgMatches;
 use ::css_purify::html5ever_ext::*;
 use ::handlebars::Handlebars;
+use ::hlua::Lua;
+use ::hlua::LuaRead;
+use ::hlua::PushGuard;
 use ::hyper::mime;
 use ::hyper::mime::Mime;
 use ::hyper::mime::Name;
@@ -138,6 +142,7 @@ pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod html5;
 pub(crate) mod hyper_ext;
+pub(crate) mod lua_ext;
 pub(crate) mod mp4;
 pub(crate) mod serde_with;
 pub(crate) mod webserver;

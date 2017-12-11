@@ -3,7 +3,7 @@
 
 
 #[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct EngiffenSource
 {
 	#[serde(default = "EngiffenSource::width_default")] pub(crate) width: u16,

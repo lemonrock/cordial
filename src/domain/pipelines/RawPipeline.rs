@@ -102,7 +102,6 @@ impl Pipeline for RawPipeline
 					canBeCompressed,
 					templateParameters: self.template_parameters.as_ref(),
 				}.processNonHtmlTemplate(template)?;
-				
 				ResponseBody::utf8(body.into_bytes())
 			}
 			

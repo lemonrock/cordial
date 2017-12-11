@@ -46,7 +46,7 @@ impl InputFormat for FontInputFormat
 impl FontInputFormat
 {
 	#[inline(always)]
-	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: bool) -> Result<Vec<PipelineResponse>, CordialError>
+	pub(crate) fn toWebFonts(option: Option<Self>, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, include_ttf: Option<TtfMimeType>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		let format = match option
 		{
@@ -68,7 +68,7 @@ impl FontInputFormat
 	}
 	
 	#[inline(always)]
-	fn process(&self, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, includeTrueTypeFont: bool) -> Result<Vec<PipelineResponse>, CordialError>
+	fn process(&self, resourceUrl: &ResourceUrl, inputContentFilePath: &Path, headerGenerator: &mut HeaderGenerator, languageData: &LanguageData, maximumAgeInSeconds: u32, isDownloadable: bool, utf8_xml_metadata: &[u8], woff1_private_data: &[u8], woff1_iterations: u16, woff2_brotli_quality: u8, woff2_disallow_transforms: bool, includeTrueTypeFont: Option<TtfMimeType>) -> Result<Vec<PipelineResponse>, CordialError>
 	{
 		const CanBeCompressed: bool = true;
 		const CanNotBeCompressed: bool = false;
@@ -110,12 +110,12 @@ impl FontInputFormat
 			urls.push((woff2Url, Self::defaultHashMap(&woff2Body), StatusCode::Ok, content_type_font_woff2(), woff2Headers, ResponseBody::binary(woff2Body), NoPjax, CanNotBeCompressed));
 		}
 		
-		if includeTrueTypeFont
+		if let Some(trueTypeFontContentType) = includeTrueTypeFont
 		{
 			let ttfUrl = resourceUrl.url(languageData)?;
 			let ttfHeaders =  headerGenerator.generateHeadersForAsset(CanBeCompressed, maximumAgeInSeconds, isDownloadable, &ttfUrl)?;
 			let NoPjax = None;
-			urls.push((ttfUrl, Self::defaultHashMap(&ttfBytes), StatusCode::Ok, content_type_application_font_sfnt(), ttfHeaders, ResponseBody::binary(ttfBytes), NoPjax, CanBeCompressed));
+			urls.push((ttfUrl, Self::defaultHashMap(&ttfBytes), StatusCode::Ok, trueTypeFontContentType.contentType(), ttfHeaders, ResponseBody::binary(ttfBytes), NoPjax, CanBeCompressed));
 		}
 		
 		Ok(urls)

@@ -15,6 +15,8 @@ include!("content_type_application_font_sfnt.rs");
 include!("content_type_application_manifest_json_utf8.rs");
 include!("content_type_application_xml_utf8.rs");
 include!("content_type_audio_mp4.rs");
+include!("content_type_font_sfnt.rs");
+include!("content_type_font_ttf.rs");
 include!("content_type_font_woff.rs");
 include!("content_type_font_woff2.rs");
 include!("content_type_image_gif.rs");

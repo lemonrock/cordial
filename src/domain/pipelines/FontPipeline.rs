@@ -16,7 +16,7 @@ pub(crate) struct FontPipeline
 	#[serde(default = "FontPipeline::woff1_iterations_default")] woff1_iterations: u16,
 	#[serde(default = "FontPipeline::woff2_brotli_quality_default")] woff2_brotli_quality: u8,
 	#[serde(default)] woff2_disallow_transforms: bool,
-	#[serde(default)] include_ttf: bool,
+	#[serde(default)] include_ttf: Option<TtfMimeType>,
 }
 
 impl Default for FontPipeline
@@ -37,7 +37,7 @@ impl Default for FontPipeline
 			woff1_iterations: Self::woff1_iterations_default(),
 			woff2_brotli_quality: Self::woff2_brotli_quality_default(),
 			woff2_disallow_transforms: false,
-			include_ttf: false,
+			include_ttf: None,
 		}
 	}
 }

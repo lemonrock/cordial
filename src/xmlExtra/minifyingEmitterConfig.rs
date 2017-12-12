@@ -2,16 +2,19 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::net2::TcpBuilder;
-use ::net2::TcpListenerExt;
-use ::net2::unix::UnixTcpBuilderExt;
-use ::std::os::unix::fs::FileTypeExt;
-use ::std::sync::Arc;
-
-
-include!("Configuration.rs");
-include!("DiscoverResources.rs");
-include!("ResourceTemplates.rs");
-include!("ServerSocket.rs");
-include!("Settings.rs");
+#[inline(always)]
+pub(crate) fn minifyingEmitterConfig() -> EmitterConfig
+{
+	EmitterConfig
+	{
+		line_separator: Cow::Borrowed(""),
+		indent_string: Cow::Borrowed(""),
+		perform_indent: false,
+		perform_escaping: true,
+		write_document_declaration: true,
+		normalize_empty_elements: true,
+		cdata_to_characters: true,
+		keep_element_names_stack: true,
+		autopad_comments: false,
+	}
+}

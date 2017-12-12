@@ -2,16 +2,9 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-use super::*;
-use ::net2::TcpBuilder;
-use ::net2::TcpListenerExt;
-use ::net2::unix::UnixTcpBuilderExt;
-use ::std::os::unix::fs::FileTypeExt;
-use ::std::sync::Arc;
-
-
-include!("Configuration.rs");
-include!("DiscoverResources.rs");
-include!("ResourceTemplates.rs");
-include!("ServerSocket.rs");
-include!("Settings.rs");
+#[inline(always)]
+pub(crate) fn minifyingVecEventWriter() -> EventWriter<Vec<u8>>
+{
+	let configuration = minifyingEmitterConfig();
+	configuration.create_writer(Vec::with_capacity(32 * 1024))
+}

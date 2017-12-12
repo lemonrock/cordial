@@ -3,8 +3,16 @@
 
 
 use super::*;
+use ::handlebars::ContextJson;
+use ::handlebars::Helper;
+use ::handlebars::HelperDef;
+use ::handlebars::RenderContext;
+use ::handlebars::RenderError;
+use ::hlua::AnyLuaValue;
+use ::std::sync::Arc;
 
 
 include!("HandlebarsTemplate.rs");
 include!("HandlebarsTemplateRenderer.rs");
 include!("HandlebarsWrapper.rs");
+include!("LuaShortCodeHelper.rs");

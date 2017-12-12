@@ -374,17 +374,21 @@ impl<'a> HtmlDocumentData<'a>
 			
 			// TODO: Dates need to be rendered in a form that is friendly to their usage.
 			
+			let templateParameters: Option<&JsonMap<String, JsonValue>> = None;
+			
 			handlebars.renderHtmlUsingNamedTemplate(handlebarsTemplate, &json!
 			({
-				"is_for_amp": isForAmp,
-				"environment": &self.configuration.environment,
-				"iso639Dash1Alpha2Language": iso639Dash1Alpha2Language,
-				"localization": &self.configuration.localization,
-				"deployment_date": self.configuration.deploymentDate,
-				"deployment_version": &self.configuration.deploymentVersion,
+				"configuration": self.configuration,
+				"iso_639_1 alpha_2_language_code": self.htmlUrls.languageData.iso639Dash1Alpha2Language,
+				"template_parameters": templateParameters,
+				"can_be_compressed": true,
+				
 				"html_from_markdown": htmlFromMarkdown,
+				"head_html": headHtml,
+				"hidden_body_html": hiddenBodyHtml,
+				"is_for_amp": isForAmp,
 				"publication_date": self.publicationDate,
-				"lastModificationDateOrPublicationDate": self.lastModificationDateOrPublicationDate,
+				"last_modification_date_or_publication_date": self.lastModificationDateOrPublicationDate,
 				"modifications": self.modifications,
 				"expiration_date": self.expirationDate,
 				"document_abstract": self.htmlAbstract,
@@ -397,8 +401,6 @@ impl<'a> HtmlDocumentData<'a>
 					},
 				},
 				"site_map_images": self.siteMapImages,
-				"headHtml": headHtml,
-				"hiddenBodyHtml": hiddenBodyHtml,
 			}))?
 		};
 		

@@ -104,19 +104,27 @@ quick_error!
 			display("HJSON in {:?} could not be deserialized '{}'", path, cause)
 			context(path: &'a Path, cause: ::serde_hjson::error::Error) -> (path.to_path_buf(), cause)
 		}
-
-		CouldNotDeserializeJson(cause: ::serde_json::error::Error)
+	
+		CouldNotUseJson(cause: ::serde_json::Error)
 		{
 			cause(cause)
 			description(cause.description())
-			display("JSON (configuration) couldn't be deserialized because: {}", cause)
+			display("JSON couldn't be used because: {}", cause)
+			from()
 		}
-
+	
 		CouldNotSerializeJson(cause: ::serde_json::error::Error)
 		{
 			cause(cause)
 			description(cause.description())
 			display("JSON couldn't be serialized because: {}", cause)
+		}
+	
+		CouldNotDeserializeJson(cause: ::serde_json::error::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("JSON couldn't be deserialized because: {}", cause)
 		}
 		
 		CouldNotStartDaemon(cause: ::daemonize::DaemonizeError)
@@ -185,6 +193,14 @@ quick_error!
 			from()
 		}
 		
+		CouldNotReadXml(cause: ::xml::reader::Error)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not read XML because: {}", cause)
+			from()
+		}
+		
 		CouldNotWriteXml(cause: ::xml::writer::Error)
 		{
 			cause(cause)
@@ -244,6 +260,10 @@ quick_error!
             from()
 		}
 	}
+}
+
+unsafe impl Send for CordialError
+{
 }
 
 impl CordialError

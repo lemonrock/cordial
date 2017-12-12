@@ -123,7 +123,7 @@ impl Configuration
 	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
-		let configuration = Configuration::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
+		let configuration = Self::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
 		
 		configuration.finishReconfigure(oldResponses)
 	}
@@ -176,7 +176,7 @@ impl Configuration
 	#[inline(always)]
 	fn registerHandlebarsTemplates(&self) -> Result<HandlebarsWrapper, CordialError>
 	{
-		HandlebarsWrapper::new(&self.inputFolderPath.join("templates"))
+		HandlebarsWrapper::new(&self.inputFolderPath.join("templates"), Arc::new(self.inputFolderPath.join("lua")))
 	}
 	
 	#[inline(always)]

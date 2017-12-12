@@ -1,6 +1,6 @@
 # cordial
 
-[cordial] is a static webserver that atomically rebuilds an entire website before serving it. It also keeps a previous copy of the website, so that (re-) deployments don't cause any downtime; clients that were served a web page just before deployment carry on working. It does this by using versioned URLs for the sub-resources (assets) that a typical HTML page references (images, stylesheets and the like). 
+[cordial] is a static webserver that atomically rebuilds an entire website before serving it. It also keeps a previous copy of the website, so that (re-) deployments don't cause any downtime; clients that were served a web page just before deployment carry on working. It does this by using versioned URLs for the sub-resources (assets) that a typical HTML page references (images, stylesheets and the like). And, unlike other generators, like Hugo, templates can use the full power of Lua, in markdown, SASS plugins and handlebars.
 
 It also does a lot more to create a great experience for your users:-
 
@@ -15,7 +15,7 @@ It also does a lot more to create a great experience for your users:-
 	* Localization can be by relative URL or by alternative server
 * Support for PJAX is built-in, so everyone gets fast web pages;
 * Support for AMP is built-in, so mobile users get a great experience;
-* Support for Feedly;
+* Support for Feedly, iTunes Podcasts and Google Play;
 * Security and robustness are priorities
 	* HTTP is always redirected to HTTPS, no ifs, no buts;
 	* HTTPS in production can have HSTS preloading enabled for maximum protection of your users;
@@ -38,9 +38,10 @@ It also does a lot more to create a great experience for your users:-
 * All assets are minified and compressed using Brotli and Zopfli;
 * Videos are assumed to be served as both MP4 and WebM, with full support for language-aware subtitles (WebVTT), video site maps and Twitter Player cards;
 * Unnecessary CSS rules are stripped, CSS is auto-prefixed and invalid CSS detected before it is served;
-* Support for SEO is trivial;
-* Text is always spell-checked and grammar-checked
-* HTTP OPTIONS support is built-in
+* Support for SEO is trivial with Image & Video Site Maps, schema.org, Twitter Cards, Facebook OpenGraph, iTunes & Google Play Podcasts, Safari, BrowserConfig, Web App manifests, RSS and Bing mRSS support built-in;
+* Templates can be extended using Lua and their output is always minified and validated;
+* Text is always spell-checked and grammar-checked;
+* HTTP OPTIONS support is built-in;
 * If a resource is an index URL, and the user specifies a leaf, or vice versa, an automatic redirect is generated.
 * Prevents development websites leaking into production:-
 	* We disallow robot indexing using the 'X-Robots-Tag' header to prevent accidental exposure to search engines
@@ -55,7 +56,9 @@ It also does a lot more to create a great experience for your users:-
 * everything can go in source control
 * HTTP headers can be generated using templates
 * CSS is auto-prefixed, stripped and validated
-* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md), [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/), [memes](https://docs.rs/memenhancer/0.1.0/memenhancer/) and [plotlib](); just change the input_format for the SVG pipeline.
+* SVG can be generated markdown-like using [svgbob](https://github.com/ivanceras/svgbobrus), [barcode](), [mon-artist](https://github.com/pnkfelix/mon-artist/blob/master/src/lit/src/test_data.md), [qrcode](https://docs.rs/qrcode/0.5.0/qrcode/), [memes](https://docs.rs/memenhancer/0.1.0/memenhancer/) and [plotlib](); just change the input_format for the SVG pipeline.
+* Custom XML, JSON, CSS, JSON-SEQ and HTML resources can be templated and minified
+* Any raw data can be passed through
 
 [cordial] is intended to be secure:-
 

@@ -13,16 +13,22 @@ use ::std::cell::Cell;
 use ::std::io;
 use ::std::io::Write;
 use ::url::Url;
+use ::xml::ParserConfig;
 use ::xml::attribute::Attribute;
 use ::xml::attribute::OwnedAttribute;
 use ::xml::common::XmlVersion;
 use ::xml::name::Name;
 use ::xml::namespace::Namespace;
+use ::xml::reader::XmlEvent as ReaderXmlEvent;
+use ::xml::writer::EmitterConfig;
 use ::xml::writer::EventWriter;
 use ::xml::writer::events::XmlEvent;
 
 
 include!("EventWriterExt.rs");
 include!("LengthTrackingWriter.rs");
+include!("minifyingEmitterConfig.rs");
+include!("minifyingVecEventWriter.rs");
+include!("minifyXml.rs");
 include!("XmlAttributeExt.rs");
 include!("XmlNameExt.rs");

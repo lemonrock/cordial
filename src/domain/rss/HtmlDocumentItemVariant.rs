@@ -2,20 +2,21 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
+// NOTE: The naming of details as _details and lastModifiedDate as _lastModifiedDate is to avoid a compiler warning about unused variables caused by Serde when a field is set to 'skip'.
 #[serde(deny_unknown_fields)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub(crate) enum HtmlDocumentItemVariant
 {
 	Article
 	{
-		#[serde(default, skip_deserializing, skip_serializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant>>,
-		#[serde(default, skip_deserializing, skip_serializing)] lastModifiedDate: Cell<Option<DateTime<Utc>>>,
+		#[serde(default, skip)] _details: RefCell<HashMap<Iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant>>,
+		#[serde(default, skip)] _lastModifiedDate: Cell<Option<DateTime<Utc>>>,
 		#[serde(default)] image: Option<ResourceUrl>,
 	},
 	
 	Podcast
 	{
-		#[serde(default, skip_deserializing, skip_serializing)] details: RefCell<HashMap<Iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant>>,
+		#[serde(default, skip)] _details: RefCell<HashMap<Iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant>>,
 		#[serde(default)] podcast: ResourceUrl,
 	},
 }
@@ -27,8 +28,8 @@ impl Default for HtmlDocumentItemVariant
 	{
 		HtmlDocumentItemVariant::Article
 		{
-			details: Default::default(),
-			lastModifiedDate: Default::default(),
+			_details: Default::default(),
+			_lastModifiedDate: Default::default(),
 			image: None,
 		}
 	}
@@ -43,20 +44,20 @@ impl HtmlDocumentItemVariant
 		
 		match *self
 		{
-			Article { ref details, ref lastModifiedDate, .. } =>
+			Article { ref _details, ref _lastModifiedDate, .. } =>
 			{
-				details.borrow_mut().insert(iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant
+				_details.borrow_mut().insert(iso639Dash1Alpha2Language, ArticleLanguageSpecificRssItemVariant
 				{
 					rssTitle: description,
 					rssDescription: rssHtml,
 				});
-				lastModifiedDate.set(containingHtmlDocumentLastModifiedDate);
+				_lastModifiedDate.set(containingHtmlDocumentLastModifiedDate);
 				Ok(())
 			}
 			
-			Podcast { ref details, .. } =>
+			Podcast { ref _details, .. } =>
 			{
-				details.borrow_mut().insert(iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant
+				_details.borrow_mut().insert(iso639Dash1Alpha2Language, PodcastLanguageSpecificRssItemVariant
 				{
 					description,
 					episode_note_html: rssHtml,
@@ -73,10 +74,10 @@ impl HtmlDocumentItemVariant
 		
 		match *self
 		{
-			Article { ref details, ref lastModifiedDate, .. } =>
+			Article { ref _details, ref _lastModifiedDate, .. } =>
 			{
-				let details = details.borrow();
-				let lastModifiedDate = lastModifiedDate.get();
+				let details = _details.borrow();
+				let lastModifiedDate = _lastModifiedDate.get();
 				if let Some(languageSpecificRssItemVariant) = details.get(&iso639Dash1Alpha2Language)
 				{
 					languageSpecificRssItemVariant.titleDescriptionContentEncodedAndPublicationDate(user, lastModifiedDate)
@@ -91,14 +92,14 @@ impl HtmlDocumentItemVariant
 				}
 			}
 			
-			Podcast { ref details, ref podcast } =>
+			Podcast { ref _details, ref podcast } =>
 			{
 				let podcastResource = podcast.resourceMandatory(resources)?;
 				let audioVideoMetaData = podcastResource.audioVideoMetaData()?;
 				let title = &audioVideoMetaData.audioVideoAbstract(fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?.title;
 				let publicationDate = audioVideoMetaData.publication_date;
 				
-				let details = details.borrow();
+				let details = _details.borrow();
 				if let Some(languageSpecificRssItemVariant) = details.get(&iso639Dash1Alpha2Language)
 				{
 					let (description, contentEncoded) = languageSpecificRssItemVariant.descriptionAndContentEncoded();

@@ -142,7 +142,6 @@ pub(crate) mod domain;
 pub(crate) mod hjson;
 pub(crate) mod html5;
 pub(crate) mod hyper_ext;
-pub(crate) mod lua_ext;
 pub(crate) mod mp4;
 pub(crate) mod serde_with;
 pub(crate) mod webserver;

@@ -1,0 +1,10 @@
+This is LuajitTeX, Version 1.0.4 (TeX Live 2017)  (format=luajittex 2017.6.6)  12 DEC 2017 09:16
+ restricted system commands enabled.
+**exit
+
+! Emergency stop.
+<*> exit
+     
+End of file on the terminal!
+
+!  ==> Fatal error occurred, no output PDF file produced!

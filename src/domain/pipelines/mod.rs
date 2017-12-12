@@ -22,7 +22,7 @@ include!("max_age_in_seconds_long_default.rs");
 include!("Pipeline.rs");
 include!("PipelineResponse.rs");
 include!("RasterImagePipeline.rs");
-include!("RawPipeline.rs");
 include!("SvgPipeline.rs");
+include!("TemplatePipeline.rs");
 include!("WebAppManifestPipeline.rs");
 include!("VideoPipeline.rs");

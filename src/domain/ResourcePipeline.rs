@@ -13,7 +13,7 @@ pub(crate) enum ResourcePipeline
 	gif_animation,
 	html,
 	raster_image,
-	raw,
+	template,
 	svg,
 	web_app_manifest,
 	video,
@@ -24,6 +24,6 @@ impl Default for ResourcePipeline
 	#[inline(always)]
 	fn default() -> Self
 	{
-		ResourcePipeline::raw
+		ResourcePipeline::template
 	}
 }

@@ -4,7 +4,7 @@
 
 #[serde(deny_unknown_fields)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct RawPipeline
+pub(crate) struct TemplatePipeline
 {
 	#[serde(default = "max_age_in_seconds_long_default")] max_age_in_seconds: u32,
 	#[serde(default = "is_downloadable_false_default")] is_downloadable: bool,
@@ -14,11 +14,12 @@ pub(crate) struct RawPipeline
 	#[serde(default)] template_parameters: Option<JsonMap<String, JsonValue>>,
 	#[serde(default)] can_be_compressed: Option<bool>, // default is to use filename
 	#[serde(default)] mime_type: Option<MimeSerde>, // default is to use filename, and sniff text formats, with US-ASCII interpreted as UTF-8
+	#[serde(default = "TemplatePipeline::minify_default")] minify: bool,
 	#[serde(default)] anchor_title: HashMap<Iso639Dash1Alpha2Language, Rc<String>>,
-	#[serde(default = "RawPipeline::status_code_default", with = "::serde_with::StatusCodeSerde")] status_code: StatusCode,
+	#[serde(default = "TemplatePipeline::status_code_default", with = "::serde_with::StatusCodeSerde")] status_code: StatusCode,
 }
 
-impl Default for RawPipeline
+impl Default for TemplatePipeline
 {
 	#[inline(always)]
 	fn default() -> Self
@@ -32,13 +33,14 @@ impl Default for RawPipeline
 			template_parameters: None,
 			can_be_compressed: None,
 			mime_type: None,
+			minify: TemplatePipeline::minify_default(),
 			anchor_title: Default::default(),
 			status_code: StatusCode::Ok,
 		}
 	}
 }
 
-impl Pipeline for RawPipeline
+impl Pipeline for TemplatePipeline
 {
 	#[inline(always)]
 	fn processingPriority(&self) -> ProcessingPriority
@@ -102,7 +104,36 @@ impl Pipeline for RawPipeline
 					canBeCompressed,
 					templateParameters: self.template_parameters.as_ref(),
 				}.processNonHtmlTemplate(template)?;
-				ResponseBody::utf8(body.into_bytes())
+				
+				let body = if self.minify
+				{
+					// We do not minify CSS input, as it relies on (our) opinionated CSS parser.
+					// We do not minify Javascript as there's no way to do this in pure Rust, for now.
+					// The subtypes / suffixes zip, wbxml, cbor, (blank) and fastinfoset are binary
+					match (mimeType.type_(), mimeType.subtype().as_str(), mimeType.suffix().map(|value| value.as_str()))
+					{
+						(TEXT, "xml", _) => minifyXml(body)?,
+						(APPLICATION, "xml", _) => minifyXml(body)?,
+						(_, _, Some("xml")) => minifyXml(body)?,
+						
+						(TEXT, "json", _) => Self::minifyJson(body)?,
+						(APPLICATION, "json", _) => Self::minifyJson(body)?,
+						(_, _, Some("json")) => Self::minifyJson(body)?,
+						
+						(APPLICATION, "json-seq", _) => Self::minifyJsonSeq(body)?,
+						(_, _, Some("json-seq")) => Self::minifyJsonSeq(body)?,
+						
+						(TEXT, "html", _) => Self::minifyHtml(body, inputContentFilePath)?,
+						
+						_ => body.into_bytes(),
+					}
+				}
+				else
+				{
+					body.into_bytes()
+				};
+				
+				ResponseBody::utf8(body)
 			}
 			
 			_ =>
@@ -119,8 +150,89 @@ impl Pipeline for RawPipeline
 	}
 }
 
-impl RawPipeline
+impl TemplatePipeline
 {
+	#[inline(always)]
+	fn minifyJson(body: String) -> Result<Vec<u8>, CordialError>
+	{
+		let json: ::serde_json::value::Value = ::serde_json::from_str(&body)?;
+		Ok(::serde_json::to_vec(&json)?)
+	}
+	
+	#[inline(always)]
+	fn minifyJsonSeq(body: String) -> Result<Vec<u8>, CordialError>
+	{
+		let body = body.as_str();
+		
+		#[inline(always)]
+		fn minifyJsonInSequence(mut writer: &mut Vec<u8>, _sequence: usize, body: &str, index: usize, sequenceStartIndex: usize) -> Result<usize, CordialError>
+		{
+			const AsciiRecordSeparator: &'static [u8] = b"\x1E";
+			writer.write_all(AsciiRecordSeparator).unwrap();
+			
+			let jsonBytes = &body[sequenceStartIndex + 1 .. index];
+			let json: ::serde_json::value::Value = ::serde_json::from_str(jsonBytes)?;
+			::serde_json::to_writer(&mut writer, &json)?;
+			
+			const LineFeed: &'static [u8] = b"\x10";
+			writer.write_all(LineFeed).unwrap();
+			
+			Ok(index + 1)
+		}
+		
+		fn processNextJsonSequence(writer: &mut Vec<u8>, sequence: usize, body: &str, mut index: usize) -> Result<usize, CordialError>
+		{
+			let sequenceStartIndex = index;
+			index += 1;
+			let length = body.len();
+			
+			while index != length
+			{
+				const LineFeed: &'static str = "\x10";
+				if &body[index .. index + 1] == LineFeed
+				{
+					return minifyJsonInSequence(writer, sequence, body, index, sequenceStartIndex);
+				}
+				index += 1;
+			}
+			Err(CordialError::Configuration(format!("JSON-SEQ sequence {} (zero-based) does not end with ASCII Line Feed (LF) control code", sequence)))
+		}
+		
+		let mut writer = Vec::with_capacity(body.len());
+		let mut sequence = 0;
+		let mut index = 0;
+		let length = body.len();
+		while index != length
+		{
+			const AsciiRecordSeparator: &'static str = "\x1E";
+			if &body[index .. index + 1] != AsciiRecordSeparator
+			{
+				return Err(CordialError::Configuration(format!("JSON-SEQ sequence {} (zero-based) does not start with ASCII Record Separator (RS) control code", sequence)));
+			}
+			index = processNextJsonSequence(&mut writer, sequence, body, index)?;
+			sequence += 1;
+		}
+		
+		writer.shrink_to_fit();
+		Ok(writer)
+	}
+	
+	#[inline(always)]
+	fn minifyHtml(body: String, inputContentFilePath: &Path) -> Result<Vec<u8>, CordialError>
+	{
+		let bytes = body.into_bytes();
+		let rcDom = RcDom::from_bytes_verified_and_stripped_of_comments_and_processing_instructions_and_with_a_sane_doc_type(bytes.as_slice(), inputContentFilePath)?;
+		
+		const html_head_and_body_tags_are_optional: bool = true;
+		Ok(rcDom.minify_to_bytes(html_head_and_body_tags_are_optional))
+	}
+	
+	#[inline(always)]
+	fn minify_default() -> bool
+	{
+		true
+	}
+	
 	#[inline(always)]
 	fn status_code_default() -> StatusCode
 	{

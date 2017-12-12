@@ -10,13 +10,14 @@ pub(crate) struct HandlebarsWrapper
 impl HandlebarsWrapper
 {
 	#[inline(always)]
-	pub(crate) fn new(handlebarsTemplatesFolderPath: &Path) -> Result<HandlebarsWrapper, CordialError>
+	pub(crate) fn new(handlebarsTemplatesFolderPath: &Path, inputFolderPath: Arc<PathBuf>) -> Result<HandlebarsWrapper, CordialError>
 	{
 		let mut handlebars = Handlebars::new();
 		
 		// Register any default templates here
 		
 		// Register any helpers here
+		LuaShortCodeHelper::registerForAllShortCodes(&inputFolderPath, &mut handlebars)?;
 		
 		// Register any decorators here
 		

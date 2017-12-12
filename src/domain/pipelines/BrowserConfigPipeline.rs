@@ -88,7 +88,7 @@ impl BrowserConfigPipeline
 	{
 		let emptyAttributes = [];
 		
-		let mut eventWriter = Self::createEventWriter();
+		let mut eventWriter = minifyingVecEventWriter();
 		
 		eventWriter.writeBasicXmlDocumentPreamble()?;
 		
@@ -232,24 +232,6 @@ impl BrowserConfigPipeline
 		}.urlDataMandatory(resources, fallbackIso639Dash1Alpha2Language, iso639Dash1Alpha2Language)?;
 		urlData.validateIsXml()?;
 		Ok(urlData)
-	}
-	
-	#[inline(always)]
-	fn createEventWriter<'a>() -> EventWriter<Vec<u8>>
-	{
-		let configuration = EmitterConfig
-		{
-			line_separator: Cow::Borrowed(""),
-			indent_string: Cow::Borrowed(""),
-			perform_indent: false,
-			perform_escaping: true,
-			write_document_declaration: true,
-			normalize_empty_elements: true,
-			cdata_to_characters: true,
-			keep_element_names_stack: true,
-			autopad_comments: false,
-		};
-		configuration.create_writer(Vec::with_capacity(4096))
 	}
 	
 	#[inline(always)]

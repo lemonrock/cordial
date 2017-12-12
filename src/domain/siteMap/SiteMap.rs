@@ -202,18 +202,7 @@ impl SiteMap
 	#[inline(always)]
 	fn createEventWriter<'a>(bytesWritten: &'a Cell<usize>) -> EventWriter<LengthTrackingWriter<'a>>
 	{
-		let configuration = EmitterConfig
-		{
-			line_separator: Cow::Borrowed(""),
-			indent_string: Cow::Borrowed(""),
-			perform_indent: false,
-			perform_escaping: true,
-			write_document_declaration: true,
-			normalize_empty_elements: true,
-			cdata_to_characters: true,
-			keep_element_names_stack: true,
-			autopad_comments: false,
-		};
+		let configuration = minifyingEmitterConfig();
 		configuration.create_writer(LengthTrackingWriter::new(bytesWritten))
 	}
 

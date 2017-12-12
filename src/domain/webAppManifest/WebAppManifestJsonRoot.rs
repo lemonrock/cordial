@@ -111,7 +111,7 @@ impl<'a> WebAppManifestJsonRoot<'a>
 	{
 		WebAppManifestSerializationState::with(resources, fallbackIso639Dash1Alpha2Language, self.iso639Dash1Alpha2Language(), ||
 		{
-			::serde_json::to_vec(self).map_err(|serializeError| CordialError::CouldNotSerializeJson(serializeError))
+			::serde_json::to_vec(self).map_err(|serializeError| CordialError::CouldNotUseJson(serializeError))
 		}).map(|(vec, _)| vec)
 	}
 }

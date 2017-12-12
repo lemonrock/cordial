@@ -75,6 +75,7 @@ radix_trie = { version = "0.1.2", features = [ "serde" ] }
 ring = "0.12.1"
 rustls = "0.11.0"
 sass-rs = "0.2.0"
+sass-sys = "0.4.3"
 serde_derive = "^1.0"
 serde-hjson = "^0.8"
 serde_json = "^1.0"

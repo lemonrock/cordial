@@ -86,7 +86,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn findSassImportPaths(&self) -> Result<Vec<String>, CordialError>
+	pub(crate) fn findSassImportPaths(&self) -> Result<Vec<PathBuf>, CordialError>
 	{
 		let mut importPaths = Vec::with_capacity(16);
 		let sassImportsPath = self.inputFolderPath.join("sass-imports");
@@ -98,11 +98,7 @@ impl Configuration
 			
 			if entry.file_type().context(&path)?.is_dir()
 			{
-				match path.into_os_string().into_string()
-				{
-					Err(_) => return Err(CordialError::InvalidFile(entry.path(), "a component of the path is not valid UTF-8".to_owned())),
-					Ok(importPath) => importPaths.push(importPath),
-				}
+				importPaths.push(path)
 			}
 		}
 		

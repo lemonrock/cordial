@@ -81,12 +81,13 @@ impl CssInputFormat
 	fn processCss(&self, inputContentFilePath: &Path, precision: u8, configuration: &Configuration, input: String) -> Result<String, CordialError>
 	{
 		use self::CssInputFormat::*;
+		use self::InputSyntax::*;
 		
 		match *self
 		{
 			css => Ok(input),
-			sass => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, true),
-			scss => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, false),
+			sass => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, SASS),
+			scss => Self::toCssFromSassOrScss(inputContentFilePath, precision, configuration, &input, SCSS),
 		}
 	}
 	
@@ -107,19 +108,20 @@ impl CssInputFormat
 	}
 	
 	#[inline(always)]
-	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, sassInput: &str, isSass: bool) -> Result<String, CordialError>
+	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, sassInput: &str, input_syntax: InputSyntax) -> Result<String, CordialError>
 	{
-		let options = ::sass_rs::Options
+		let result = UsefulSassOptions
 		{
 			output_style: ::sass_rs::OutputStyle::Compressed,
-			precision: precision as usize,
-			indented_syntax: isSass,
-			include_paths: configuration.findSassImportPaths()?,
-		};
+			source_comments: false,
+			precision,
+			input_syntax,
+			include_paths: &configuration.findSassImportPaths()?,
+		}.compile_data(sassInput);
 		
-		match ::sass_rs::compile_string(&sassInput, options)
+		match result
 		{
-			Err(error) => return Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
+			Err(error) => Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
 			Ok(css) => Ok(css),
 		}
 	}

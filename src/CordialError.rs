@@ -141,10 +141,10 @@ quick_error!
 			display("The file {:?} can not be used because: {}", path, reason)
 		}
 
-		CouldNotCompileSass(path: PathBuf, reason: String)
+		CouldNotCompileSass(path: PathBuf, reason: Cow<'static, str>)
 		{
 			description(&reason)
-			display("The file {:?} can not be compiled because: {}", path, reason)
+			display("The file {:?} can not be compiled because: {}", path, &reason)
 		}
 		
 		Configuration(reason: String)

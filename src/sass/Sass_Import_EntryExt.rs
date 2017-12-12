@@ -2,44 +2,26 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) trait Sass_Data_ContextExt
+pub(crate) trait Sass_Import_EntryExt
 {
 	#[inline(always)]
-	fn delete(self);
+	fn get_abs_path(self) -> *const c_char;
 	
 	#[inline(always)]
-	fn compile(self) -> i32;
-	
-	#[inline(always)]
-	fn get_context(self) -> *mut Sass_Context;
-	
-	#[inline(always)]
-	fn get_options(self) -> *mut Sass_Options;
+	fn get_imp_path(self) -> *const c_char;
 }
 
-impl Sass_Data_ContextExt for *mut Sass_Data_Context
+impl Sass_Import_EntryExt for Sass_Import_Entry
 {
 	#[inline(always)]
-	fn delete(self)
+	fn get_abs_path(self) -> *const c_char
 	{
-		unsafe { sass_delete_data_context(self) };
+		unsafe { sass_import_get_abs_path(self) }
 	}
 	
 	#[inline(always)]
-	fn compile(self) -> i32
+	fn get_imp_path(self) -> *const c_char
 	{
-		unsafe { sass_compile_data_context(self) }
-	}
-	
-	#[inline(always)]
-	fn get_context(self) -> *mut Sass_Context
-	{
-		unsafe { sass_data_context_get_context(self) }
-	}
-	
-	#[inline(always)]
-	fn get_options(self) -> *mut Sass_Options
-	{
-		unsafe { sass_data_context_get_options(self) }
+		unsafe { sass_import_get_imp_path(self) }
 	}
 }

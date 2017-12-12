@@ -2,44 +2,35 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) trait Sass_Data_ContextExt
+pub(crate) trait Sass_Function_ListExt
 {
+	#[inline(always)]
+	fn make(size: usize) -> Self;
+	
+	#[inline(always)]
+	fn set_list_entry(self, index: usize, function_entry: Sass_Function_Entry);
+	
 	#[inline(always)]
 	fn delete(self);
-	
-	#[inline(always)]
-	fn compile(self) -> i32;
-	
-	#[inline(always)]
-	fn get_context(self) -> *mut Sass_Context;
-	
-	#[inline(always)]
-	fn get_options(self) -> *mut Sass_Options;
 }
 
-impl Sass_Data_ContextExt for *mut Sass_Data_Context
+impl Sass_Function_ListExt for Sass_Function_List
 {
+	#[inline(always)]
+	fn make(size: usize) -> Self
+	{
+		unsafe { sass_make_function_list(size) }
+	}
+	
+	#[inline(always)]
+	fn set_list_entry(self, index: usize, function_entry: Sass_Function_Entry)
+	{
+		unsafe { sass_function_set_list_entry(self, index, function_entry) }
+	}
+	
 	#[inline(always)]
 	fn delete(self)
 	{
-		unsafe { sass_delete_data_context(self) };
-	}
-	
-	#[inline(always)]
-	fn compile(self) -> i32
-	{
-		unsafe { sass_compile_data_context(self) }
-	}
-	
-	#[inline(always)]
-	fn get_context(self) -> *mut Sass_Context
-	{
-		unsafe { sass_data_context_get_context(self) }
-	}
-	
-	#[inline(always)]
-	fn get_options(self) -> *mut Sass_Options
-	{
-		unsafe { sass_data_context_get_options(self) }
+		unsafe { sass_delete_function_list(self) }
 	}
 }

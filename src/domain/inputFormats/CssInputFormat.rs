@@ -117,6 +117,7 @@ impl CssInputFormat
 			precision,
 			input_syntax,
 			include_paths: &configuration.findSassImportPaths()?,
+			function_list: Rc::new(FunctionList::new(vec![])),
 		}.compile_data(sassInput);
 		
 		match result

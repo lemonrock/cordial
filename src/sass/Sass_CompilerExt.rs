@@ -2,44 +2,35 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-pub(crate) trait Sass_Data_ContextExt
+pub(crate) trait Sass_CompilerExt
 {
-	#[inline(always)]
-	fn delete(self);
-	
-	#[inline(always)]
-	fn compile(self) -> i32;
-	
 	#[inline(always)]
 	fn get_context(self) -> *mut Sass_Context;
 	
 	#[inline(always)]
 	fn get_options(self) -> *mut Sass_Options;
+	
+	#[inline(always)]
+	fn get_last_import(self) -> Sass_Import_Entry;
 }
 
-impl Sass_Data_ContextExt for *mut Sass_Data_Context
+impl Sass_CompilerExt for *mut Sass_Compiler
 {
-	#[inline(always)]
-	fn delete(self)
-	{
-		unsafe { sass_delete_data_context(self) };
-	}
-	
-	#[inline(always)]
-	fn compile(self) -> i32
-	{
-		unsafe { sass_compile_data_context(self) }
-	}
-	
 	#[inline(always)]
 	fn get_context(self) -> *mut Sass_Context
 	{
-		unsafe { sass_data_context_get_context(self) }
+		unsafe { sass_compiler_get_context(self) }
 	}
 	
 	#[inline(always)]
 	fn get_options(self) -> *mut Sass_Options
 	{
-		unsafe { sass_data_context_get_options(self) }
+		unsafe { sass_compiler_get_options(self) }
+	}
+	
+	#[inline(always)]
+	fn get_last_import(self) -> Sass_Import_Entry
+	{
+		unsafe { sass_compiler_get_last_import(self) }
 	}
 }

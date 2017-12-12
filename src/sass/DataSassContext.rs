@@ -2,14 +2,15 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) struct DataSassContext(*mut Sass_Data_Context);
+#[derive(Debug)]
+pub(crate) struct DataSassContext(*mut Sass_Data_Context, Rc<FunctionList>);
 
 impl Drop for DataSassContext
 {
+	#[inline(always)]
 	fn drop(&mut self)
 	{
-		unsafe { sass_delete_data_context(self.0) }
+		self.0.delete()
 	}
 }
 
@@ -19,9 +20,20 @@ impl DataSassContext
 	pub(crate) fn new<'p, P: AsRef<Path>>(data: &str, usefulSassOptions: &UsefulSassOptions<'p, P>) -> Self
 	{
 		let cStr = CString::new(data).unwrap();
-		let this = DataSassContext(Sass_Data_ContextExt::make(&cStr));
-		this.set_options(usefulSassOptions);
-		this
+		let dataContext = unsafe { sass_make_data_context(strdup(cStr.as_ptr())) };
+		
+		let options = dataContext.get_options();
+		options.set_output_style(usefulSassOptions.output_style);
+		options.set_source_comments(usefulSassOptions.source_comments);
+		options.set_precision(usefulSassOptions.precision);
+		if usefulSassOptions.input_syntax == InputSyntax::SASS
+		{
+			options.set_is_indented_syntax_src();
+		}
+		options.set_include_path(usefulSassOptions.include_paths);
+		options.set_c_functions(usefulSassOptions.function_list.0);
+		
+		DataSassContext(dataContext, usefulSassOptions.function_list.clone())
 	}
 	
 	pub(crate) fn compile(&mut self) -> Result<String, Cow<'static, str>>
@@ -47,18 +59,6 @@ impl DataSassContext
 				Err(Cow::Owned(Self::to_string(error_message)))
 			}
 		}
-	}
-	
-	#[inline(always)]
-	fn set_options<'p, P: AsRef<Path>>(&self, usefulSassOptions: &UsefulSassOptions<'p, P>)
-	{
-		usefulSassOptions.set(self.get_options());
-	}
-	
-	#[inline(always)]
-	fn get_options(&self) -> *mut Sass_Options
-	{
-		self.0.get_options()
 	}
 	
 	#[inline(always)]

@@ -18,6 +18,9 @@ pub(crate) trait Sass_OptionsExt
 	
 	#[inline(always)]
 	fn set_include_path<P: AsRef<Path>>(self, paths: &[P]);
+	
+	#[inline(always)]
+	fn set_c_functions(self, functions: Sass_Function_List);
 }
 
 impl Sass_OptionsExt for *mut Sass_Options
@@ -57,13 +60,6 @@ impl Sass_OptionsExt for *mut Sass_Options
 		unsafe { sass_option_set_is_indented_syntax_src(self, true) }
 	}
 	
-	/*
-		void sass_option_set_c_functions (struct Sass_Options* options, Sass_C_Function_List c_functions);
-void sass_option_set_importer (struct Sass_Options* options, Sass_C_Import_Callback importer);
-
-	
-	*/
-	// sass_option_push_include_path
 	#[inline(always)]
 	fn set_include_path<P: AsRef<Path>>(self, paths: &[P])
 	{
@@ -105,5 +101,11 @@ void sass_option_set_importer (struct Sass_Options* options, Sass_C_Import_Callb
 			
 			unsafe { sass_option_set_include_path(self, bytes.as_ptr() as *const _) }
 		}
+	}
+	
+	#[inline(always)]
+	fn set_c_functions(self, function_list: Sass_Function_List)
+	{
+		unsafe { sass_option_set_c_functions(self, function_list) }
 	}
 }

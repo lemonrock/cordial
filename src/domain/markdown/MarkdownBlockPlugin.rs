@@ -9,6 +9,8 @@ pub(crate) enum MarkdownBlockPlugin
 	csv,
 	
 	svgbob,
+
+	lua,
 }
 
 impl MarkdownBlockPlugin
@@ -22,11 +24,12 @@ impl MarkdownBlockPlugin
 		{
 			b"csv".to_vec() => csv,
 			b"svgbob".to_vec() => svgbob,
+			b"lua".to_vec() => lua,
 		}
 	}
 	
 	#[inline(always)]
-	pub(crate) fn execute(&self, arguments: &[u8], _nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, _markdownPluginData: &MarkdownPluginData, _isForAmp: bool, data: &[u8]) -> Result<MarkdownPluginResult, CordialError>
+	pub(crate) fn execute(&self, arguments: &[u8], _nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool, data: &[u8]) -> Result<MarkdownPluginResult, CordialError>
 	{
 		use self::MarkdownBlockPlugin::*;
 		
@@ -36,13 +39,12 @@ impl MarkdownBlockPlugin
 			Ok(string) => string,
 		};
 		
-		let string = match *self
+		match *self
 		{
-			csv => Self::csv(arguments, string)?,
-			svgbob => Self::svgbob(arguments, string)?,
-		};
-		
-		MarkdownPluginResult::fromHtmlFragment(string)
+			csv => MarkdownPluginResult::fromHtmlFragment(Self::csv(arguments, string)?),
+			svgbob => MarkdownPluginResult::fromHtmlFragment(Self::svgbob(arguments, string)?),
+			lua => Self::lua(arguments, string, markdownPluginData, isForAmp),
+		}
 	}
 	
 	//noinspection SpellCheckingInspection
@@ -140,5 +142,12 @@ impl MarkdownBlockPlugin
 			format!("{}", svg)
 		};
 		result
+	}
+	
+	fn lua(arguments: &[u8], block: &str, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
+	{
+		let bytes = LuaShortCodeHelper::newForMarkdownPlugin(markdownPluginData.configuration).callFromMarkdownBlockPlugin(block)?;
+		
+		MarkdownPluginResult::fromBytes(bytes)
 	}
 }

@@ -22,6 +22,7 @@ pub(crate) struct Configuration
 	#[serde(default, skip_deserializing)] pub(crate) environment: String,
 	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] pub(crate) deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] pub(crate) deploymentVersion: String,
+	#[serde(default, skip_deserializing)] pub(crate) luaFolderPath: Arc<PathBuf>,
 }
 
 impl Default for Configuration
@@ -47,6 +48,7 @@ impl Default for Configuration
 			environment: String::default(),
 			deploymentDate: Self::deploymentDate_default(),
 			deploymentVersion: String::default(),
+			luaFolderPath: Default::default(),
 		}
 	}
 }
@@ -176,7 +178,7 @@ impl Configuration
 	#[inline(always)]
 	fn registerHandlebarsTemplates(&self) -> Result<HandlebarsWrapper, CordialError>
 	{
-		HandlebarsWrapper::new(&self.inputFolderPath.join("templates"), Arc::new(self.inputFolderPath.join("lua")))
+		HandlebarsWrapper::new(&self.inputFolderPath.join("templates"), self)
 	}
 	
 	#[inline(always)]
@@ -315,6 +317,7 @@ impl Configuration
 		configuration.outputFolderPath = outputFolderPath.to_path_buf();
 		configuration.environment = environment.to_owned();
 		configuration.deploymentVersion = Self::deploymentVersion(configuration.deploymentDate);
+		configuration.luaFolderPath = Arc::new(inputFolderPath.join("lua"));
 		
 		Ok(configuration)
 	}

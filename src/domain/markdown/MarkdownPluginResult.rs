@@ -3,12 +3,18 @@
 
 
 #[derive(Debug, Clone)]
-pub(crate) struct MarkdownPluginResult(Either<Vec<UnattachedNode>, String>);
+pub(crate) struct MarkdownPluginResult(Either<Vec<UnattachedNode>, Vec<u8>>);
 
 impl MarkdownPluginResult
 {
 	#[inline(always)]
 	pub(crate) fn fromHtmlFragment(htmlFragment: String) -> Result<MarkdownPluginResult, CordialError>
+	{
+		Self::fromBytes(htmlFragment.into_bytes())
+	}
+	
+	#[inline(always)]
+	pub(crate) fn fromBytes(htmlFragment: Vec<u8>) -> Result<MarkdownPluginResult, CordialError>
 	{
 		Ok(MarkdownPluginResult(Right(htmlFragment)))
 	}
@@ -25,7 +31,7 @@ impl MarkdownPluginResult
 		match self.0
 		{
 			Left(nodes) => nodes.to_html_fragment().into_bytes(),
-			Right(htmlFragment) => htmlFragment.into_bytes(),
+			Right(htmlFragment) => htmlFragment,
 		}
 	}
 }

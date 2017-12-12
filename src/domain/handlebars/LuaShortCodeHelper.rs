@@ -12,74 +12,25 @@ impl HelperDef for LuaShortCodeHelper
 {
 	fn call(&self, h: &Helper, _: &Handlebars, rc: &mut RenderContext) -> Result<(), RenderError>
 	{
-		let shortCodeName = h.name();
-		
-		let mut lua = match self.newLua()
-		{
-			Err(error) => return Err(RenderError::with(error)),
-			Ok(lua) => lua,
-		};
-		
-		{
-			let mut namedArgumentsTable = lua.empty_array("namedArguments");
-			for (parameterName, parameterValue) in h.hash().iter()
-			{
-				namedArgumentsTable.set(parameterName.as_str(), Self::convertParameterValueToLuaValue(parameterValue));
-			}
-		}
-		
-		{
-			let mut anonymousArgumentsTable = lua.empty_array("anonymousArguments");
-			let mut oneBasedLuaTableIndex = 1;
-			for anonymousParameter in h.params().iter()
-			{
-				anonymousArgumentsTable.set(oneBasedLuaTableIndex, Self::convertParameterValueToLuaValue(anonymousParameter));
-				oneBasedLuaTableIndex += 1;
-			}
-		}
-		
-		use self::AnyLuaValue::*;
-		
-		let bytes = match lua.execute::<AnyLuaValue>(&format!("shortcode(\"{}\", namedArguments, unpack(anonymousArguments))", shortCodeName))
-		{
-			Err(error) => return Err(RenderError::with(error)),
-			Ok(anyLuaValue) => match anyLuaValue
-			{
-				LuaOther => return Err(RenderError::new("LuaOther values are not supported")),
-				
-				LuaArray(_) => return Err(RenderError::new("LuaArray values are not supported")),
-				
-				LuaString(string) => string.into_bytes(),
-				
-				LuaAnyString(bytes) => bytes.0,
-				
-				LuaNumber(number) => format!("{}", number).into_bytes(),
-				
-				LuaBoolean(boolean) => if boolean
-				{
-					b"yes".to_vec()
-				}
-				else
-				{
-					b"no".to_vec()
-				},
-				
-				LuaNil => vec![],
-			}
-		};
-		
-		rc.writer.write(&bytes)?;
-		
-		Ok(())
+		self.callFromHandlebars(h, rc)
 	}
 }
 
 impl LuaShortCodeHelper
 {
-	const shortcodes: &'static str = "shortcodes";
-	
-	pub(crate) fn registerForAllShortCodes(luaFolderPath: &Arc<PathBuf>, handlebars: &mut Handlebars) -> Result<(), CordialError>
+	#[inline(always)]
+	pub(crate) fn newForMarkdownPlugin(configuration: &Configuration) -> Self
 	{
+		Self
+		{
+			luaFolderPath: configuration.luaFolderPath.clone(),
+		}
+	}
+	
+	pub(crate) fn registerForAllShortCodes(configuration: &Configuration, handlebars: &mut Handlebars) -> Result<(), CordialError>
+	{
+		let luaFolderPath = &configuration.luaFolderPath;
+		
 		let shortcodesFolderPath = luaFolderPath.join(Self::shortcodes);
 		
 		for entry in (&shortcodesFolderPath).read_dir().context(&shortcodesFolderPath)?
@@ -116,6 +67,129 @@ impl LuaShortCodeHelper
 			}
 		}
 		Ok(())
+	}
+	
+	pub(crate) fn callFromMarkdownBlockPlugin(&self, luaCode: &str) -> Result<Vec<u8>, CordialError>
+	{
+		let mut lua = self.newLua()?;
+		
+		Self::executeLuaCode(&mut lua, luaCode)
+	}
+	
+	pub(crate) fn callFromMarkdownInlinePlugin(&self, shortCodeName: &str, mut arguments: Option<ParsedQueryString>) -> Result<Vec<u8>, CordialError>
+	{
+		self.callFromAnywhere
+		(
+			shortCodeName,
+			|namedArgumentsTable|
+			{
+				if let Some(ref mut arguments) = arguments
+				{
+					for (name, value) in arguments
+					{
+						namedArgumentsTable.set(name.as_ref(), value.as_ref());
+					}
+				}
+				
+				Ok(())
+			},
+			|_anonymousArgumentsTable| Ok(())
+		)
+	}
+	
+	fn callFromHandlebars(&self, h: &Helper, rc: &mut RenderContext) -> Result<(), RenderError>
+	{
+		let result = self.callFromAnywhere
+		(
+			h.name(),
+			|namedArgumentsTable|
+			{
+				for (parameterName, parameterValue) in h.hash().iter()
+				{
+					namedArgumentsTable.set(parameterName.as_str(), Self::convertParameterValueToLuaValue(parameterValue));
+				}
+				Ok(())
+			},
+			|anonymousArgumentsTable|
+			{
+				let mut oneBasedLuaTableIndex = 1;
+				for anonymousParameter in h.params().iter()
+				{
+					anonymousArgumentsTable.set(oneBasedLuaTableIndex, Self::convertParameterValueToLuaValue(anonymousParameter));
+					oneBasedLuaTableIndex += 1;
+				}
+				Ok(())
+			}
+		);
+		
+		match result
+		{
+			Err(error) => Err(RenderError::with(error)),
+			Ok(bytes) =>
+			{
+				rc.writer.write(&bytes)?;
+				
+				Ok(())
+			}
+		}
+	}
+	
+	#[inline(always)]
+	fn callFromAnywhere<'lua, NamedArgumentsTableMaker: FnMut(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>, AnonymousArgumentsTableMaker: FnMut(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>>(&self, shortCodeName: &str, mut namedArgumentsTableMaker: NamedArgumentsTableMaker, mut anonymousArgumentsTableMaker: AnonymousArgumentsTableMaker) -> Result<Vec<u8>, CordialError>
+	{
+		let mut lua = self.newLua()?;
+		
+		{
+			let mut namedArgumentsTable = lua.empty_array("namedArguments");
+			namedArgumentsTableMaker(&mut namedArgumentsTable)?;
+		}
+		
+		{
+			let mut anonymousArgumentsTable = lua.empty_array("anonymousArguments");
+			anonymousArgumentsTableMaker(&mut anonymousArgumentsTable)?;
+		}
+		
+		Self::executeShortCode(&mut lua, shortCodeName)
+	}
+	
+	const shortcodes: &'static str = "shortcodes";
+	
+	#[inline(always)]
+	fn executeShortCode<'lua>(lua: &mut Lua<'lua>, shortCodeName: &str) -> Result<Vec<u8>, CordialError>
+	{
+		Self::executeLuaCode(lua, &format!("shortcode(\"{}\", namedArguments, unpack(anonymousArguments))", shortCodeName))
+	}
+	
+	#[inline(always)]
+	fn executeLuaCode<'lua>(lua: &mut Lua<'lua>, luaCode: &str) -> Result<Vec<u8>, CordialError>
+	{
+		use self::AnyLuaValue::*;
+		
+		let bytes = match lua.execute::<AnyLuaValue>(luaCode)?
+		{
+			LuaOther => return Err(CordialError::Configuration("LuaOther values are not supported".to_owned())),
+			
+			LuaArray(_) => return Err(CordialError::Configuration("LuaArray values are not supported".to_owned())),
+			
+			LuaString(string) => string.into_bytes(),
+			
+			LuaAnyString(bytes) => bytes.0,
+			
+			LuaNumber(number) => format!("{}", number).into_bytes(),
+			
+			LuaBoolean(boolean) => if boolean
+			{
+				b"yes".to_vec()
+			}
+			else
+			{
+				b"no".to_vec()
+			},
+			
+			LuaNil => vec![],
+		};
+		
+		Ok(bytes)
 	}
 	
 	#[inline(always)]

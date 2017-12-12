@@ -117,8 +117,7 @@ impl MarkdownParser
 		let result = match plugins.get(name)
 		{
 			None => None,
-			Some(plugin) =>
-			Some
+			Some(plugin) => Some
 			(
 				HtmlBlock
 				(

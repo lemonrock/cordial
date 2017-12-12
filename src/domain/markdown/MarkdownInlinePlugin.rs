@@ -10,6 +10,7 @@ pub(crate) enum MarkdownInlinePlugin
 	image,
 	audio,
 	video,
+	shortcode,
 }
 
 impl MarkdownInlinePlugin
@@ -25,6 +26,7 @@ impl MarkdownInlinePlugin
 			b"image".to_vec() => image,
 			b"audio".to_vec() => audio,
 			b"video".to_vec() => video,
+			b"shortcode".to_vec() => shortcode,
 		}
 	}
 	
@@ -33,49 +35,15 @@ impl MarkdownInlinePlugin
 	{
 		use self::MarkdownInlinePlugin::*;
 		
-		let mut arguments = parseQueryString(arguments);
-		
 		match *self
 		{
 			//app_banner => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
-			image => Self::image(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
-			audio => Self::audio(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
-			video => Self::video(&mut arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			image => Self::image(&mut parseQueryString(arguments), nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			audio => Self::audio(&mut parseQueryString(arguments), nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			video => Self::video(&mut parseQueryString(arguments), nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
+			shortcode => Self::shortcode(arguments, nodesForOtherPlacesInHtml, markdownPluginData, isForAmp),
 		}
 	}
-	
-//	fn app_banner(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
-//	{
-//		if !isForAmp
-//		{
-//			MarkdownPluginResult::ok(vec![])
-//		}
-//
-//		nodesForOtherPlacesInHtml.ampScript("amp-app-banner", "https://cdn.ampproject.org/v0/amp-app-banner-0.1.js")
-//
-//		// TODO: height doesn't exceed 100px.
-//
-//		// TODO: SafariITunesApp and / or Manifest Link must be present in HTML document!
-//
-//		// TODO: Need an app name & a call to action which we turn into a translation
-//
-//		/*
-//		<amp-app-banner layout="nodisplay"
-//  id="banner">
-//  <div id="banner-logo">
-//    <amp-img src="https://cdn-images-1.medium.com/max/50/1*JLegdtjFMNgqHgnxdd04fg.png"
-//      width="50"
-//      height="43"
-//      layout="fixed"></amp-img>
-//  </div>
-//  <div id="banner-text">Learn more about AMP in the Medium App.</div>
-//  <div id="banner-action">
-//    <button class="ampstart-btn mr1 caps"
-//      open-button>View in app</button>
-//  </div>
-//</amp-app-banner>
-//		*/
-//	}
 	
 	//noinspection SpellCheckingInspection
 	fn image(arguments: &mut ParsedQueryString, nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
@@ -229,5 +197,43 @@ impl MarkdownInlinePlugin
 		}
 		
 		MarkdownPluginResult::ok(vec![videoNode])
+	}
+	
+	fn shortcode(arguments: &[u8], nodesForOtherPlacesInHtml: &mut NodesForOtherPlacesInHtml, markdownPluginData: &MarkdownPluginData, isForAmp: bool) -> Result<MarkdownPluginResult, CordialError>
+	{
+		let length = arguments.len();
+		let mut shortCodeIndex = length;
+		for index in 0 .. length
+		{
+			if arguments[index] == b' '
+			{
+				shortCodeIndex = index;
+				break;
+			}
+		}
+		
+		let shortCodeName = match from_utf8(&arguments[0..shortCodeIndex])
+		{
+			Err(_) => return Err(CordialError::Configuration("shortcode name was not UTF-8 encoded".to_owned())),
+			Ok(shortCode) => shortCode,
+		};
+		
+		if shortCodeName.is_empty()
+		{
+			return Err(CordialError::Configuration("shortcode name was empty".to_owned()))
+		}
+		
+		let arguments = if shortCodeIndex != length
+		{
+			Some(parseQueryString(&arguments[shortCodeIndex + 1..]))
+		}
+		else
+		{
+			None
+		};
+		
+		let bytes = LuaShortCodeHelper::newForMarkdownPlugin(markdownPluginData.configuration).callFromMarkdownInlinePlugin(shortCodeName, arguments)?;
+		
+		MarkdownPluginResult::fromBytes(bytes)
 	}
 }

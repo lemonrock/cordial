@@ -9,7 +9,10 @@ use ::handlebars::HelperDef;
 use ::handlebars::RenderContext;
 use ::handlebars::RenderError;
 use ::hlua::AnyLuaValue;
+use ::hlua::LuaTable;
+use ::hlua::PushGuard;
 use ::std::sync::Arc;
+use ::url::form_urlencoded::Parse as ParsedQueryString;
 
 
 include!("HandlebarsTemplate.rs");

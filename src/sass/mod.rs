@@ -8,12 +8,17 @@ use ::libc::strdup;
 use ::sass_rs::*;
 use ::sass_sys::*;
 use ::std::borrow::Cow;
+use ::std::clone::Clone;
 use ::std::ffi::CStr;
 use ::std::ffi::CString;
 use ::std::ffi::OsString;
 use ::std::fmt::Debug;
+use ::std::mem::forget;
 use ::std::path::Path;
 use ::std::rc::Rc;
+
+
+pub(crate) mod values;
 
 
 include!("DataSassContext.rs");

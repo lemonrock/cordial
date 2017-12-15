@@ -23,6 +23,7 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] pub(crate) deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] pub(crate) deploymentVersion: String,
 	#[serde(default, skip_deserializing)] pub(crate) luaFolderPath: Arc<PathBuf>,
+	#[serde(default, skip_deserializing)] pub(crate) sassImportPaths: Vec<PathBuf>,
 }
 
 impl Default for Configuration
@@ -49,6 +50,7 @@ impl Default for Configuration
 			deploymentDate: Self::deploymentDate_default(),
 			deploymentVersion: String::default(),
 			luaFolderPath: Default::default(),
+			sassImportPaths: Default::default(),
 		}
 	}
 }
@@ -86,23 +88,25 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	pub(crate) fn findSassImportPaths(&self) -> Result<Vec<PathBuf>, CordialError>
+	pub(crate) fn sassOptions<'p>(&'p self, precision: u8, input_syntax: InputSyntax) -> SassOptions<'p, PathBuf>
 	{
-		let mut importPaths = Vec::with_capacity(16);
-		let sassImportsPath = self.inputFolderPath.join("sass-imports");
-		for entry in sassImportsPath.read_dir().context(&sassImportsPath)?
+		SassOptions
 		{
-			let entry = entry.context(&sassImportsPath)?;
-			
-			let path = entry.path();
-			
-			if entry.file_type().context(&path)?.is_dir()
-			{
-				importPaths.push(path)
-			}
+			output_style: OutputStyle::Compressed,
+			source_comments: false,
+			source_map_embed: false,
+			source_map_contents: false,
+			source_map_file_urls: false,
+			omit_source_map_url: true,
+			indent: CString::new("").unwrap(),
+			linefeed: CString::new("\n").unwrap(),
+			precision,
+			input_syntax,
+			include_paths: self.sassImportPaths.as_slice(),
+			function_list: Rc::new(SassFunctionList::new(vec![])),
+			importer_list: Rc::new(SassImporterList::new(vec![])),
+			header_list: Rc::new(SassImporterList::new(vec![])),
 		}
-		
-		Ok(importPaths)
 	}
 	
 	#[inline(always)]
@@ -121,7 +125,7 @@ impl Configuration
 	pub(crate) fn reconfigure(environment: &str, inputFolderPath: &Path, outputFolderPath: &Path, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
 		Self::validateInputFiles(inputFolderPath)?;
-		let configuration = Self::loadBaselineConfiguration(&inputFolderPath, environment, outputFolderPath)?;
+		let configuration = Self::loadConfiguration(&inputFolderPath, environment, outputFolderPath)?;
 		
 		configuration.finishReconfigure(oldResponses)
 	}
@@ -290,7 +294,7 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn loadBaselineConfiguration(inputFolderPath: &Path, environment: &str, outputFolderPath: &Path) -> Result<Configuration, CordialError>
+	fn loadConfiguration(inputFolderPath: &Path, environment: &str, outputFolderPath: &Path) -> Result<Configuration, CordialError>
 	{
 		let configurationHjson = loadHjson(&inputFolderPath.join("configuration.hjson"))?;
 		
@@ -314,6 +318,28 @@ impl Configuration
 		configuration.environment = environment.to_owned();
 		configuration.deploymentVersion = Self::deploymentVersion(configuration.deploymentDate);
 		configuration.luaFolderPath = Arc::new(inputFolderPath.join("lua"));
+		
+		#[inline(always)]
+		fn findSassImportPaths(inputFolderPath: &Path) -> Result<Vec<PathBuf>, CordialError>
+		{
+			let mut importPaths = Vec::with_capacity(16);
+			let sassImportsPath = inputFolderPath.join("sass-imports");
+			for entry in sassImportsPath.read_dir().context(&sassImportsPath)?
+			{
+				let entry = entry.context(&sassImportsPath)?;
+				
+				let path = entry.path();
+				
+				if entry.file_type().context(&path)?.is_dir()
+				{
+					importPaths.push(path)
+				}
+			}
+			
+			Ok(importPaths)
+		}
+		configuration.sassImportPaths = findSassImportPaths(inputFolderPath)?;
+		
 		
 		Ok(configuration)
 	}

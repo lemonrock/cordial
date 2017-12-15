@@ -141,10 +141,12 @@ quick_error!
 			display("The file {:?} can not be used because: {}", path, reason)
 		}
 
-		CouldNotCompileSass(path: PathBuf, reason: Cow<'static, str>)
+		CouldNotCompileSass(path: PathBuf, cause: ::sass_alt::SassCompileError)
 		{
-			description(&reason)
-			display("The file {:?} can not be compiled because: {}", path, &reason)
+			cause(cause)
+			description(cause.description())
+			display("The file {:?} can not be compiled from SASS to CSS because: {}", path, &cause)
+			context(path: &'a Path, cause: ::sass_alt::SassCompileError) -> (path.to_path_buf(), cause)
 		}
 		
 		Configuration(reason: String)

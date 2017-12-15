@@ -110,20 +110,8 @@ impl CssInputFormat
 	#[inline(always)]
 	fn toCssFromSassOrScss(inputContentFilePath: &Path, precision: u8, configuration: &Configuration, sassInput: &str, input_syntax: InputSyntax) -> Result<String, CordialError>
 	{
-		let result = UsefulSassOptions
-		{
-			output_style: ::sass_rs::OutputStyle::Compressed,
-			source_comments: false,
-			precision,
-			input_syntax,
-			include_paths: &configuration.findSassImportPaths()?,
-			function_list: Rc::new(FunctionList::new(vec![])),
-		}.compile_data(sassInput);
+		let css = configuration.sassOptions(precision, input_syntax).compile_data(sassInput).context(inputContentFilePath)?;
 		
-		match result
-		{
-			Err(error) => Err(CordialError::CouldNotCompileSass(inputContentFilePath.to_path_buf(), error)),
-			Ok(css) => Ok(css),
-		}
+		Ok(css)
 	}
 }

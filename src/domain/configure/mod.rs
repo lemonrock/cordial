@@ -6,6 +6,8 @@ use super::*;
 use ::net2::TcpBuilder;
 use ::net2::TcpListenerExt;
 use ::net2::unix::UnixTcpBuilderExt;
+use ::sass_alt::*;
+use ::std::ffi::CString;
 use ::std::os::unix::fs::FileTypeExt;
 use ::std::sync::Arc;
 

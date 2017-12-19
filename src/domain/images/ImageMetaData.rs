@@ -89,7 +89,7 @@ impl ImageMetaData
 	}
 	
 	#[inline(always)]
-	pub(crate) fn licenseUrlAndAnchorTitleAttribute<'a>(&self, resources: &'a Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	pub(crate) fn licenseUrlAndAnchorTitleAttribute<'resources>(&self, resources: &'resources Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
 		ResourceReference
 		{

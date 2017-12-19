@@ -69,13 +69,17 @@ impl LuaShortCodeHelper
 		Ok(())
 	}
 	
+	#[inline(always)]
 	pub(crate) fn callFromMarkdownBlockPlugin(&self, luaCode: &str) -> Result<Vec<u8>, CordialError>
 	{
 		let mut lua = self.newLua()?;
 		
-		Self::executeLuaCode(&mut lua, luaCode)
+		let anyLuaValue = lua.execute::<AnyLuaValue>(luaCode)?;
+		
+		Self::luaToBytes(anyLuaValue)
 	}
 	
+	#[inline(always)]
 	pub(crate) fn callFromMarkdownInlinePlugin(&self, shortCodeName: &str, mut arguments: Option<ParsedQueryString>) -> Result<Vec<u8>, CordialError>
 	{
 		self.callFromAnywhere
@@ -93,11 +97,13 @@ impl LuaShortCodeHelper
 				
 				Ok(())
 			},
-			|_anonymousArgumentsTable| Ok(())
+			|_anonymousArgumentsTable| Ok(()),
+			Self::luaToBytes,
 		)
 	}
 	
-	fn callFromHandlebars(&self, h: &Helper, rc: &mut RenderContext) -> Result<(), RenderError>
+	#[inline(always)]
+	pub(crate) fn callFromHandlebars(&self, h: &Helper, rc: &mut RenderContext) -> Result<(), RenderError>
 	{
 		let result = self.callFromAnywhere
 		(
@@ -119,7 +125,8 @@ impl LuaShortCodeHelper
 					oneBasedLuaTableIndex += 1;
 				}
 				Ok(())
-			}
+			},
+			Self::luaToBytes,
 		);
 		
 		match result
@@ -135,7 +142,32 @@ impl LuaShortCodeHelper
 	}
 	
 	#[inline(always)]
-	fn callFromAnywhere<'lua, NamedArgumentsTableMaker: FnMut(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>, AnonymousArgumentsTableMaker: FnMut(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>>(&self, shortCodeName: &str, mut namedArgumentsTableMaker: NamedArgumentsTableMaker, mut anonymousArgumentsTableMaker: AnonymousArgumentsTableMaker) -> Result<Vec<u8>, CordialError>
+	pub(crate) fn callFromSass(&self, shortCodeName: &str, arguments: &mut ListSassValueIterator) -> Result<SassValue, CordialError>
+	{
+		self.callFromAnywhere
+		(
+			shortCodeName,
+			|_namedArgumentsTable|
+			{
+				Ok(())
+			},
+			|anonymousArgumentsTable|
+			{
+				let mut oneBasedLuaTableIndex = 1;
+				for argument in arguments
+				{
+					anonymousArgumentsTable.set(oneBasedLuaTableIndex, Self::convertSassValueToLuaValue(argument));
+					oneBasedLuaTableIndex += 1;
+				}
+				
+				Ok(())
+			},
+			|anyLuaValue| LuaArrayToSassCategorisation::convertLuaValueToSassValue(&anyLuaValue)
+		)
+	}
+	
+	#[inline(always)]
+	fn callFromAnywhere<'lua, R, ToR: FnOnce(AnyLuaValue) -> Result<R, CordialError>, NamedArgumentsTableMaker: FnOnce(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>, AnonymousArgumentsTableMaker: FnOnce(&mut LuaTable<PushGuard<&mut Lua<'lua>>>) -> Result<(), CordialError>>(&self, shortCodeName: &str, namedArgumentsTableMaker: NamedArgumentsTableMaker, anonymousArgumentsTableMaker: AnonymousArgumentsTableMaker, toR: ToR) -> Result<R, CordialError>
 	{
 		let mut lua = self.newLua()?;
 		
@@ -149,23 +181,23 @@ impl LuaShortCodeHelper
 			anonymousArgumentsTableMaker(&mut anonymousArgumentsTable)?;
 		}
 		
-		Self::executeShortCode(&mut lua, shortCodeName)
+		toR(Self::executeShortCode(&mut lua, shortCodeName)?)
 	}
 	
 	const shortcodes: &'static str = "shortcodes";
 	
 	#[inline(always)]
-	fn executeShortCode<'lua>(lua: &mut Lua<'lua>, shortCodeName: &str) -> Result<Vec<u8>, CordialError>
+	fn executeShortCode<'lua>(lua: &mut Lua<'lua>, shortCodeName: &str) -> Result<AnyLuaValue, LuaError>
 	{
-		Self::executeLuaCode(lua, &format!("shortcode(\"{}\", namedArguments, unpack(anonymousArguments))", shortCodeName))
+		lua.execute::<AnyLuaValue>(&format!("shortcode(\"{}\", namedArguments, unpack(anonymousArguments))", shortCodeName))
 	}
 	
 	#[inline(always)]
-	fn executeLuaCode<'lua>(lua: &mut Lua<'lua>, luaCode: &str) -> Result<Vec<u8>, CordialError>
+	fn luaToBytes<'lua>(value: AnyLuaValue) -> Result<Vec<u8>, CordialError>
 	{
 		use self::AnyLuaValue::*;
 		
-		let bytes = match lua.execute::<AnyLuaValue>(luaCode)?
+		let bytes = match value
 		{
 			LuaOther => return Err(CordialError::Configuration("LuaOther values are not supported".to_owned())),
 			
@@ -190,6 +222,112 @@ impl LuaShortCodeHelper
 		};
 		
 		Ok(bytes)
+	}
+	
+	#[inline(always)]
+	fn convertSassValueToLuaValue(sassValue: SassValue) -> AnyLuaValue
+	{
+		use self::SassValueType::*;
+		
+		use self::AnyLuaValue::*;
+		
+		match sassValue.type_()
+		{
+			Boolean => LuaBoolean(sassValue.as_boolean().unwrap().value()),
+			
+			Number =>
+			{
+				let number = sassValue.as_number().unwrap();
+				
+				let mut object = Vec::with_capacity(3);
+				object.push((LuaString("type".to_owned()), LuaString("number".to_owned())));
+				
+				let value = number.value();
+				object.push((LuaString("value".to_owned()), LuaNumber(value)));
+				
+				let unit = number.unit();
+				object.push((LuaString("unit".to_owned()), LuaAnyString(AnyLuaString(unit.to_bytes().to_vec()))));
+				
+				LuaArray(object)
+			}
+			
+			Color =>
+			{
+				let color = sassValue.as_color().unwrap();
+				
+				let mut object = Vec::with_capacity(5);
+				object.push((LuaString("type".to_owned()), LuaString("color".to_owned())));
+				
+				object.push((LuaString("red".to_owned()), LuaNumber(color.red())));
+				
+				object.push((LuaString("green".to_owned()), LuaNumber(color.green())));
+				
+				object.push((LuaString("blue".to_owned()), LuaNumber(color.blue())));
+				
+				object.push((LuaString("alpha".to_owned()), LuaNumber(color.alpha())));
+				
+				LuaArray(object)
+			}
+			
+			String =>
+			{
+				let string = sassValue.as_string().unwrap();
+				let value = string.value();
+				LuaAnyString(AnyLuaString(value.to_bytes().to_vec()))
+			}
+			
+			List =>
+			{
+				let list = sassValue.as_list().unwrap();
+				let mut array = Vec::with_capacity(list.length());
+				let mut index: usize = 1;
+				for item in list
+				{
+					array.push((LuaNumber(index as f64), Self::convertSassValueToLuaValue(item)));
+					index += 1;
+				}
+				LuaArray(array)
+			}
+			
+			Map =>
+			{
+				let map = sassValue.as_map().unwrap();
+				let mut array = Vec::with_capacity(map.length());
+				for (key, value) in map
+				{
+					array.push((Self::convertSassValueToLuaValue(key), Self::convertSassValueToLuaValue(value)));
+				}
+				LuaArray(array)
+			}
+			
+			Null => LuaNil,
+			
+			Error =>
+			{
+				let error = sassValue.as_error().unwrap();
+				
+				let mut object = Vec::with_capacity(2);
+				object.push((LuaString("type".to_owned()), LuaString("error".to_owned())));
+				
+				let message = error.message();
+				object.push((LuaString("message".to_owned()), LuaAnyString(AnyLuaString(message.to_bytes().to_vec()))));
+				
+				LuaArray(object)
+			}
+			
+			Warning =>
+			{
+				let warning = sassValue.as_warning().unwrap();
+				
+				let mut object = Vec::with_capacity(2);
+				object.push((LuaString("type".to_owned()), LuaString("warning".to_owned())));
+				
+				let message = warning.message();
+				object.push((LuaString("message".to_owned()), LuaAnyString(AnyLuaString(message.to_bytes().to_vec()))));
+				
+				LuaArray(object)
+			}
+		}
 	}
 	
 	#[inline(always)]

@@ -2,18 +2,10 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ProcessingPriority
-{
-	NoDependenciesEgImage,
-	CompositesEgCssSpriteImages,
-	DependsOnOthersEgStylesheetOrVideo,
-	LinksToSubResourcesEgHtmlPage,
-	IndexesEgSiteMap,
-}
+use super::*;
+use ::sass_alt::*;
+use ::std::ffi::CString;
 
-impl ProcessingPriority
-{
-	pub const All: [ProcessingPriority; 4] = [ProcessingPriority::NoDependenciesEgImage, ProcessingPriority::DependsOnOthersEgStylesheetOrVideo, ProcessingPriority::LinksToSubResourcesEgHtmlPage, ProcessingPriority::IndexesEgSiteMap];
-}
+
+include!("DataUriSassFunction.rs");
+include!("LuaFallbackSassFunction.rs");

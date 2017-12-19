@@ -28,6 +28,7 @@ use ::hyper::header::IfUnmodifiedSince;
 use ::hyper::header::Origin;
 use ::hyper::header::Range;
 use ::hyper::header::RangeUnit;
+use ::hyper::mime::*;
 use ::hyper::server::Response;
 use ::mime_multipart::Node;
 use ::mime_multipart::Part;

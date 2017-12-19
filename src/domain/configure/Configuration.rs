@@ -23,7 +23,10 @@ pub(crate) struct Configuration
 	#[serde(default = "Configuration::deploymentDate_default", skip_deserializing)] pub(crate) deploymentDate: SystemTime,
 	#[serde(default, skip_deserializing)] pub(crate) deploymentVersion: String,
 	#[serde(default, skip_deserializing)] pub(crate) luaFolderPath: Arc<PathBuf>,
-	#[serde(default, skip_deserializing)] pub(crate) sassImportPaths: Vec<PathBuf>,
+	#[serde(default, skip)] pub(crate) sassImportPaths: Vec<PathBuf>,
+	#[serde(default, skip)] pub(crate) sassFunctions: Rc<SassFunctionList>,
+	#[serde(default, skip)] pub(crate) sassImporters: Rc<SassImporterList>,
+	#[serde(default, skip)] pub(crate) sassHeaders: Rc<SassImporterList>,
 }
 
 impl Default for Configuration
@@ -51,6 +54,9 @@ impl Default for Configuration
 			deploymentVersion: String::default(),
 			luaFolderPath: Default::default(),
 			sassImportPaths: Default::default(),
+			sassFunctions: Default::default(),
+			sassImporters: Default::default(),
+			sassHeaders: Default::default(),
 		}
 	}
 }
@@ -103,9 +109,9 @@ impl Configuration
 			precision,
 			input_syntax,
 			include_paths: self.sassImportPaths.as_slice(),
-			function_list: Rc::new(SassFunctionList::new(vec![])),
-			importer_list: Rc::new(SassImporterList::new(vec![])),
-			header_list: Rc::new(SassImporterList::new(vec![])),
+			function_list: self.sassFunctions.clone(),
+			importer_list: self.sassImporters.clone(),
+			header_list: self.sassHeaders.clone(),
 		}
 	}
 	

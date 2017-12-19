@@ -80,6 +80,17 @@ It also does a lot more to create a great experience for your users:-
 * The number of connections (`rlimit`) is set as high as possible (Linux & Android only);
 * HTTPS OCSP stapling is supported;
 
+[cordial] tries hard to minify data:-
+
+* Data URIs are encoded as either percent encoded or base64-encoded, and the MIME type omitted if possible (lossless coercion from UTF-8 and other to US-ASCII is not done).
+* SVGs are cleaned and minified using the best techniques possible
+* All PNGs are crushed and recompressed using zopfli
+* JPEGs can be perceptually encoded using guetzli
+* Fonts are encoded using brotli
+* Maximal zopfli and brotli compression is applied to all resources
+* PJAX is supported to serve only changed content
+* CSS is stripped of unused content (purified) when served under AMP
+
 
 ## Restrictions
 
@@ -91,7 +102,7 @@ It also does a lot more to create a great experience for your users:-
 * It is impossible to have empty non-terminal path segments, eg `https://example.com/hello//about/` has an empty path segment in '//'. Leading empty path segments, eg `https://example.com//hello` (`//` before `hello`) are invalid anyway.
 * `robots.txt` generation adds in whitespace that isn't strictly required but does so to try to keep consistency with human-edited files
 * Generated GIF animations that have alternate sources (for image source sets) lack the `smallest_image` and `largest_image` UrlTags. These could be added but the code complexity may not be worthwhile.
-* Not all URLs are validated for existence. This because they are external (shortcodes, pingbacks).
+* Not all URLs are validated for existence. This is because they are external (shortcodes, pingbacks).
 
 
 ## Notes on (fav) icons
@@ -136,7 +147,6 @@ The license for this project is AGPL-3.0.
 * Additional SVG plugins
 	* [octicons](https://docs.rs/octicons/0.1.1/octicons/)
 	* [raster-retrace](https://crates.io/crates/raster-retrace)
-	* [Primitive](https://www.michaelfogleman.com/projects/primitive/) - Go binary, uses randomness so not really reproducible
 * HTML Minification
 	* Identify specific attributes that can be additionally optimised
 		* Eg global attributes where some values can be just an empty attribute
@@ -145,18 +155,10 @@ The license for this project is AGPL-3.0.
 * schema.org (using JSON+LD)
 	* breadcrumbs
 	* We need to move to 3 article images
-* Podcasts:
-	* <https://developers.google.com/search/docs/data-types/podcasts>
-	* <https://theaudacitytopodcast.com/podcast-seo-for-itunes-google-play-music-and-more-apps-tap291/>
 * AMP
 	* amp-app-banner
 		* Implement a markdown plugin
 		* ? link rel="amp-manifest" ?
-	* amp-audio
-		* Implement a markdown plugin
-	* amp-video
-		* Implement a markdown plugin
-		* Make sure we use https://developers.google.com/search/docs/data-types/videos
 	* amp-analytics
 	* amp-call-tracking (needs simple JSON responses)
 		* Implement as a markdown plugin for telephone numbers
@@ -176,9 +178,6 @@ The license for this project is AGPL-3.0.
 	* amp-gycat
 	
 * Formats
-	* Markdown: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
-	* SASS: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
-	* Handlebars: [Lua plugins](https://docs.rs/hlua/0.4.1/hlua/)
 	* URLs: Minify to relative URLs
 	* Non-HTML, language-aware resources should use link headers eg
 		* Indicate the alternative links in HTTP headers using `Link:<http://es.example.com/document.pdf>;rel="alternate";hreflang="es",<http://en.example.com/document.pdf>;rel="alternate";hreflang="en",<http://de.example.com/document.pdf>;rel="alternate";hreflang="de"` as it is likely to be more efficient.
@@ -195,10 +194,6 @@ The license for this project is AGPL-3.0.
 		* Use rust crate `librsvg`
 	* Raster Images
 		* Generate images suitable for Google VR View
-	* Favicon
-		* Quick request library: `reqwest = "0.4"`
-		* Svg2Png, then go from there, really. Multiple outputs.
-		* Is ICO still needed in 2017?
 	* HTML
 		* Spellchecking using [languagetool](https://www.languagetool.org/)
 		* Make sure there is at least 300 words of content on every page.
@@ -215,11 +210,7 @@ The license for this project is AGPL-3.0.
 		* Embedded images (data-uri)
 			* Is it worthwhile?
 * Modify zopfli crate to allow specifying options
-* Audio / Podcasts
-	* Support for WebVTT by using the video element: <https://www.iandevlin.com/blog/2015/12/html5/webvtt-and-audio/>
-	* Support for opengraph
-	* Support for twitter cards
-* Videos
+* Videos / Podcasts
 	* Support for opengraph
 * Fonts
 	* Use [ttfautohint](https://www.freetype.org/ttfautohint/); requires building FreeType ([eg](https://github.com/servo/libfreetype2/)) and HarfBuzz libraries ([wrapped for Rust](https://github.com/servo/rust-harfbuzz/blob/master/harfbuzz-sys/build.rs)), so tedious to add to [cordial]

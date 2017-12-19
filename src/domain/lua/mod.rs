@@ -2,18 +2,22 @@
 // Copyright © 2017 The developers of cordial. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/lemonrock/cordial/master/COPYRIGHT.
 
 
-#[serde(deny_unknown_fields)]
-#[derive(Deserialize, Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub(crate) enum ProcessingPriority
-{
-	NoDependenciesEgImage,
-	CompositesEgCssSpriteImages,
-	DependsOnOthersEgStylesheetOrVideo,
-	LinksToSubResourcesEgHtmlPage,
-	IndexesEgSiteMap,
-}
+use super::*;
+use ::handlebars::ContextJson;
+use ::handlebars::Helper;
+use ::handlebars::HelperDef;
+use ::handlebars::RenderContext;
+use ::handlebars::RenderError;
+use ::hlua::AnyLuaString;
+use ::hlua::AnyLuaValue;
+use ::hlua::AnyLuaValue::*;
+use ::hlua::LuaError;
+use ::hlua::LuaTable;
+use ::hlua::PushGuard;
+use ::std::ffi::CString;
+use ::url::form_urlencoded::Parse as ParsedQueryString;
 
-impl ProcessingPriority
-{
-	pub const All: [ProcessingPriority; 4] = [ProcessingPriority::NoDependenciesEgImage, ProcessingPriority::DependsOnOthersEgStylesheetOrVideo, ProcessingPriority::LinksToSubResourcesEgHtmlPage, ProcessingPriority::IndexesEgSiteMap];
-}
+
+include!("AnyLuaValueExt.rs");
+include!("LuaArrayToSassCategorisation.rs");
+include!("LuaShortCodeHelper.rs");

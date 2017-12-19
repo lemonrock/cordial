@@ -170,6 +170,19 @@ impl Responses
 	}
 	
 	#[inline(always)]
+	pub(crate) fn find<'a>(&self, url: &Url) -> Option<&StaticResponseVersions>
+	{
+		let hostName = url.host_str().unwrap();
+		let path = url.path();
+		
+		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)
+		{
+			None => None,
+			Some(trie) => trie.get(path)
+		}
+	}
+	
+	#[inline(always)]
 	fn response<'a>(&self, isHead: bool, hostName: &str, path: Cow<'a, str>, query: Option<Cow<'a, str>>, requestHeaders: Headers) -> Response
 	{
 		match self.resourcesByHostNameAndPathAndQueryString.get(hostName)

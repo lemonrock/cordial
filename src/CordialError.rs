@@ -149,6 +149,14 @@ quick_error!
 			context(path: &'a Path, cause: ::sass_alt::SassCompileError) -> (path.to_path_buf(), cause)
 		}
 		
+		CouldNotConvertToCString(cause: ::std::ffi::NulError)
+		{
+			cause(cause)
+			description(cause.description())
+			display("Could not convert to CString because: {}", &cause)
+			from()
+		}
+		
 		Configuration(reason: String)
 		{
 			description(&reason)

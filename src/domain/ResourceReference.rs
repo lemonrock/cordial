@@ -64,7 +64,7 @@ impl ResourceReference
 	}
 	
 	#[inline(always)]
-	pub(crate) fn urlAndAnchorTitleAttribute<'a>(&self, resources: &'a Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
+	pub(crate) fn urlAndAnchorTitleAttribute<'resources>(&self, resources: &'resources Resources, fallbackIso639Dash1Alpha2Language: Iso639Dash1Alpha2Language, iso639Dash1Alpha2Language: Iso639Dash1Alpha2Language) -> Result<(Rc<Url>, Rc<String>), CordialError>
 	{
 		let (urlData, resource) = self.urlDataAndResourceMandatory(resources, fallbackIso639Dash1Alpha2Language,Some(iso639Dash1Alpha2Language))?;
 		

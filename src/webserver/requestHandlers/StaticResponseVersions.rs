@@ -50,25 +50,30 @@ impl StaticResponseVersions
 		
 		match *self
 		{
-			Unversioned { currentLastModified, .. } =>
-			{
-				currentLastModified
-			}
+			Unversioned { currentLastModified, .. } => currentLastModified,
 			
-			SingleVersion { currentLastModified, .. } =>
-			{
-				currentLastModified
-			}
+			SingleVersion { currentLastModified, .. } => currentLastModified,
 			
-			HasPrevisionVersion { currentLastModified, .. } =>
-			{
-				currentLastModified
-			}
+			HasPrevisionVersion { currentLastModified, .. } => currentLastModified,
 			
-			Discontinued { previousLastModified, .. } =>
-			{
-				previousLastModified
-			}
+			Discontinued { previousLastModified, .. } => previousLastModified,
+		}
+	}
+	
+	#[inline(always)]
+	pub(crate) fn currentStaticResponse(&self) -> Option<&RegularAndPjaxStaticResponse>
+	{
+		use self::StaticResponseVersions::*;
+		
+		match *self
+		{
+			Unversioned { ref currentResponse, .. } => Some(currentResponse),
+			
+			SingleVersion { ref currentResponse, .. } => Some(currentResponse),
+			
+			HasPrevisionVersion { ref currentResponse, .. } => Some(currentResponse),
+			
+			Discontinued { .. } => None,
 		}
 	}
 	

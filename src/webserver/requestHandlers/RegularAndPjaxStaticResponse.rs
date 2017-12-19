@@ -85,33 +85,83 @@ impl RegularAndPjaxStaticResponse
 		}
 	}
 	
-//	#[inline(always)]
-//	fn response(&self) -> &StaticResponse
-//	{
-//		use self::RegularAndPjaxStaticResponse::*;
-//
-//		match *self
-//		{
-//			Regular { ref response, .. } => response,
-//			WithPjax { ref response, .. } => response,
-//			Unadorned { ref response, .. } => response,
-//		}
-//	}
-//
-//	#[inline(always)]
-//	fn contentMimeType<'a>(&'a self) -> &'a Mime
-//	{
-//		&self.response().contentType.0
-//	}
-//
-//	#[inline(always)]
-//	pub(crate) fn toDataUri(&self) -> Url
-//	{
-//		use ::base64::encode_config as base64Encode;
-//		use ::base64::STANDARD;
-//		let dataUriString = format!("data:{};base64,{}", self.contentMimeType(), base64Encode(&self.response().uncompressedBody, STANDARD));
-//		Url::parse(&dataUriString).unwrap()
-//	}
+	// Will return either a base64-encoded or %-encoded data-uri depending on which one is smaller.
+	// Will omit the media type if it is "text/plain;charset=US-ASCII" (which is quite rare).
+	#[inline(always)]
+	pub(crate) fn toDataUri(&self) -> String
+	{
+		#[inline(always)]
+		fn isContentMimeTypeDefaultForDataUri(mimeType: &Mime) -> bool
+		{
+			match (mimeType.type_(), mimeType.subtype(), mimeType.suffix())
+			{
+				(TEXT, PLAIN, None) => if let Some(charset) = mimeType.get_param(CHARSET)
+				{
+					charset.as_str() == "US-ASCII"
+				}
+				else
+				{
+					false
+				},
+				
+				_ => false,
+			}
+		}
+		
+		let contentMimeType = self.contentMimeType();
+		
+		let dataUriMediaType = if isContentMimeTypeDefaultForDataUri(contentMimeType)
+		{
+			""
+		}
+		else
+		{
+			contentMimeType.as_ref()
+		};
+		
+		let uncompressedBody = &self.response().uncompressedBody;
+		
+		// Try percent encoding
+		use ::url::percent_encoding::DEFAULT_ENCODE_SET;
+		use ::url::percent_encoding::percent_encode;
+		let percentEncodedBody = percent_encode(uncompressedBody, DEFAULT_ENCODE_SET);
+		let percentEncodedDataUriString = format!("data:{},{}", dataUriMediaType, percentEncodedBody);
+		
+		// Try base64 encoding
+		use ::base64::encode_config as base64Encode;
+		use ::base64::STANDARD;
+		let base64EncodedBody = base64Encode(uncompressedBody, STANDARD);
+		let base64DataUriString = format!("data:{};base64,{}", dataUriMediaType, base64EncodedBody);
+		
+		if percentEncodedDataUriString.len() < base64DataUriString.len()
+		{
+			percentEncodedDataUriString
+		}
+		else
+		{
+			base64DataUriString
+		}
+	}
+	
+	
+	#[inline(always)]
+	fn response(&self) -> &StaticResponse
+	{
+		use self::RegularAndPjaxStaticResponse::*;
+
+		match *self
+		{
+			Regular { ref response, .. } => response,
+			WithPjax { ref response, .. } => response,
+			Unadorned { ref response, .. } => response,
+		}
+	}
+
+	#[inline(always)]
+	fn contentMimeType<'a>(&'a self) -> &'a Mime
+	{
+		&self.response().contentType.0
+	}
 	
 	#[inline(always)]
 	fn staticResponse(&self, isHead: bool, isPjax: bool, preferredEncoding: PreferredCompression, lastModified: HttpDate, ifMatch: Option<&IfMatch>, ifUnmodifiedSince: Option<&IfUnmodifiedSince>, ifNoneMatch: Option<&IfNoneMatch>, ifModifiedSince: Option<&IfModifiedSince>, ifRange: Option<&IfRange>, range: Option<&Range>) -> Response

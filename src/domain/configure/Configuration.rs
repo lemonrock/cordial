@@ -139,17 +139,21 @@ impl Configuration
 	#[inline(always)]
 	fn finishReconfigure(self, oldResponses: Arc<Responses>) -> Result<(ServerConfig, HttpsStaticRequestHandler, HttpRedirectToHttpsRequestHandler, Self), CordialError>
 	{
-		let ourHostNames = self.ourHostNames()?;
-		
 		Ok
 		(
 			(
 				self.tlsServerConfiguration()?,
-				self.httpsStaticRequestHandler(&ourHostNames, oldResponses)?,
-				self.httpRedirectToHttpsRequestHandler(ourHostNames),
+				self.httpsStaticRequestHandler(oldResponses)?,
+				self.httpRedirectToHttpsRequestHandler()?,
 				self,
 			)
 		)
+	}
+	
+	#[inline(always)]
+	fn serverHostNames(&self) -> Result<HashSet<String>, CordialError>
+	{
+		self.localization.serverHostNames()
 	}
 	
 	#[inline(always)]
@@ -165,20 +169,56 @@ impl Configuration
 	}
 	
 	#[inline(always)]
-	fn httpRedirectToHttpsRequestHandler(&self, ourHostNames: HashSet<String>) -> HttpRedirectToHttpsRequestHandler
+	fn httpRedirectToHttpsRequestHandler(&self) -> Result<HttpRedirectToHttpsRequestHandler, CordialError>
 	{
-		HttpRedirectToHttpsRequestHandler::new(self.daemon.https_socket.port(), ourHostNames, self.http_keep_alive)
+		Ok(HttpRedirectToHttpsRequestHandler::new(self.daemon.https_socket.port(), self.serverHostNames()?, self.http_keep_alive))
 	}
 	
 	#[inline(always)]
-	fn httpsStaticRequestHandler(&self, ourHostNames: &HashSet<String>, oldResponses: Arc<Responses>) -> Result<HttpsStaticRequestHandler, CordialError>
+	fn httpsStaticRequestHandler(&self, oldResponses: Arc<Responses>) -> Result<HttpsStaticRequestHandler, CordialError>
 	{
-		let handlebars = self.registerHandlebarsTemplates()?;
+		Ok
+		(
+			HttpsStaticRequestHandler
+			{
+				responses: Arc::new(self.render(&oldResponses)?),
+				httpKeepAlive: self.http_keep_alive,
+				hstsPreloadingEnabledForProduction: self.enable_hsts_preloading_for_production,
+				allowSearchEngineIndexingForProduction: self.allow_search_engine_indexing_for_production,
+			}
+		)
+	}
+	
+	#[inline(always)]
+	fn render(&self, oldResponses: &Arc<Responses>) -> Result<Responses, CordialError>
+	{
+		// Create Rc<Resources> at this point for SassFunctions
 		
-		let resources = self.discoverResources()?;
+		// TODO: Load cache of Responses
+		// However, need to check that Responses hash is valid
+		// TODO: Multi-thread creation of Responses
 		
-		let newResources = self.render(resources, &oldResponses, &ourHostNames, &handlebars)?;
-		Ok(HttpsStaticRequestHandler::new(newResources, self.http_keep_alive, self.enable_hsts_preloading_for_production, self.allow_search_engine_indexing_for_production))
+		
+		let serverHostNames = self.serverHostNames()?;
+		let mut newResponses = Responses::new(self.deploymentDate, &serverHostNames);
+		
+		{
+			let handlebars = self.registerHandlebarsTemplates()?;
+			let resources = self.discoverResources()?;
+			
+			let mut rssChannelsByLanguage = self.rssChannelsByLanguage();
+			let mut siteMapWebPages = self.languagesHashMap();
+			
+			self.renderResources(&mut newResponses, oldResponses, &handlebars, &resources, &mut rssChannelsByLanguage, &mut siteMapWebPages)?;
+			
+			self.renderRssFeeds(&mut newResponses, oldResponses, &handlebars, &resources, &rssChannelsByLanguage)?;
+			
+			self.renderSiteMapsAndRobotsTxt(&mut newResponses, oldResponses, &handlebars, &resources, &siteMapWebPages)?;
+		}
+		
+		newResponses.addAnythingThatIsDiscontinued(oldResponses);
+		
+		Ok(newResponses)
 	}
 	
 	#[inline(always)]
@@ -191,32 +231,6 @@ impl Configuration
 	fn discoverResources(&self) -> Result<Resources, CordialError>
 	{
 		DiscoverResources::discover(&self, &self.inputFolderPath)
-	}
-	
-	#[inline(always)]
-	fn render(&self, resources: Resources, oldResponses: &Arc<Responses>, ourHostNames: &HashSet<String>, handlebars: &HandlebarsWrapper) -> Result<Responses, CordialError>
-	{
-		// TODO: Load cache of Responses
-		// However, need to check that Responses hash is valid
-		// TODO: Multi-thread creation of Responses
-		
-		
-		let mut newResponses = Responses::new(self.deploymentDate, ourHostNames);
-		
-		{
-			let mut rssChannelsByLanguage = self.rssChannelsByLanguage();
-			let mut siteMapWebPages = self.languagesHashMap();
-			
-			self.renderResources(&mut newResponses, oldResponses, handlebars, &resources, &mut rssChannelsByLanguage, &mut siteMapWebPages)?;
-			
-			self.renderRssFeeds(&mut newResponses, oldResponses, handlebars, &resources, &rssChannelsByLanguage)?;
-			
-			self.renderSiteMapsAndRobotsTxt(&mut newResponses, oldResponses, handlebars, &resources, &siteMapWebPages)?;
-		}
-		
-		newResponses.addAnythingThatIsDiscontinued(oldResponses);
-		
-		Ok(newResponses)
 	}
 	
 	#[inline(always)]
@@ -345,7 +359,6 @@ impl Configuration
 			Ok(importPaths)
 		}
 		configuration.sassImportPaths = findSassImportPaths(inputFolderPath)?;
-		
 		
 		Ok(configuration)
 	}
@@ -484,12 +497,6 @@ impl Configuration
 	fn primaryLanguage(&self) -> Result<&Language, CordialError>
 	{
 		self.localization.primaryLanguage()
-	}
-	
-	#[inline(always)]
-	fn ourHostNames(&self) -> Result<HashSet<String>, CordialError>
-	{
-		self.localization.serverHostNames()
 	}
 	
 	#[inline(always)]

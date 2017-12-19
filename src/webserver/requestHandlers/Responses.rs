@@ -19,11 +19,11 @@ impl Responses
 	}
 	
 	#[inline(always)]
-	pub(crate) fn new(deploymentDate: SystemTime, ourHostNames: &HashSet<String>) -> Self
+	pub(crate) fn new(deploymentDate: SystemTime, serverHostNames: &HashSet<String>) -> Self
 	{
-		let mut resourcesByHostNameAndPathAndQueryString = HashMap::with_capacity(ourHostNames.len());
+		let mut resourcesByHostNameAndPathAndQueryString = HashMap::with_capacity(serverHostNames.len());
 		
-		for hostName in ourHostNames.iter()
+		for hostName in serverHostNames.iter()
 		{
 			resourcesByHostNameAndPathAndQueryString.insert(hostName.to_owned(), Trie::new());
 		}

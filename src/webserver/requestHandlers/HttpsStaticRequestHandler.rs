@@ -5,10 +5,10 @@
 #[derive(Debug)]
 pub(crate) struct HttpsStaticRequestHandler
 {
-	responses: Arc<Responses>,
-	httpKeepAlive: bool,
-	hstsPreloadingEnabledForProduction: bool,
-	allowSearchEngineIndexingForProduction: bool,
+	pub(crate) responses: Arc<Responses>,
+	pub(crate) httpKeepAlive: bool,
+	pub(crate) hstsPreloadingEnabledForProduction: bool,
+	pub(crate) allowSearchEngineIndexingForProduction: bool,
 }
 
 impl RequestHandler for HttpsStaticRequestHandler
@@ -143,18 +143,6 @@ impl RequestHandler for HttpsStaticRequestHandler
 
 impl HttpsStaticRequestHandler
 {
-	#[inline(always)]
-	pub(crate) fn new(responses: Responses, httpKeepAlive: bool, hstsPreloadingEnabledForProduction: bool, allowSearchEngineIndexingForProduction: bool) -> Self
-	{
-		Self
-		{
-			responses: Arc::new(responses),
-			httpKeepAlive,
-			hstsPreloadingEnabledForProduction,
-			allowSearchEngineIndexingForProduction,
-		}
-	}
-	
 	#[inline(always)]
 	pub(crate) fn responses(&self) -> Arc<Responses>
 	{

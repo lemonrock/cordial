@@ -6,7 +6,7 @@
 pub(crate) struct HttpRedirectToHttpsRequestHandler
 {
 	portToRedirectTo: u16,
-	ourHostNames: HashSet<String>,
+	serverHostNames: HashSet<String>,
 	httpKeepAlive: bool,
 }
 
@@ -17,7 +17,7 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 	#[inline(always)]
 	fn isNotOneOfOurHostNames(&self, hostName: &str) -> bool
 	{
-		!self.ourHostNames.contains(hostName)
+		!self.serverHostNames.contains(hostName)
 	}
 	
 	#[inline(always)]
@@ -59,12 +59,12 @@ impl RequestHandler for HttpRedirectToHttpsRequestHandler
 impl HttpRedirectToHttpsRequestHandler
 {
 	#[inline(always)]
-	pub(crate) fn new(portToRedirectTo: u16, ourHostNames: HashSet<String>, httpKeepAlive: bool) -> Self
+	pub(crate) fn new(portToRedirectTo: u16, serverHostNames: HashSet<String>, httpKeepAlive: bool) -> Self
 	{
 		Self
 		{
 			portToRedirectTo,
-			ourHostNames,
+			serverHostNames,
 			httpKeepAlive,
 		}
 	}
